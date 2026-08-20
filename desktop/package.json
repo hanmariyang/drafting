@@ -1,0 +1,72 @@
+{
+  "name": "drafting-desktop",
+  "version": "0.1.0",
+  "description": "Drafting desktop app — embeds the Drafting server and opens the planning workspace.",
+  "main": "main.cjs",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33",
+    "electron-builder": "^25"
+  },
+  "build": {
+    "appId": "dev.drafting.app",
+    "productName": "Drafting",
+    "files": [
+      "main.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "daemon",
+        "filter": [
+          "package.json",
+          "db/schema.sql",
+          "api/package.json",
+          "api/dist/**",
+          "api/templates/**",
+          "web/dist/**",
+          "node_modules/**",
+          "api/node_modules/**",
+          "!node_modules/.cache/**",
+          "!node_modules/typescript/**",
+          "!node_modules/vite/**",
+          "!node_modules/@vitejs/**",
+          "!node_modules/react/**",
+          "!node_modules/react-dom/**",
+          "!node_modules/react-router-dom/**",
+          "!node_modules/concurrently/**",
+          "!node_modules/@types/**"
+        ]
+      }
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "notarize": false
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "hanmariyang",
+      "repo": "drafting"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

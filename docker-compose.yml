@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: drafting:local
+    ports:
+      - "${DRAFTING_PORT:-8477}:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_PATH=/data/drafting.sqlite
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY:-}
+      - MANAGED_TIER=${MANAGED_TIER:-false}
+      - AI_STUB=${AI_STUB:-}
+    volumes:
+      # persists sqlite db + generated master.key across restarts
+      - drafting_data:/data
+    restart: unless-stopped
+
+volumes:
+  drafting_data:

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drafting — AI writes proposals. You write the document.</title>
+<meta name="description" content="Self-hosted AI planning workspace. Idea interview to PRD, feature spec and IA — every AI sentence arrives as a suggestion; only what you accept becomes the document." />
+<style>
+  :root{
+    --paper:#FFFFFF; --bg:#F7F7F5; --ink:#1B1C1E; --sub:#6F7076; --faint:#9A9BA0;
+    --hair:#E7E6E2; --hover:#EFEFEB;
+    --sug:#0E7B62; --sug-ink:#0B5C4A; --sug-bg:#E9F5F1; --sug-line:#BFE3D8;
+    --del:#AA3333;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--sug-ink)}
+  ::selection{background:var(--sug-bg)}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+  code,pre{font-family:var(--mono)}
+  h1,h2,h3,p,figcaption,.lead,.sub{word-break:keep-all;overflow-wrap:break-word}
+
+  nav{display:flex;align-items:center;gap:16px;padding:18px 0;flex-wrap:wrap}
+  nav .mark{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:var(--ink);
+    text-decoration:none;letter-spacing:-.01em}
+  nav .mark .d{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;
+    background:var(--ink);color:#fff;font-size:11px;font-weight:800}
+  nav .links{margin-left:auto;display:flex;gap:18px;align-items:center}
+  nav .links a{color:var(--sub);text-decoration:none;font-size:14px}
+  nav .links a:hover{color:var(--ink)}
+  .lang{display:inline-flex;border:1px solid var(--hair);border-radius:7px;overflow:hidden;font-family:var(--mono);background:var(--paper)}
+  .lang button{background:transparent;border:none;color:var(--sub);font-size:12px;padding:5px 9px;cursor:pointer}
+  .lang button.on{background:var(--ink);color:#fff;font-weight:700}
+  @media (max-width:520px){nav{gap:10px}nav .links{gap:12px}nav .links a{font-size:13px}}
+
+  /* hero */
+  .hero{padding:64px 0 24px;text-align:center}
+  .hero h1{font-size:clamp(30px,5.2vw,50px);line-height:1.2;margin:0 0 16px;letter-spacing:-.02em;
+    font-weight:800;text-wrap:balance}
+  .hero h1 .g{color:var(--sug)}
+  .hero p.sub{color:var(--sub);font-size:clamp(15px,2vw,18px);max-width:620px;margin:0 auto 28px;text-wrap:balance}
+  .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:9px;font-weight:700;
+    text-decoration:none;font-size:15px;transition:filter .15s;border:1px solid transparent}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn.primary:hover{filter:brightness(1.25)}
+  .btn.ghost{border-color:var(--hair);color:var(--ink);background:var(--paper)}
+  .btn.ghost:hover{border-color:var(--sub)}
+  .hero .fine{font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+  /* live suggestion demo (signature) */
+  .demo{margin:48px auto 0;max-width:760px;border:1px solid var(--hair);border-radius:14px;overflow:hidden;
+    background:var(--paper);box-shadow:0 20px 60px rgba(27,28,30,.09);text-align:left}
+  .demo-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--hair);background:var(--bg)}
+  .demo-bar i{width:10px;height:10px;border-radius:50%;background:var(--hair);display:inline-block}
+  .demo-bar .t{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:8px}
+  .demo-bar .n{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--sug);font-weight:700}
+  .demo-body{padding:28px 34px 26px}
+  .demo-body .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;margin-bottom:8px}
+  .demo-body h3{font-size:17px;font-weight:800;margin:0 0 10px}
+  .demo-body p{font-size:15px;line-height:2;margin:0;max-width:640px}
+  .mk{background:var(--sug-bg);border-bottom:1.5px solid var(--sug);color:var(--sug-ink);padding:1px 3px;
+    border-radius:3px 3px 0 0;transition:background .25s,border-color .25s,color .25s}
+  .mk.dry{background:transparent;border-color:transparent;color:var(--ink)}
+  .mk.dead{text-decoration:line-through;color:var(--faint);background:transparent;border-color:transparent}
+  .demo-acts{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .demo-acts .src{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:auto}
+  .ba,.br{font-size:13px;font-weight:700;border-radius:7px;padding:6px 16px;cursor:pointer;border:1px solid var(--hair);font-family:inherit}
+  .ba{background:var(--sug);border-color:var(--sug);color:#fff}
+  .br{background:var(--paper);color:var(--ink)}
+  .demo-done{font-family:var(--mono);font-size:11px;color:var(--sug);font-weight:700;display:none}
+
+  /* sections */
+  section{padding:72px 0 0}
+  .sect-label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--sug);margin:0 0 10px}
+  h2{font-size:clamp(22px,3.4vw,30px);margin:0 0 12px;letter-spacing:-.01em;text-wrap:balance;font-weight:800}
+  .lead{color:var(--sub);max-width:640px;margin:0 0 34px}
+
+  .feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .fcard{border:1px solid var(--hair);border-radius:12px;background:var(--paper);padding:20px 22px;transition:border-color .18s}
+  .fcard:hover{border-color:var(--sug-line)}
+  .fcard h3{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:9px;font-weight:800}
+  .fcard h3 .g{font-family:var(--mono);color:var(--sug);font-size:13px;flex:0 0 auto}
+  .fcard p{font-size:13.5px;color:var(--sub);margin:0}
+
+  figure{margin:22px 0 0}
+  figcaption{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
+  .shot{display:block;width:100%;border:1px solid var(--hair);border-radius:14px;background:var(--paper)}
+
+  pre.code{background:var(--ink);color:#E8E9EA;border-radius:12px;padding:20px 22px;
+    font-size:13.5px;line-height:1.75;overflow-x:auto;margin:0}
+  pre.code .c{color:#8B8D93}
+  pre.code .p{color:#7BD6BF}
+
+  .dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .dcard{border:1px solid var(--hair);border-radius:12px;background:var(--paper);padding:22px;text-decoration:none;
+    color:var(--ink);display:flex;flex-direction:column;gap:6px;transition:border-color .18s,transform .18s}
+  .dcard:hover{border-color:var(--sug);transform:translateY(-2px)}
+  .dcard .os{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .dcard .nm{font-weight:800;font-size:17px}
+  .dcard .fmt{font-family:var(--mono);font-size:12px;color:var(--sug)}
+  .dl-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px}
+
+  footer{margin-top:88px;border-top:1px solid var(--hair);padding:26px 0 40px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  footer span,footer a{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  footer .sp{flex:1}
+  @media (prefers-reduced-motion:reduce){.mk{transition:none}.dcard{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <a class="mark" href="#"><span class="d">D</span>Drafting</a>
+    <div class="links">
+      <a href="#grammar" data-i18n="nav.grammar">Suggestion mode</a>
+      <a href="#chain" data-i18n="nav.chain">Document chain</a>
+      <a href="#quickstart" data-i18n="nav.quickstart">Quickstart</a>
+      <a href="#download" data-i18n="nav.download">Download</a>
+      <a id="repoLink" href="https://github.com/hanmariyang/drafting">GitHub</a>
+      <span class="lang"><button id="langEn">EN</button><button id="langKo">KO</button></span>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1 data-i18n="hero.h1">AI writes <span class="g">proposals</span>.<br>You write the document.</h1>
+    <p class="sub" data-i18n="hero.sub">A self-hosted planning workspace. One idea line starts an interview; PRD, feature spec and IA follow — but nothing AI writes becomes the document until you accept it.</p>
+    <div class="cta-row">
+      <a class="btn primary" href="#download" data-i18n="hero.cta1">Download</a>
+      <a class="btn ghost" href="#quickstart" data-i18n="hero.cta2">Self-host in a minute</a>
+    </div>
+    <p class="fine" data-i18n="hero.fine">MIT · BYOK (your API key, encrypted at rest) · your machine, your documents</p>
+
+    <!-- signature: try the grammar right here -->
+    <div class="demo">
+      <div class="demo-bar"><i></i><i></i><i></i><span class="t">PRD · v3</span><span class="n" id="demoCount" data-i18n-skip>● 1</span></div>
+      <div class="demo-body">
+        <div class="eyebrow" data-i18n="demo.eyebrow">Try it — this is the whole product</div>
+        <h3 data-i18n="demo.h3">Scope</h3>
+        <p><span data-i18n="demo.base">The first release ships one Slack digest bot, reading a single spreadsheet.</span>
+          <span class="mk" id="demoMk" data-i18n="demo.mk">It does not ship a dashboard UI.</span></p>
+        <div class="demo-acts" id="demoActs">
+          <button class="ba" id="demoAccept" data-i18n="demo.accept">Accept</button>
+          <button class="br" id="demoReject" data-i18n="demo.reject">Reject</button>
+          <span class="src" data-i18n="demo.src">source: interview Q4</span>
+        </div>
+        <div class="demo-acts"><span class="demo-done" id="demoDone" data-i18n="demo.done">Accepted — the highlight dries to ink. That sentence is now the document.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="grammar">
+    <p class="sect-label" data-i18n="gr.label">Suggestion mode</p>
+    <h2 data-i18n="gr.h2">One grammar, learned in ten seconds.</h2>
+    <p class="lead" data-i18n="gr.lead">If you have ever reviewed suggestions in a shared doc, you already know how to use Drafting. Green means "for your review" — everywhere, and nothing else.</p>
+    <div class="feat">
+      <div class="fcard"><h3><span class="g">01</span><span data-i18n="gr.c1h">Everything AI writes is a proposal</span></h3><p data-i18n="gr.c1p">Sections stream in as suggestions, highlighted green. There is no AI text that silently becomes your document.</p></div>
+      <div class="fcard"><h3><span class="g">02</span><span data-i18n="gr.c2h">Only what you accept is the document</span></h3><p data-i18n="gr.c2p">Exports and share links contain accepted sentences only. Pending suggestions never leak.</p></div>
+      <div class="fcard"><h3><span class="g">03</span><span data-i18n="gr.c3h">Every proposal carries its source</span></h3><p data-i18n="gr.c3p">Interview answer Q3, PRD §2, or your own rewrite instruction — you always see why the AI is proposing.</p></div>
+      <div class="fcard"><h3><span class="g">04</span><span data-i18n="gr.c4h">Accept · reject · rewrite</span></h3><p data-i18n="gr.c4p">Three ways to handle a card. A rewrite instruction returns as a fresh proposal, never as an edit behind your back.</p></div>
+    </div>
+    <figure><img class="shot" src="shot-doc.png" alt="Document with pending suggestions" loading="lazy" />
+      <figcaption data-i18n="gr.cap">The suggestion queue: accept, reject, or type a rewrite instruction.</figcaption></figure>
+  </section>
+
+  <section id="chain">
+    <p class="sect-label" data-i18n="ch.label">Document chain</p>
+    <h2 data-i18n="ch.h2">One idea line in. A document chain out.</h2>
+    <p class="lead" data-i18n="ch.lead">Drafting opens with a single question — "What are we building?" A short interview follows, and your answers become the evidence behind every PRD, feature-spec and IA proposal downstream.</p>
+    <div class="feat">
+      <div class="fcard"><h3><span class="g">INT</span><span data-i18n="ch.c1h">The interview is a document</span></h3><p data-i18n="ch.c1p">Your answers are saved as document zero — re-readable, and cited as the source of later proposals.</p></div>
+      <div class="fcard"><h3><span class="g">PRD</span><span data-i18n="ch.c2h">Context flows down the chain</span></h3><p data-i18n="ch.c2p">Feature specs inherit the PRD; IA inherits both. Each document knows which version of its parent it was written against.</p></div>
+      <div class="fcard"><h3><span class="g">STALE</span><span data-i18n="ch.c3h">Upstream changes re-propose, never overwrite</span></h3><p data-i18n="ch.c3p">Change the PRD and affected downstream items return to proposal state. Nothing is silently rewritten.</p></div>
+      <div class="fcard"><h3><span class="g">BYOK</span><span data-i18n="ch.c4h">Your key, your machine</span></h3><p data-i18n="ch.c4p">Bring an Anthropic, OpenAI or OpenRouter key. Encrypted with AES-256-GCM; plaintext is never stored — a test enforces it.</p></div>
+    </div>
+    <figure><img class="shot" src="shot-interview.png" alt="Idea interview" loading="lazy" />
+      <figcaption data-i18n="ch.cap">The interview: one question at a time, with hints and examples.</figcaption></figure>
+    <figure><img class="shot" src="shot-start.png" alt="Start screen" loading="lazy" />
+      <figcaption data-i18n="ch.cap2">First run: one idea line, and a sample plan with pending suggestions to practice on.</figcaption></figure>
+  </section>
+
+  <section id="quickstart">
+    <p class="sect-label" data-i18n="qs.label">Quickstart</p>
+    <h2 data-i18n="qs.h2">Self-hosted in a minute.</h2>
+    <p class="lead" data-i18n="qs.lead">Requirements: Docker (or Node 22+). Your documents live in a local SQLite file — no accounts, no cloud.</p>
+    <pre class="code"><span class="c"># run</span>
+<span class="p">$</span> git clone https://github.com/hanmariyang/drafting && cd drafting
+<span class="p">$</span> docker compose up -d
+<span class="c"># open http://localhost:8477 — add your API key in Settings</span></pre>
+  </section>
+
+  <section id="download">
+    <p class="sect-label" data-i18n="dl.label">Download</p>
+    <h2 data-i18n="dl.h2">Desktop app.</h2>
+    <p class="lead" data-i18n="dl.lead">The document workspace as a native window — same self-hosted core inside.</p>
+    <div class="dl">
+      <a class="dcard" href="https://github.com/hanmariyang/drafting/releases/latest"><span class="os">macOS</span><span class="nm">Drafting.dmg</span><span class="fmt">Apple silicon · Intel</span></a>
+      <a class="dcard" href="https://github.com/hanmariyang/drafting/releases/latest"><span class="os">Windows</span><span class="nm">Drafting Setup.exe</span><span class="fmt">x64</span></a>
+      <a class="dcard" href="https://github.com/hanmariyang/drafting/releases/latest"><span class="os">Linux</span><span class="nm">Drafting.AppImage</span><span class="fmt">x64</span></a>
+    </div>
+    <p class="dl-note" data-i18n="dl.note">Downloads land on the latest GitHub Release. Prefer a server? docker compose up and open it in any browser.</p>
+  </section>
+
+  <footer>
+    <span>MIT License</span>
+    <span>·</span>
+    <a href="https://github.com/hanmariyang/drafting">GitHub</a>
+    <span class="sp"></span>
+    <span data-i18n="ft.line">Nothing you did not accept is in the document.</span>
+  </footer>
+
+</div>
+
+<script>
+  // ── live demo (signature) ──────────────────────────────────────
+  (function(){
+    var mk=document.getElementById('demoMk'),acts=document.getElementById('demoActs'),
+        done=document.getElementById('demoDone'),cnt=document.getElementById('demoCount');
+    function settle(cls){
+      mk.classList.add(cls);
+      acts.style.display='none';
+      cnt.textContent='● 0';cnt.style.color='var(--faint)';
+      done.style.display='inline';
+    }
+    document.getElementById('demoAccept').addEventListener('click',function(){settle('dry');});
+    document.getElementById('demoReject').addEventListener('click',function(){
+      settle('dead');
+      done.textContent=done.getAttribute('data-rejected')||'Rejected — it never entered the document.';
+    });
+  })();
+
+  // ── i18n (coxpit-oss 랜딩 패턴) ─────────────────────────────────
+  var STR={
+    'nav.grammar':{en:'Suggestion mode',ko:'제안 문법'},
+    'nav.chain':{en:'Document chain',ko:'문서 체인'},
+    'nav.quickstart':{en:'Quickstart',ko:'시작하기'},
+    'nav.download':{en:'Download',ko:'다운로드'},
+    'hero.h1':{en:'AI writes <span class="g">proposals</span>.<br>You write the document.',ko:'AI는 <span class="g">제안</span>을 쓰고,<br>문서는 당신이 씁니다.'},
+    'hero.sub':{en:'A self-hosted planning workspace. One idea line starts an interview; PRD, feature spec and IA follow — but nothing AI writes becomes the document until you accept it.',ko:'셀프호스트 기획 워크스페이스. 아이디어 한 줄이면 인터뷰가 시작되고 PRD·기능명세·IA가 이어집니다. 단, AI가 쓴 어떤 문장도 수락 전에는 문서가 되지 않습니다.'},
+    'hero.cta1':{en:'Download',ko:'다운로드'},
+    'hero.cta2':{en:'Self-host in a minute',ko:'1분 셀프호스트'},
+    'hero.fine':{en:'MIT · BYOK (your API key, encrypted at rest) · your machine, your documents',ko:'MIT · BYOK(내 API 키, 저장 시 암호화) · 내 머신, 내 문서'},
+    'demo.eyebrow':{en:'Try it — this is the whole product',ko:'눌러보세요. 이게 제품의 전부입니다'},
+    'demo.h3':{en:'Scope',ko:'범위'},
+    'demo.base':{en:'The first release ships one Slack digest bot, reading a single spreadsheet.',ko:'1차 릴리스는 스프레드시트 1개를 읽는 슬랙 요약 봇 하나를 출하한다.'},
+    'demo.mk':{en:'It does not ship a dashboard UI.',ko:'별도 대시보드 UI는 만들지 않는다.'},
+    'demo.accept':{en:'Accept',ko:'수락'},
+    'demo.reject':{en:'Reject',ko:'거절'},
+    'demo.src':{en:'source: interview Q4',ko:'근거: 인터뷰 Q4'},
+    'demo.done':{en:'Accepted — the highlight dries to ink. That sentence is now the document.',ko:'수락됨. 하이라이트가 잉크로 마릅니다. 이제 이 문장이 문서입니다.'},
+    'gr.label':{en:'Suggestion mode',ko:'제안 문법'},
+    'gr.h2':{en:'One grammar, learned in ten seconds.',ko:'10초면 배우는 문법 하나.'},
+    'gr.lead':{en:'If you have ever reviewed suggestions in a shared doc, you already know how to use Drafting. Green means "for your review" — everywhere, and nothing else.',ko:'공유 문서에서 제안을 검토해본 적이 있다면 이미 쓸 줄 아는 도구입니다. 화면의 초록은 어디서나 "검토할 것" 하나만 뜻합니다.'},
+    'gr.c1h':{en:'Everything AI writes is a proposal',ko:'AI 산출은 전부 제안'},
+    'gr.c1p':{en:'Sections stream in as suggestions, highlighted green. There is no AI text that silently becomes your document.',ko:'섹션은 그린 하이라이트의 제안으로 스트리밍됩니다. 조용히 문서가 되는 AI 텍스트는 존재하지 않습니다.'},
+    'gr.c2h':{en:'Only what you accept is the document',ko:'수락한 것만 문서'},
+    'gr.c2p':{en:'Exports and share links contain accepted sentences only. Pending suggestions never leak.',ko:'내보내기와 공유 링크에는 수락된 문장만 담깁니다. 검토 대기 제안은 새지 않습니다.'},
+    'gr.c3h':{en:'Every proposal carries its source',ko:'모든 제안에 근거'},
+    'gr.c3p':{en:'Interview answer Q3, PRD §2, or your own rewrite instruction — you always see why the AI is proposing.',ko:'인터뷰 답 Q3, PRD §2, 혹은 내가 내린 고쳐쓰기 지시. AI가 왜 제안하는지 항상 보입니다.'},
+    'gr.c4h':{en:'Accept · reject · rewrite',ko:'수락 · 거절 · 고쳐쓰기'},
+    'gr.c4p':{en:'Three ways to handle a card. A rewrite instruction returns as a fresh proposal, never as an edit behind your back.',ko:'카드 처리는 3택. 고쳐쓰기 지시는 새 제안으로 돌아오지, 등 뒤에서 문서를 고치지 않습니다.'},
+    'gr.cap':{en:'The suggestion queue: accept, reject, or type a rewrite instruction.',ko:'제안 큐 — 수락·거절, 또는 고쳐쓰기 지시 입력.'},
+    'ch.label':{en:'Document chain',ko:'문서 체인'},
+    'ch.h2':{en:'One idea line in. A document chain out.',ko:'아이디어 한 줄이 들어가면, 문서 체인이 나옵니다.'},
+    'ch.lead':{en:'Drafting opens with a single question — "What are we building?" A short interview follows, and your answers become the evidence behind every PRD, feature-spec and IA proposal downstream.',ko:'Drafting은 "무엇을 만들까요?" 하나로 시작합니다. 짧은 인터뷰가 이어지고, 그 답이 이후 PRD·기능명세·IA 모든 제안의 근거가 됩니다.'},
+    'ch.c1h':{en:'The interview is a document',ko:'인터뷰도 문서다'},
+    'ch.c1p':{en:'Your answers are saved as document zero — re-readable, and cited as the source of later proposals.',ko:'답변은 0번 문서로 저장됩니다. 다시 읽을 수 있고, 이후 제안의 근거로 인용됩니다.'},
+    'ch.c2h':{en:'Context flows down the chain',ko:'컨텍스트는 체인을 따라 승계'},
+    'ch.c2p':{en:'Feature specs inherit the PRD; IA inherits both. Each document knows which version of its parent it was written against.',ko:'기능명세는 PRD를, IA는 둘 다 승계합니다. 각 문서는 자신이 어느 버전의 상위 문서 기준인지 압니다.'},
+    'ch.c3h':{en:'Upstream changes re-propose, never overwrite',ko:'상위 변경은 재제안, 덮어쓰기 금지'},
+    'ch.c3p':{en:'Change the PRD and affected downstream items return to proposal state. Nothing is silently rewritten.',ko:'PRD를 고치면 영향받는 하위 항목이 제안 상태로 돌아옵니다. 조용히 다시 쓰이는 것은 없습니다.'},
+    'ch.c4h':{en:'Your key, your machine',ko:'내 키, 내 머신'},
+    'ch.c4p':{en:'Bring an Anthropic, OpenAI or OpenRouter key. Encrypted with AES-256-GCM; plaintext is never stored — a test enforces it.',ko:'Anthropic·OpenAI·OpenRouter 키를 직접 등록합니다. AES-256-GCM 암호화, 평문 미저장 — 테스트가 강제합니다.'},
+    'ch.cap':{en:'The interview: one question at a time, with hints and examples.',ko:'인터뷰 — 한 번에 한 질문, 힌트와 예시 포함.'},
+    'ch.cap2':{en:'First run: one idea line, and a sample plan with pending suggestions to practice on.',ko:'첫 실행 — 아이디어 한 줄, 그리고 수락·거절을 연습할 제안 대기 샘플 기획서.'},
+    'qs.label':{en:'Quickstart',ko:'시작하기'},
+    'qs.h2':{en:'Self-hosted in a minute.',ko:'1분이면 셀프호스트.'},
+    'qs.lead':{en:'Requirements: Docker (or Node 22+). Your documents live in a local SQLite file — no accounts, no cloud.',ko:'요구사항: Docker(또는 Node 22+). 문서는 로컬 SQLite 파일에 남습니다. 계정도, 클라우드도 없습니다.'},
+    'dl.label':{en:'Download',ko:'다운로드'},
+    'dl.h2':{en:'Desktop app.',ko:'데스크톱 앱.'},
+    'dl.lead':{en:'The document workspace as a native window — same self-hosted core inside.',ko:'문서 워크스페이스를 네이티브 창으로. 안에는 같은 셀프호스트 코어가 돕니다.'},
+    'dl.note':{en:'Downloads land on the latest GitHub Release. Prefer a server? docker compose up and open it in any browser.',ko:'다운로드는 최신 GitHub Release로 갑니다. 서버가 편하면 docker compose up 후 브라우저로.'},
+    'ft.line':{en:'Nothing you did not accept is in the document.',ko:'수락하지 않은 문장은 문서에 없습니다.'}
+  };
+  var REJECTED={en:'Rejected — it never entered the document.',ko:'거절됨. 그 문장은 문서에 들어온 적이 없습니다.'};
+  function setLang(l){
+    document.documentElement.lang=l;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var k=el.getAttribute('data-i18n');
+      if(STR[k]) el.innerHTML=STR[k][l];
+    });
+    document.getElementById('demoDone').setAttribute('data-rejected',REJECTED[l]);
+    document.getElementById('langEn').classList.toggle('on',l==='en');
+    document.getElementById('langKo').classList.toggle('on',l==='ko');
+    try{localStorage.setItem('drafting.lang',l)}catch(e){}
+  }
+  document.getElementById('langEn').addEventListener('click',function(){setLang('en')});
+  document.getElementById('langKo').addEventListener('click',function(){setLang('ko')});
+  var saved=null;try{saved=localStorage.getItem('drafting.lang')}catch(e){}
+  setLang(saved||((navigator.language||'').toLowerCase().indexOf('ko')===0?'ko':'en'));
+</script>
+</body>
+</html>

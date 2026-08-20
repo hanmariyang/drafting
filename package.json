@@ -1,0 +1,25 @@
+{
+  "name": "drafting",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Planning Workspace — self-hosted, BYOK. Draft PRDs & feature specs via staged AI interviews.",
+  "license": "MIT",
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace api",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspace web && npm run build --workspace api",
+    "start": "node api/dist/index.js",
+    "test": "npm run test --workspace api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

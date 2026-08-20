@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+
+# local data & secrets — never commit
+.env
+data/
+*.sqlite
+*.sqlite3
+*.db
+db/*.sqlite
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
