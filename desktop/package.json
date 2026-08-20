@@ -51,7 +51,7 @@
       ],
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
-      "notarize": false
+      "notarize": true
     },
     "win": {
       "target": "nsis"
