@@ -1,0 +1,549 @@
+<title>Drafting 산출물 공간 시안 v2</title>
+<style>
+:root{--paper:#fff;--bg:#F7F7F5;--ink:#1B1C1E;--sub:#6F7076;--hair:#E7E6E2;--sug:#0E7B62;--sug-ink:#0B5C4A;
+--sug-bg:#E9F5F1;--sug-line:#BFE3D8;--amber:#8A6A1F;--amber-bg:#FBF4E2;--amber-line:#EBDFBB;--del:#AA3333;
+--hover:#EFEFEB;--mono:ui-monospace,'SF Mono',Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,-apple-system,sans-serif;background:#DEDEDA;color:var(--ink);padding:34px 0 60px;line-height:1.5}
+.frame{width:1280px;margin:0 auto 12px;background:var(--bg);border-radius:14px;overflow:hidden;
+box-shadow:0 18px 50px rgba(0,0,0,.16);border:1px solid rgba(0,0,0,.06)}
+.caption{width:1280px;margin:0 auto 36px;font-family:var(--mono);font-size:11px;line-height:1.75;color:#55565B;padding:0 4px}
+.caption b{color:#1B1C1E}
+.tbar{height:42px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--hair)}
+.dots{display:flex;gap:6px}.dots i{width:11px;height:11px;border-radius:99px;background:#D6D5D1}
+.crumb{font-size:12.5px;font-weight:700}.crumb .sep{color:var(--sub);font-weight:400;margin:0 5px}
+.tsp{flex:1}
+.btn{border:1px solid var(--hair);background:var(--paper);border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.cmdk{font-family:var(--mono);font-size:10px;color:var(--sub);border:1px solid var(--hair);border-radius:5px;padding:2px 6px}
+.sug-count{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:600;
+color:var(--sug);background:var(--sug-bg);border:1px solid var(--sug-line);border-radius:99px;padding:3px 10px}
+.sug-count i{width:6px;height:6px;border-radius:99px;background:var(--sug)}
+.shell{display:grid;grid-template-columns:236px 1fr 292px;min-height:640px}
+.shell.wide{grid-template-columns:236px 1fr}
+/* nav */
+.nav{border-right:1px solid var(--hair);padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.proj-switch{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--hair);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.proj-switch b{font-size:12px;flex:1}.proj-switch .car{font-size:9px;color:var(--sub)}
+.proj-switch .plus{font-size:13px;color:var(--sub);border-left:1px solid var(--hair);padding-left:8px}
+.grp{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--sub);text-transform:uppercase;padding:10px 8px 5px}
+.node{display:flex;align-items:center;gap:8px;padding:6.5px 8px;border-radius:7px;font-size:12px}
+.node.on{background:var(--hover);font-weight:700}
+.node.dim{color:var(--sub)}
+.tb{font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--sub);border:1px solid var(--hair);border-radius:4px;padding:1.5px 5px;background:var(--paper);flex:none;width:36px;text-align:center}
+.tb.der{border-style:dashed}
+.nm{flex:1;white-space:nowrap;overflow:hidden}
+.ok{font-size:9px;color:var(--sug)}
+.gd{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--sug)}
+.gd i{width:5px;height:5px;border-radius:99px;background:var(--sug)}
+.auto{font-family:var(--mono);font-size:8.5px;color:var(--sub)}
+.lock{font-family:var(--mono);font-size:8.5px;color:var(--amber)}
+.navsp{flex:1}
+.hubln{font-size:11.5px;color:var(--sub);padding:8px;border-top:1px solid var(--hair)}
+.hubln.on{color:var(--ink);font-weight:700}
+/* editor common */
+.ed{background:var(--paper);padding:30px 42px;overflow:hidden}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--sub);text-transform:uppercase;margin-bottom:7px}
+.ed h1{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px}
+.dmeta{font-family:var(--mono);font-size:10px;color:var(--sub);margin-bottom:20px}
+/* tree rows */
+.row{display:flex;align-items:center;gap:10px;padding:8.5px 10px;border-bottom:1px solid var(--hair);font-size:13px}
+.row .rid{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--sub);width:66px;flex:none}
+.row .rt{flex:1}.row .rt b{font-weight:700}
+.row .src{font-family:var(--mono);font-size:9px;color:var(--sub);white-space:nowrap}
+.row .pri-tag{font-family:var(--mono);font-size:9px;color:var(--sub);width:20px;text-align:right}
+.row.lv2{padding-left:38px}.row.lv3{padding-left:64px}
+.row.sug{background:var(--sug-bg)}.row.sug .rid{color:var(--sug)}
+.pill{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--sug);border:1px solid var(--sug-line);background:#fff;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.pill.amber{color:var(--amber);border-color:var(--amber-line);background:var(--amber-bg)}
+.mini{display:flex;gap:4px}
+.mini i{width:22px;height:22px;border-radius:6px;border:1px solid var(--sug-line);background:#fff;display:grid;place-items:center;font-size:10px;color:var(--sug);font-style:normal}
+.typechip{font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--sub);border:1px solid var(--hair);border-radius:99px;padding:2px 8px;background:var(--bg)}
+.pgchip{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--ink);border:1px solid var(--hair);border-radius:5px;padding:2px 6px;background:var(--bg);white-space:nowrap}
+/* panel */
+.panel{border-left:1px solid var(--hair);padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+.ph{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;padding:0 2px 4px}
+.ph span{font-family:var(--mono);font-size:9.5px;color:var(--sub);font-weight:600;margin-left:auto}
+.scard{background:var(--paper);border:1px solid var(--sug-line);border-radius:10px;padding:13px 14px;box-shadow:0 2px 10px rgba(14,123,98,.08)}
+.scard .sh{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.scard .sh b{font-size:12px;flex:1}
+.scard .ssrc{font-family:var(--mono);font-size:8.5px;color:var(--sub)}
+.scard p{font-size:11.5px;color:var(--sub);line-height:1.6;margin-bottom:10px}
+.scard .a{display:inline-block;font-size:10.5px;font-weight:700;border-radius:6px;padding:4px 11px;background:var(--sug);color:#fff}
+.scard .r{display:inline-block;font-size:10.5px;font-weight:600;border-radius:6px;padding:4px 11px;background:var(--paper);border:1px solid var(--hair);margin-left:5px}
+.scard.compile{border-color:var(--amber-line);box-shadow:0 2px 10px rgba(138,106,31,.08)}
+.scard.compile .lintcode{font-family:var(--mono);font-size:8.5px;color:var(--amber)}
+/* hub */
+.hub{background:var(--bg);padding:30px 42px}
+.hubgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.hcard{background:var(--paper);border:1px solid var(--hair);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.hcard .ht{display:flex;align-items:center;gap:8px}
+.hcard .ht b{font-size:13.5px}
+.hcard .st{font-family:var(--mono);font-size:9.5px;color:var(--sub)}
+.hbar{display:flex;gap:3px}
+.hbar i{height:5px;flex:1;border-radius:3px;background:var(--hair)}
+.hbar i.acc{background:var(--ink)}
+.hbar i.prop{background:var(--sug)}
+.hcard .hfoot{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--sub)}
+.hcard .hfoot .sp{flex:1}
+.hcard.locked{border-style:dashed}
+.gate{display:flex;align-items:center;gap:12px;background:var(--amber-bg);border:1px solid var(--amber-line);border-radius:12px;padding:13px 18px;margin-top:16px}
+.gate b{font-size:12.5px;color:var(--amber)}
+.gate span{font-size:11.5px;color:var(--amber);opacity:.85;flex:1}
+.gate .go{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--amber);background:#fff;border:1px solid var(--amber-line);border-radius:99px;padding:4px 12px;white-space:nowrap}
+/* wireframe */
+.wfwrap{background:var(--bg);padding:26px 42px}
+.wfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.wf{background:var(--paper);border:1px solid var(--hair);border-radius:10px;overflow:hidden}
+.wf .wfhead{font-family:var(--mono);font-size:9.5px;color:var(--sub);padding:7px 12px;border-bottom:1px solid var(--hair);display:flex;gap:8px;align-items:center}
+.wf .wfhead b{color:var(--ink)}
+.wfbody{padding:14px;display:flex;flex-direction:column;gap:8px;min-height:190px}
+.sk{background:var(--hover);border-radius:5px}
+.sk.bar{height:12px;width:55%}
+.sk.line{height:8px}
+.sk.line.w70{width:70%}.sk.line.w45{width:45%}
+.sk.block{height:44px}
+.sk.btnk{height:26px;width:36%;background:var(--ink);opacity:.85}
+.sk.inputk{height:26px;border:1px solid var(--hair);background:#fff}
+.sk.rowk{height:22px;display:flex;align-items:center}
+.wfrow{display:flex;gap:8px}
+.wfrow .sk{flex:1}
+/* handoff */
+.check{display:flex;align-items:center;gap:9px;padding:7px 10px;font-size:12.5px;border-bottom:1px solid var(--hair)}
+.check .cid{font-family:var(--mono);font-size:9px;color:var(--sub);width:110px}
+.check .cok{color:var(--sug);font-weight:700;font-size:11px}
+.check .cwarn{color:var(--amber);font-weight:700;font-size:11px}
+.hosec{margin-top:14px;border:1px solid var(--hair);border-radius:10px;overflow:hidden}
+.hosec .hohead{font-family:var(--mono);font-size:9.5px;color:var(--sub);padding:7px 12px;background:var(--bg);border-bottom:1px solid var(--hair)}
+.hosec .hobody{padding:12px 14px;font-size:12.5px;color:var(--sub);line-height:1.7}
+.hosec .hobody b{color:var(--ink)}
+.hoact{display:flex;gap:8px;margin-top:16px;align-items:center}
+.hoact .hint{font-family:var(--mono);font-size:9.5px;color:var(--sub);margin-left:auto}
+
+/* ── v2: 요약 스트립·확장 행 (SPEC) ── */
+.sumbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.sumchip{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--hair);background:var(--paper);border-radius:99px;padding:4px 12px;color:var(--sub)}
+.sumchip b{color:var(--ink)}
+.sumchip.g{color:var(--sug-ink);background:var(--sug-bg);border-color:var(--sug-line)}
+.sumchip.am{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-line)}
+.colhead{display:flex;gap:10px;padding:6px 10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--sub);text-transform:uppercase;border-bottom:1px solid var(--hair)}
+.colhead .c1{width:66px}.colhead .c2{flex:1}.colhead .c3{width:78px}.colhead .c4{width:34px;text-align:right}
+.grouprow{display:flex;align-items:center;gap:10px;padding:10px 10px 6px;font-size:13px}
+.grouprow b{font-size:13.5px}
+.grouprow .gid{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--sub);width:66px}
+.grouprow .gsum{font-family:var(--mono);font-size:9px;color:var(--sub);margin-left:auto}
+.exp{border:1px solid var(--sug-line);border-radius:10px;background:var(--sug-bg);margin:0 0 6px;padding:12px 14px 12px 46px;position:relative}
+.exp .xh{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.exp .xh .rid{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--sug)}
+.exp .xh b{font-size:13px;color:var(--sug-ink)}
+.exp .xh .mini{margin-left:auto}
+.exp .ac{font-size:11.5px;color:var(--ink);line-height:1.7;margin-bottom:8px}
+.exp .ac .lb{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:3px}
+.exp .links{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.exp .quote{font-size:11px;color:var(--sub);border-left:2px solid var(--sug-line);padding-left:9px;margin-top:8px;font-style:normal}
+/* ── v2: IA 사이트맵 ── */
+.map{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+.mnode{background:var(--paper);border:1.5px solid var(--ink);border-radius:9px;padding:8px 14px;text-align:center;min-width:118px}
+.mnode .mid{font-family:var(--mono);font-size:8.5px;font-weight:800;color:var(--sub);display:block}
+.mnode b{font-size:12px}
+.mnode .typechip{margin-top:4px;display:inline-block}
+.mnode.rootn{background:var(--ink);border-color:var(--ink)}
+.mnode.rootn b,.mnode.rootn .mid{color:#fff}
+.mnode.sel{border-color:var(--sug);box-shadow:0 2px 10px rgba(14,123,98,.15)}
+.mnode.prop{border-style:dashed;border-color:var(--sug);background:var(--sug-bg)}
+.mnode.viol{border-color:var(--amber-line);background:var(--amber-bg)}
+.vline{width:1.5px;height:16px;background:var(--ink)}
+.hbus{height:1.5px;background:var(--ink);align-self:stretch;margin:0 59px}
+.mrow{display:flex;gap:22px;align-items:flex-start}
+.mcol{display:flex;flex-direction:column;align-items:center}
+.iadetail{display:flex;gap:14px;margin-top:20px;border-top:1px solid var(--hair);padding-top:16px}
+.iathumb{width:150px;border:1px solid var(--hair);border-radius:8px;overflow:hidden;flex:none;background:var(--paper)}
+.iathumb .th{font-family:var(--mono);font-size:8px;color:var(--sub);padding:4px 8px;border-bottom:1px solid var(--hair)}
+.iathumb .tb2{padding:8px;display:flex;flex-direction:column;gap:5px}
+.iameta{flex:1}
+.iameta h4{font-size:13.5px;margin-bottom:6px}
+.iameta .mrowline{display:flex;gap:7px;align-items:center;font-size:11.5px;color:var(--sub);margin-bottom:6px;flex-wrap:wrap}
+.iameta .mrowline .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;width:64px;color:var(--sub)}
+/* ── v2: 플로우 다이어그램 ── */
+.flane{border:1px solid var(--hair);border-radius:12px;background:var(--paper);padding:16px 18px;margin-bottom:14px}
+.flane .fh{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.flane .fh .rid{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--sub)}
+.flane .fh b{font-size:13px}
+.flane .fh .src{font-family:var(--mono);font-size:9px;color:var(--sub);margin-left:auto}
+.ftrack{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.fnode{background:var(--bg);border:1.5px solid var(--ink);border-radius:8px;padding:7px 12px;text-align:center;min-width:96px}
+.fnode .fid{font-family:var(--mono);font-size:8px;font-weight:800;color:var(--sub);display:block}
+.fnode b{font-size:11.5px;font-weight:700}
+.fnode.startn{border-radius:99px;background:var(--ink)}
+.fnode.startn b{color:#fff}
+.fnode.endn{border-radius:99px;background:var(--sug);border-color:var(--sug)}
+.fnode.endn b{color:#fff}
+.fdec{width:86px;height:52px;display:grid;place-items:center;background:var(--amber-bg);border:1.5px solid var(--amber-line);
+transform:none;border-radius:10px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);font-size:10.5px;font-weight:700;color:var(--amber)}
+.fedge{width:34px;height:1.5px;background:var(--ink);position:relative;flex:none}
+.fedge::after{content:'';position:absolute;right:-1px;top:-3.2px;border-left:6px solid var(--ink);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.fedge .elb{position:absolute;top:-16px;left:6px;font-family:var(--mono);font-size:8.5px;color:var(--sub);white-space:nowrap}
+.fbranch{display:flex;align-items:center;margin:8px 0 0 118px}
+.fbranch .bend{width:26px;height:26px;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-radius:0 0 0 9px;margin-right:6px;margin-top:-18px}
+.floop{font-family:var(--mono);font-size:8.5px;color:var(--sub);margin-left:8px}
+/* ── v2: 프로토타입 와이어프레임 ── */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.proto{background:var(--paper);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.proto .phead{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;color:var(--sub);padding:7px 12px;border-bottom:1px solid var(--hair);background:var(--bg)}
+.proto .phead b{color:var(--ink)}
+.papp{padding:0;display:flex;flex-direction:column;min-height:240px}
+.pnav{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--hair);font-size:12px;font-weight:800}
+.pnav .back{color:var(--sub);font-weight:400}
+.pnav .navr{margin-left:auto;font-size:10px;color:var(--sub)}
+.pbody{padding:11px 13px;display:flex;flex-direction:column;gap:8px;flex:1}
+.pinput{border:1px solid var(--hair);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--sub);background:var(--bg)}
+.plist{border:1px solid var(--hair);border-radius:8px;overflow:hidden}
+.plirow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--hair);font-size:11px}
+.plirow:last-child{border-bottom:0}
+.plirow b{font-size:11.5px}
+.plirow .m{color:var(--sub);font-size:10px}
+.plirow .sp{flex:1}
+.pbtn{background:var(--ink);color:#fff;border-radius:7px;padding:8px 12px;font-size:11px;font-weight:700;text-align:center;position:relative}
+.pbtn.sm{padding:4px 9px;font-size:9.5px;border-radius:5px}
+.pbtn.ghost{background:var(--paper);color:var(--ink);border:1px solid var(--hair)}
+.hot{position:absolute;right:-6px;top:-9px;font-family:var(--mono);font-size:7.5px;font-weight:700;color:var(--sug-ink);
+background:var(--sug-bg);border:1px solid var(--sug-line);border-radius:99px;padding:1px 6px}
+.slotwrap{display:flex;gap:5px;flex-wrap:wrap}
+.slot{font-family:var(--mono);font-size:9.5px;border:1px solid var(--hair);border-radius:5px;padding:4px 7px}
+.slot.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.slot.dis{color:#C9C9C5;text-decoration:line-through}
+.ffield .lb2{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--sub);text-transform:uppercase;display:block;margin-bottom:3px}
+.statrow{display:flex;gap:8px}
+.stat{flex:1;border:1px solid var(--hair);border-radius:8px;padding:8px 10px}
+.stat .sv{font-size:16px;font-weight:800}
+.stat .sl{font-size:9px;color:var(--sub)}
+.chart{display:flex;align-items:flex-end;gap:5px;height:52px;border:1px solid var(--hair);border-radius:8px;padding:8px}
+.chart i{flex:1;background:var(--ink);opacity:.85;border-radius:2px 2px 0 0}
+.tgl{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--hair);border-radius:8px;font-size:11px}
+.tgl .sp{flex:1}
+.sw{width:28px;height:16px;border-radius:99px;background:var(--ink);position:relative}
+.sw::after{content:'';position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff}
+.sw.off{background:var(--hair)}
+.sw.off::after{right:auto;left:2px}
+.pstate{font-family:var(--mono);font-size:8.5px;color:var(--sub);padding:5px 13px;border-top:1px dashed var(--hair)}
+
+</style>
+<div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>산출물 허브</div><div class="tsp"></div><span class="sug-count"><i></i>제안 4</span><span class="btn pri">내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell wide"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln on">◧ 산출물 허브</div>
+</div>
+<div class="hub">
+  <div class="eyebrow">Deliverables</div>
+  <h1>산출물 6종</h1>
+  <div class="dmeta">수락된 것만 문서 · 파생물은 수락분에서 자동 갱신</div>
+  <div class="hubgrid">
+    <div class="hcard"><div class="ht"><span class="tb">PRD</span><b>제품 요구사항</b></div>
+      <div class="hbar"><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="acc"></i></div>
+      <div class="hfoot"><span>수락 5/5</span><span class="sp"></span><span class="st">v3 확정</span></div></div>
+    <div class="hcard"><div class="ht"><span class="tb">SPEC</span><b>기능명세서</b></div>
+      <div class="hbar"><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="prop"></i><i class="prop"></i><i class="prop"></i><i></i></div>
+      <div class="hfoot"><span>수락 12 · <b style="color:var(--sug)">제안 3</b></span><span class="sp"></span><span class="st">F-01~F-08</span></div></div>
+    <div class="hcard"><div class="ht"><span class="tb">IA</span><b>정보 구조</b></div>
+      <div class="hbar"><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="acc"></i><i class="prop"></i></div>
+      <div class="hfoot"><span>화면 6 · <b style="color:var(--sug)">제안 1</b></span><span class="sp"></span><span class="st">PG-01~06</span></div></div>
+    <div class="hcard"><div class="ht"><span class="tb">FLOW</span><b>유저 플로우</b></div>
+      <div class="hbar"><i class="acc"></i><i class="acc"></i><i class="acc"></i></div>
+      <div class="hfoot"><span>플로우 3 · 수락 완료</span><span class="sp"></span><span class="st">FLOW-01~03</span></div></div>
+    <div class="hcard"><div class="ht"><span class="tb der">WF</span><b>와이어프레임</b></div>
+      <div class="hfoot" style="margin-top:2px"><span>IA 수락분에서 <b>자동 렌더</b></span><span class="sp"></span><span class="st">화면 6 · 최신</span></div>
+      <div class="wfrow"><span class="sk block" style="height:34px"></span><span class="sk block" style="height:34px"></span><span class="sk block" style="height:34px"></span></div></div>
+    <div class="hcard locked"><div class="ht"><span class="tb der">DEV</span><b>개발 지시서</b></div>
+      <div class="hfoot" style="margin-top:2px"><span style="color:var(--amber)">정합성 검사 2건 위반</span><span class="sp"></span><span class="st">잠김</span></div>
+      <div class="hbar"><i></i><i></i><i></i><i></i><i></i></div></div>
+  </div>
+  <div class="gate"><svg width="34" height="34" viewBox="0 0 120 120"><g transform="rotate(-2 60 60)"><rect x="31" y="16" width="58" height="88" rx="15" fill="#fff" stroke="#1B1C1E" stroke-width="3.2"/><path d="M46 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M66 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><g transform="rotate(-9 60 60)"><rect x="46" y="52" width="28" height="15" rx="5" fill="#0E7B62"/><line x1="52" y1="59.5" x2="68" y2="59.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g></g></svg>
+    <b>검사 2건 위반</b><span>F-07이 어느 요구에도 연결되지 않았고, PG-05에 도달하는 플로우가 없어요. 수정안을 물어왔어요.</span>
+    <span class="go">제안 2건 보기</span></div>
+</div></div></div>
+<div class="caption"><b>시안 1 · 산출물 허브 — "이 프로젝트에서 무엇이 나왔나"의 한 화면.</b>
+나브가 산출물 5(작성) + 파생 2(자동) 구조로 재편. 카드의 바 = 항목 수락(잉크)/제안(그린)/빈칸. 와이어프레임 카드는 미리보기 조각,
+개발 지시서는 컴파일 통과 전 잠김. 하단 게이트: 위반이 리포트가 아니라 <b>초안이의 수정 제안</b>으로 돌아옴(v0.6).</div><div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>기능명세서</div><div class="tsp"></div><span class="sug-count"><i></i>제안 3</span><span class="btn">버전</span><span class="btn pri">내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node on"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln">◧ 산출물 허브</div>
+</div>
+<div class="ed">
+  <div class="eyebrow">SPEC · Feature Specification</div>
+  <h1>기능명세서</h1>
+  <div class="dmeta">v2 · PRD v3 기준</div>
+  <div class="sumbar">
+    <span class="sumchip">항목 <b>15</b></span><span class="sumchip">P0 <b>8</b> · P1 <b>4</b></span>
+    <span class="sumchip">수락 <b>12</b></span><span class="sumchip g">제안 3</span><span class="sumchip am">검사 위반 1</span>
+  </div>
+  <div class="colhead"><span class="c1">ID</span><span class="c2">항목</span><span class="c3">근거</span><span class="c4">우선</span></div>
+  <div class="grouprow"><span class="gid">F-01</span><b>회의실 예약 생성</b><span class="pgchip">PG-01·02·03</span><span class="gsum">하위 3 · 수락 2 · 제안 1</span></div>
+  <div class="row lv2"><span class="rid">F-01-1</span><span class="rt">시간대 선택 후 즉시 예약 확정</span><span class="src">REQ-01</span><span class="pri-tag">P0</span></div>
+  <div class="row lv2"><span class="rid">F-01-2</span><span class="rt">겹침 검사 후 대안 시간 3개 제시</span><span class="src">Q2</span><span class="pri-tag">P0</span></div>
+  <div class="exp">
+    <div class="xh"><span class="rid">F-01-3</span><b>종료 10분 전 알림, 미연장 시 자동 반납</b><span class="pill">제안됨</span><span class="mini"><i>✓</i><i>×</i></span></div>
+    <div class="ac"><span class="lb">수용 기준</span>
+    · 종료 10분 전 알림 발송, 수신 채널은 PG-06에서 설정<br>· 연장 없이 종료 시각 도달 → 자동 반납 + 내 예약(PG-04)에 기록</div>
+    <div class="links"><span class="lb" style="width:auto;margin:0 4px 0 0;display:inline">연결</span>
+      <span class="pgchip">PG-06</span><span class="pgchip">PG-04</span><span class="pgchip">FLOW-02</span></div>
+    <div class="quote">근거 · 인터뷰 Q3 — "회의가 늘어져서 다음 팀이 못 들어가는 게 제일 큰 문제예요"</div>
+  </div>
+  <div class="grouprow"><span class="gid">F-02</span><b>노쇼 처리</b><span class="pgchip">PG-04</span><span class="gsum">하위 2 · 수락 1 · 제안 1</span></div>
+  <div class="row lv2"><span class="rid">F-02-1</span><span class="rt">시작 5분 내 체크인 없으면 예약 해제</span><span class="src">REQ-02</span><span class="pri-tag">P1</span></div>
+  <div class="row lv2 sug"><span class="rid">F-02-2</span><span class="rt">반복 노쇼 사용자 주간 리포트</span><span class="src">PRD §4</span><span class="pill">제안됨</span><span class="mini"><i>✓</i><i>×</i></span></div>
+  <div class="grouprow"><span class="gid">F-07</span><b>관리자 통계 대시보드</b><span class="pill amber">검사 위반 · 근거 없음</span><span class="gsum">하위 0</span></div>
+</div>
+<div class="panel">
+  <div class="ph">제안 3 <span>모두 수락</span></div>
+  <div class="scard"><div class="sh"><svg width="20" height="20" viewBox="0 0 120 120"><g transform="rotate(-2 60 60)"><rect x="31" y="16" width="58" height="88" rx="15" fill="#fff" stroke="#1B1C1E" stroke-width="3.2"/><path d="M46 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M66 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><g transform="rotate(-9 60 60)"><rect x="46" y="52" width="28" height="15" rx="5" fill="#0E7B62"/><line x1="52" y1="59.5" x2="68" y2="59.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g></g></svg><b>자동 반납 규칙 추가</b><span class="ssrc">근거 Q3</span></div>
+    <p>수락하면 PG-06(알림 설정)·FLOW-02(자동 반납)가 함께 제안돼요 — 체인이 이어집니다.</p>
+    <span class="a">수락</span><span class="r">거절</span></div>
+  <div class="scard compile"><div class="sh"><svg width="20" height="20" viewBox="0 0 120 120"><g transform="rotate(-2 60 60)"><rect x="31" y="16" width="58" height="88" rx="15" fill="#fff" stroke="#1B1C1E" stroke-width="3.2"/><path d="M46 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M66 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><g transform="rotate(-9 60 60)"><rect x="46" y="52" width="28" height="15" rx="5" fill="#0E7B62"/><line x1="52" y1="59.5" x2="68" y2="59.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g></g></svg><b>F-07 근거 연결</b><span class="lintcode">W-ORPHAN-SPEC</span></div>
+    <p>F-07이 어느 요구에도 연결되지 않았어요. REQ-04(운영 가시성) 신설 또는 삭제 중에 고르세요.</p>
+    <span class="a">REQ-04 추가</span><span class="r">F-07 삭제</span></div>
+</div></div></div>
+<div class="caption"><b>시안 2(v2) · 기능명세서 — 트리 + 확장 행.</b> 상단 요약 칩(P0/P1·수락·제안·위반), 그룹 행에 연결 화면 칩과
+하위 집계. 선택/제안 행은 <b>확장 카드</b>로 펼쳐져 수용 기준·연결(화면/플로우)·근거 인용까지 그 자리에서 보고 ✓/×.
+제안 카드에는 수락의 파급(하위 제안 연쇄)을 예고.</div><div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>정보 구조</div><div class="tsp"></div><span class="sug-count"><i></i>제안 1</span><span class="btn">버전</span><span class="btn pri">내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node on"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln">◧ 산출물 허브</div>
+</div>
+<div class="ed">
+  <div class="eyebrow">IA · Information Architecture</div>
+  <h1>정보 구조</h1>
+  <div class="dmeta">v1 · SPEC v2 기준 · 화면 6 · 사이트맵 = 정본, 와이어프레임이 이 구조를 그대로 렌더</div>
+  <div class="map">
+    <div class="mnode rootn"><span class="mid">APP</span><b>회의실 예약</b></div>
+    <div class="vline"></div>
+    <div class="hbus" style="width:620px"></div>
+    <div class="mrow">
+      <div class="mcol"><div class="vline"></div><div class="mnode "><span class="mid">PG-01</span><b>예약 홈</b><br><span class="typechip">LIST</span></div>
+        <div class="vline"></div><div class="mnode sel"><span class="mid">PG-02</span><b>회의실 상세</b><br><span class="typechip">DETAIL</span></div>
+        <div class="vline"></div><div class="mnode "><span class="mid">PG-03</span><b>예약 확인</b><br><span class="typechip">FORM</span></div></div>
+      <div class="mcol"><div class="vline"></div><div class="mnode "><span class="mid">PG-04</span><b>내 예약</b><br><span class="typechip">LIST</span></div></div>
+      <div class="mcol"><div class="vline"></div><div class="mnode viol"><span class="mid">PG-05</span><b>관리자 통계</b><br><span class="typechip">DASH</span></div></div>
+      <div class="mcol"><div class="vline"></div><div class="mnode prop"><span class="mid">PG-06</span><b>알림 설정</b><br><span class="typechip">SETTINGS</span></div></div>
+    </div>
+  </div>
+  <div class="iadetail">
+    <div class="iathumb"><div class="th">PG-02 미리보기</div>
+      <div class="tb2"><span class="sk bar" style="height:9px;width:60%"></span><span class="sk block" style="height:30px"></span>
+      <div class="slotwrap"><span class="slot" style="font-size:8px;padding:2px 5px">10:00</span><span class="slot on" style="font-size:8px;padding:2px 5px">11:00</span><span class="slot dis" style="font-size:8px;padding:2px 5px">13:00</span></div>
+      <span class="sk btnk" style="height:16px;width:52%"></span></div></div>
+    <div class="iameta">
+      <h4>PG-02 · 회의실 상세 <span class="typechip">DETAIL</span></h4>
+      <div class="mrowline"><span class="k">근거 기능</span><span class="pgchip">F-01-1</span><span class="pgchip">F-01-2</span></div>
+      <div class="mrowline"><span class="k">진입 플로우</span><span class="pgchip">FLOW-01 · 2단계</span><span class="pgchip">FLOW-01 · 3-B 재선택</span></div>
+      <div class="mrowline"><span class="k">상태</span><span>수락됨 · 와이어프레임 최신</span></div>
+    </div>
+  </div>
+</div>
+<div class="panel">
+  <div class="ph">제안 1 <span></span></div>
+  <div class="scard"><div class="sh"><svg width="20" height="20" viewBox="0 0 120 120"><g transform="rotate(-2 60 60)"><rect x="31" y="16" width="58" height="88" rx="15" fill="#fff" stroke="#1B1C1E" stroke-width="3.2"/><path d="M46 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M66 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><g transform="rotate(-9 60 60)"><rect x="46" y="52" width="28" height="15" rx="5" fill="#0E7B62"/><line x1="52" y1="59.5" x2="68" y2="59.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g></g></svg><b>알림 설정 화면 추가</b><span class="ssrc">근거 F-01-3</span></div>
+    <p>자동 반납 알림을 수락하셔서, 수신 설정 화면(PG-06)을 물어왔어요. 사이트맵에는 점선으로 미리 그려뒀어요.</p>
+    <span class="a">수락</span><span class="r">거절</span></div>
+</div></div></div>
+<div class="caption"><b>시안 3(v2) · IA — 사이트맵 다이어그램 + 선택 상세.</b> IA는 목록이 아니라 <b>구조 그림</b>: 계층 연결선,
+제안 화면은 점선 그린 노드, 검사 위반은 앰버 노드로 상태가 그림 위에 바로 보임. 노드 선택 시 하단에 미니 프리뷰(와이어프레임
+썸네일)+근거 기능+진입 플로우 — 세 문서가 한 화면에서 교차 참조.</div><div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>유저 플로우</div><div class="tsp"></div><span class="btn">버전</span><span class="btn pri">내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell wide"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node on"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln">◧ 산출물 허브</div>
+</div>
+<div class="ed">
+  <div class="eyebrow">FLOW · User Flow</div>
+  <h1>유저 플로우</h1>
+  <div class="dmeta">v1 · IA v1 기준 · 노드 = 화면(PG-)·판단(◇)·완료(●) — 편집은 스텝, 보기는 다이어그램</div>
+  <div class="flane"><div class="fh"><span class="rid">FLOW-01</span><b>예약 생성</b><span class="src">F-01 · 해피 패스 + 겹침 분기</span></div>
+    <div class="ftrack">
+      <div class="fnode startn"><span class="fid">시작</span><b>예약 필요</b></div><div class="fedge"></div>
+      <div class="fnode "><span class="fid">PG-01</span><b>예약 홈</b></div><div class="fedge"></div>
+      <div class="fnode "><span class="fid">PG-02</span><b>시간대 선택</b></div><div class="fedge"></div>
+      <div class="fdec">겹침?</div><div class="fedge"><span class="elb">아니오</span></div>
+      <div class="fnode "><span class="fid">PG-03</span><b>예약 확정</b></div><div class="fedge"></div>
+      <div class="fnode endn"><span class="fid">완료</span><b>예약됨</b></div>
+    </div>
+    <div class="fbranch"><div class="bend"></div><span class="floop">예 ·</span>
+      <div class="fnode "><span class="fid">PG-02</span><b>대안 3개 재선택</b></div><span class="floop">→ 겹침? 재판정 (F-01-2)</span></div>
+  </div>
+  <div class="flane"><div class="fh"><span class="rid">FLOW-02</span><b>자동 반납</b><span class="src">F-01-3</span></div>
+    <div class="ftrack">
+      <div class="fnode startn"><span class="fid">시작</span><b>종료 10분 전</b></div><div class="fedge"></div>
+      <div class="fnode "><span class="fid">PG-06</span><b>알림 수신</b></div><div class="fedge"></div>
+      <div class="fdec">연장?</div><div class="fedge"><span class="elb">아니오</span></div>
+      <div class="fnode "><span class="fid">PG-04</span><b>자동 반납 기록</b></div><div class="fedge"></div>
+      <div class="fnode endn"><span class="fid">완료</span><b>반납됨</b></div>
+    </div>
+    <div class="fbranch"><div class="bend"></div><span class="floop">예 ·</span>
+      <div class="fnode "><span class="fid">PG-02</span><b>시간 연장</b></div><span class="floop">→ 예약 연장 후 종료</span></div>
+  </div>
+  <div class="flane"><div class="fh"><span class="rid">FLOW-03</span><b>노쇼 처리</b><span class="src">F-02</span></div>
+    <div class="ftrack">
+      <div class="fnode startn"><span class="fid">시작</span><b>시작 5분 경과</b></div><div class="fedge"></div>
+      <div class="fdec">체크인?</div><div class="fedge"><span class="elb">없음</span></div>
+      <div class="fnode "><span class="fid">PG-04</span><b>예약 해제 기록</b></div><div class="fedge"></div>
+      <div class="fnode endn"><span class="fid">완료</span><b>해제됨</b></div>
+    </div>
+  </div>
+</div></div></div>
+<div class="caption"><b>시안 4(v2) · 유저 플로우 — 다이어그램 정본.</b> 레인 하나 = 플로우 하나. 노드 문법: 캡슐(잉크)=시작 ·
+사각(화면 PG-)=단계 · 마름모(앰버)=판단 · 캡슐(그린)=완료. 분기는 아래 트랙으로 꺾여 내려가고 루프는 텍스트로 명시.
+데이터는 스텝 구조 그대로라 mermaid 내보내기도 자연히 가능.</div><div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>와이어프레임</div><div class="tsp"></div><span class="btn">인터랙티브 열기</span><span class="btn">PNG 내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell wide"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node on"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln">◧ 산출물 허브</div>
+</div>
+<div class="wfwrap">
+  <div class="eyebrow">WF · Wireframes — Derived Prototype</div>
+  <h1>와이어프레임</h1>
+  <div class="dmeta">IA 수락분 6화면 자동 렌더 · 콘텐츠는 명세(F-)에서, 이동(핫스팟)은 플로우(FLOW-)에서 · AI 미사용</div>
+  <div class="pgrid">
+    <div class="proto"><div class="phead"><b>PG-01</b> 예약 홈 <span class="typechip">LIST</span></div>
+      <div class="papp"><div class="pnav">회의실 예약<span class="navr">내 예약</span></div>
+      <div class="pbody"><div class="pinput">회의실·시간 검색</div>
+        <div class="plist">
+          <div class="plirow"><b>회의실 A</b><span class="m">3F · 8인</span><span class="sp"></span><span class="pbtn sm">예약<span class="hot">→ PG-02</span></span></div>
+          <div class="plirow"><b>회의실 B</b><span class="m">3F · 4인</span><span class="sp"></span><span class="pbtn sm">예약</span></div>
+          <div class="plirow"><b>교육장</b><span class="m">5F · 20인</span><span class="sp"></span><span class="pbtn sm ghost">마감</span></div>
+        </div></div>
+      <div class="pstate">데이터 근거 F-01 · 진입 FLOW-01</div></div></div>
+    <div class="proto"><div class="phead"><b>PG-02</b> 회의실 상세 <span class="typechip">DETAIL</span></div>
+      <div class="papp"><div class="pnav"><span class="back">‹</span>회의실 A<span class="navr">3F · 8인</span></div>
+      <div class="pbody"><span class="lb2" style="font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--sub)">오늘 · 8월 21일</span>
+        <div class="slotwrap"><span class="slot dis">10:00</span><span class="slot on">11:00</span><span class="slot">13:00</span><span class="slot">14:00</span><span class="slot dis">15:00</span><span class="slot">16:00</span></div>
+        <div class="pinput">11:00 – 12:00 · 1시간</div>
+        <div class="pbtn">이 시간으로 예약<span class="hot">→ PG-03</span></div></div>
+      <div class="pstate">겹침 시 대안 3개 재제시 (F-01-2 · FLOW-01 분기 B)</div></div></div>
+    <div class="proto"><div class="phead"><b>PG-03</b> 예약 확인 <span class="typechip">FORM</span></div>
+      <div class="papp"><div class="pnav"><span class="back">‹</span>예약 확인</div>
+      <div class="pbody">
+        <div class="ffield"><span class="lb2">일시</span><div class="pinput">8/21 (목) 11:00–12:00 · 회의실 A</div></div>
+        <div class="ffield"><span class="lb2">인원</span><div class="pinput">6명</div></div>
+        <div class="ffield"><span class="lb2">목적</span><div class="pinput">주간 스프린트 리뷰</div></div>
+        <div class="pbtn">예약 확정<span class="hot">→ PG-04</span></div></div>
+      <div class="pstate">확정 즉시 자동 반납 규칙 적용 (F-01-3)</div></div></div>
+    <div class="proto"><div class="phead"><b>PG-04</b> 내 예약 <span class="typechip">LIST</span></div>
+      <div class="papp"><div class="pnav">내 예약</div>
+      <div class="pbody"><div class="plist">
+        <div class="plirow"><b>회의실 A</b><span class="m">오늘 11:00</span><span class="sp"></span><span class="pbtn sm ghost">연장</span></div>
+        <div class="plirow"><b>교육장</b><span class="m">8/22 14:00</span><span class="sp"></span><span class="pbtn sm ghost">취소</span></div>
+        <div class="plirow"><span class="m">8/19 · 회의실 B — 자동 반납됨</span></div>
+      </div></div>
+      <div class="pstate">반납·해제 기록 표시 (FLOW-02·03 종착)</div></div></div>
+    <div class="proto"><div class="phead"><b>PG-05</b> 관리자 통계 <span class="typechip">DASH</span></div>
+      <div class="papp"><div class="pnav">관리자 통계<span class="navr">이번 주</span></div>
+      <div class="pbody"><div class="statrow">
+          <div class="stat"><div class="sv">72%</div><div class="sl">이용률</div></div>
+          <div class="stat"><div class="sv">5건</div><div class="sl">노쇼</div></div>
+          <div class="stat"><div class="sv">18건</div><div class="sl">자동 반납</div></div></div>
+        <div class="chart"><i style="height:40%"></i><i style="height:65%"></i><i style="height:80%"></i><i style="height:55%"></i><i style="height:90%"></i></div></div>
+      <div class="pstate" style="color:var(--amber)">검사 위반 · 이 화면에 도달하는 플로우 없음</div></div></div>
+    <div class="proto"><div class="phead"><b>PG-06</b> 알림 설정 <span class="typechip">SETTINGS</span> <span class="pill" style="margin-left:auto">제안됨</span></div>
+      <div class="papp"><div class="pnav"><span class="back">‹</span>알림 설정</div>
+      <div class="pbody">
+        <div class="tgl">종료 10분 전 알림<span class="sp"></span><span class="sw"></span></div>
+        <div class="tgl">자동 반납 완료 알림<span class="sp"></span><span class="sw"></span></div>
+        <div class="tgl">노쇼 경고<span class="sp"></span><span class="sw off"></span></div></div>
+      <div class="pstate">IA 제안(PG-06) 수락 시 확정 렌더</div></div></div>
+  </div>
+</div></div></div>
+<div class="caption"><b>시안 5(v2) · 와이어프레임 — 프로토타입급 파생 렌더.</b> 회색 뼈대가 아니라 실제 레이블·버튼·데이터 예시가
+있는 화면: 콘텐츠는 명세에서(회의실·시간 슬롯·통계 지표), <b>핫스팟(→ PG-nn)은 플로우에서</b> 자동 배선 — "인터랙티브 열기"로
+클릭 이동되는 프로토타입 모드. 하단 상태줄에 각 화면의 근거·검사 상태 표기. 여전히 결정적 렌더(AI·비용 0).</div><div class="frame"><div class="tbar"><div class="dots"><i></i><i></i><i></i></div>
+    <div class="crumb">회의실 예약 정리<span class="sep">/</span>개발 지시서</div><div class="tsp"></div><span class="sug-count"><i></i>제안 1</span><span class="btn pri">프롬프트 팩 내보내기</span><span class="cmdk">⌘K</span></div>
+<div class="shell"><div class="nav">
+  <div class="proj-switch"><b>회의실 예약 정리</b><span class="car">▾</span><span class="plus">+</span></div>
+  <div class="grp">산출물</div>
+  <div class="node dim"><span class="tb">INT</span><span class="nm">아이디어 인터뷰</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">PRD</span><span class="nm">제품 요구사항</span><span class="ok">✓</span></div>
+  <div class="node"><span class="tb">SPEC</span><span class="nm">기능명세서</span><span class="gd"><i></i>3</span></div>
+  <div class="node"><span class="tb">IA</span><span class="nm">정보 구조</span><span class="gd"><i></i>1</span></div>
+  <div class="node"><span class="tb">FLOW</span><span class="nm">유저 플로우</span><span class="ok">✓</span></div>
+  <div class="grp">파생</div>
+  <div class="node"><span class="tb der">WF</span><span class="nm">와이어프레임</span><span class="auto">자동</span></div>
+  <div class="node on"><span class="tb der">DEV</span><span class="nm">개발 지시서</span><span class="lock">검사 2건</span></div>
+  <div class="navsp"></div>
+  <div class="hubln">◧ 산출물 허브</div>
+</div>
+<div class="ed">
+  <div class="eyebrow">DEV · Handoff — Compiled</div>
+  <h1>개발 지시서</h1>
+  <div class="dmeta">수락분 전체에서 컴파일 · 검사 통과가 생성 조건</div>
+  <div class="check"><span class="cid">E-BROKEN-REF</span><span class="rt">참조 무결성 (기능→요구, 스텝→화면)</span><span class="cok">통과</span></div>
+  <div class="check"><span class="cid">W-ORPHAN-SPEC</span><span class="rt">고아 기능 없음</span><span class="cok">통과 · F-07 삭제 수락됨</span></div>
+  <div class="check"><span class="cid">W-UNREACHED</span><span class="rt">미도달 화면 없음</span><span class="cok">통과 · PG-05 플로우 연결됨</span></div>
+  <div class="hosec"><div class="hohead">§1 개요 · 스코프</div>
+    <div class="hobody"><b>회의실 예약 정리</b> — 예약 충돌 제거와 자동 반납. 범위: F-01~F-06 (P0 8항목·P1 4항목). 비범위: 대시보드 UI 신규 개발.</div></div>
+  <div class="hosec"><div class="hohead">§3 기능 목록 (수락 12항목 · 근거 포함)</div>
+    <div class="hobody">F-01 예약 생성(REQ-01) · F-01-3 자동 반납(Q3) · F-02 노쇼 처리(REQ-02) · … 각 항목에 수용 기준 1줄 포함</div></div>
+  <div class="hosec"><div class="hohead">§4 화면 · 플로우</div>
+    <div class="hobody">PG-01~06 와이어프레임 첨부 · FLOW-01~03 스텝-화면 매핑 표</div></div>
+  <div class="hoact"><span class="btn pri">Claude Code로 발주</span><span class="btn">Markdown</span><span class="btn">공유 링크</span>
+    <span class="hint">수락하지 않은 항목은 지시서에 없습니다</span></div>
+</div>
+<div class="panel">
+  <div class="ph">제안 1 <span></span></div>
+  <div class="scard"><div class="sh"><svg width="20" height="20" viewBox="0 0 120 120"><g transform="rotate(-2 60 60)"><rect x="31" y="16" width="58" height="88" rx="15" fill="#fff" stroke="#1B1C1E" stroke-width="3.2"/><path d="M46 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M66 44 q4 -4.5 8 0" stroke="#1B1C1E" stroke-width="2.3" fill="none" stroke-linecap="round"/><g transform="rotate(-9 60 60)"><rect x="46" y="52" width="28" height="15" rx="5" fill="#0E7B62"/><line x1="52" y1="59.5" x2="68" y2="59.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g></g></svg><b>지시서 초안 v1</b><span class="ssrc">수락분 12항목 기준</span></div>
+    <p>검사를 통과해서 지시서를 컴파일했어요. 이 문서도 수락해야 내보낼 수 있어요.</p>
+    <span class="a">수락</span><span class="r">고쳐쓰기</span></div>
+</div></div></div>
+<div class="caption"><b>시안 6 · 개발 지시서 = 컴파일 산출물 (v0.6).</b> 상단 검사 체크리스트가 게이트(전부 통과해야 생성),
+지시서 자체도 제안으로 들어와 수락 후 확정. 출구 3종: <b>Claude Code로 발주</b>(프롬프트 팩 — 입구도 출구도 에이전트) ·
+Markdown · 공유 링크. 태그라인 변주: "수락하지 않은 항목은 지시서에 없습니다".</div>
