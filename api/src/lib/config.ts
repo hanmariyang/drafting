@@ -37,7 +37,7 @@ export const config = {
   schemaPath: path.join(REPO_ROOT, 'db', 'schema.sql'),
   templatesDir: path.join(REPO_ROOT, 'api', 'templates'),
   webDist: path.join(REPO_ROOT, 'web', 'dist'),
-  version: '0.1.0',
+  version: '0.1.1',
 };
 
 export type AppConfig = typeof config;

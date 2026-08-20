@@ -3,15 +3,14 @@
 // port; documents live in ~/.drafting/ (sqlite + master.key), independent of any
 // docker/self-hosted instance the user may also run.
 const { app, BrowserWindow, shell, Menu, dialog } = require('electron');
-const { spawn } = require('node:child_process');
 const path = require('node:path');
 const http = require('node:http');
 const os = require('node:os');
 const fs = require('node:fs');
+const { pathToFileURL } = require('node:url');
 
 const EMBED_PORT = Number(process.env.DRAFTING_PORT || 8873);
 const DATA_DIR = path.join(os.homedir(), '.drafting');
-let server = null;
 let win = null;
 
 function serverRoot() {
@@ -19,26 +18,16 @@ function serverRoot() {
   return app.isPackaged ? path.join(process.resourcesPath, 'daemon') : path.join(__dirname, '..');
 }
 
-function startServer() {
-  const root = serverRoot();
+// 서버는 Electron 메인 프로세스 안에서 직접 구동한다 (in-process import).
+// ELECTRON_RUN_AS_NODE 자식 스폰은 최신 Electron의 부모 서명 검증(fuse)에
+// 막힐 수 있어 쓰지 않는다 — 같은 Node 24 런타임이라 node:sqlite 도 그대로.
+async function startServer() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  server = spawn(process.execPath, [path.join(root, 'api', 'dist', 'index.js')], {
-    cwd: root,
-    env: {
-      ...process.env,
-      ELECTRON_RUN_AS_NODE: '1',
-      HOST: '127.0.0.1',
-      PORT: String(EMBED_PORT),
-      DATABASE_PATH: path.join(DATA_DIR, 'drafting.sqlite'),
-    },
-    stdio: 'ignore',
-  });
-  server.on('exit', (code) => {
-    server = null;
-    if (win && !win.isDestroyed()) {
-      win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">Drafting server exited (code ' + code + '). Restart the app.</body>');
-    }
-  });
+  process.env.DATABASE_PATH = path.join(DATA_DIR, 'drafting.sqlite');
+  const entry = pathToFileURL(path.join(serverRoot(), 'api', 'dist', 'index.js')).href;
+  const mod = await import(entry);
+  const server = await mod.buildServer();
+  await server.listen({ port: EMBED_PORT, host: '127.0.0.1' });
 }
 
 function waitHealth(tries = 60) {
@@ -149,12 +138,18 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   buildMenu();
-  startServer();
+  try {
+    await startServer();
+  } catch (e) {
+    try { fs.appendFileSync(path.join(DATA_DIR, 'server.log'), String((e && e.stack) || e) + '\n'); } catch { /* ignore */ }
+    win = new BrowserWindow({ width: 900, height: 600, backgroundColor: '#F7F7F5', title: 'Drafting' });
+    win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">Drafting server failed to start: ' + encodeURIComponent(String((e && e.message) || e)) + '<br><br>See ~/.drafting/server.log</body>');
+    return;
+  }
   createWindow();
   setupAutoUpdate();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => { if (server) { try { server.kill(); } catch { /* gone */ } } });
