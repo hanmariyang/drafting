@@ -1,12 +1,51 @@
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow';
+export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'handoff';
 export type DocumentStatus = 'draft' | 'streaming' | 'ready';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
 export type VersionEvent = 'save' | 'context_inherit' | 'restore';
 
 // AI proposal model (SYSTEM.md §0). Sections are 'proposed' until accepted.
 export type SectionStatus = 'proposed' | 'accepted' | 'rejected';
-export type SuggestionKind = 'add' | 'revise' | 'delete' | 'question' | 'stale';
+export type SuggestionKind = 'add' | 'revise' | 'delete' | 'question' | 'stale' | 'lint';
 export type SuggestionStatus = 'open' | 'accepted' | 'rejected' | 'dismissed';
+
+// Plan items — the structure-document rows (feature-spec · IA · user-flow).
+export type PlanItemKind = 'feature-group' | 'feature' | 'page' | 'flow' | 'step';
+export type PlanItemStatus = 'proposed' | 'accepted' | 'rejected';
+export type Priority = 'P0' | 'P1' | 'P2';
+export type PageType = 'LIST' | 'DETAIL' | 'FORM' | 'DASH' | 'SETTINGS' | 'GENERIC';
+
+export interface PlanItemLinks {
+  reqs?: string[];
+  pages?: string[];
+  flows?: string[];
+  features?: string[];
+}
+export interface PlanItemMeta {
+  priority?: Priority;
+  page_type?: PageType;
+  source?: string;
+  links?: PlanItemLinks;
+  // step-only
+  page?: string | null;
+  branch?: { label: string; from_step?: string } | null;
+  note?: string;
+  node?: 'start' | 'screen' | 'decision' | 'end';
+}
+
+export interface PlanItem {
+  id: string;
+  document_id: string;
+  parent_id: string | null;
+  kind: PlanItemKind;
+  ref_id: string;
+  position: number;
+  title: string;
+  body: string;
+  meta: string; // JSON — parse with parsePlanItemMeta
+  status: PlanItemStatus;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Project {
   id: string;
@@ -46,6 +85,7 @@ export interface Suggestion {
   id: string;
   document_id: string;
   section_id: string | null;
+  target_item_id: string | null;
   kind: SuggestionKind;
   title: string;
   body: string;
@@ -97,4 +137,6 @@ export interface InterviewTemplate {
   sections: string[];
   /** system prompt fragment describing this document's purpose */
   draftGuidance: string;
+  /** structure-doc JSON output contract (§2) — informational, docs the shape */
+  itemSchema?: unknown;
 }

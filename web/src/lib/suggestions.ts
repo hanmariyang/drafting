@@ -7,6 +7,7 @@ const KIND_LABEL: Record<Suggestion['kind'], string> = {
   delete: '삭제 제안',
   question: '누락 질문',
   stale: '재검토',
+  lint: '정합성',
 };
 
 export function kindLabel(k: Suggestion['kind']): string {

@@ -35,5 +35,27 @@
     "진입 및 목표",
     "성공 경로 (Happy Path)",
     "분기 및 예외 경로"
-  ]
+  ],
+  "itemSchema": {
+    "root": "flows",
+    "note": "번호(FLOW-)는 서버가 매긴다. LLM 은 내용만 반환한다.",
+    "shape": {
+      "flows": [
+        {
+          "title": "string",
+          "source": "F-01",
+          "links": { "features": ["F-01"] },
+          "steps": [
+            {
+              "title": "string",
+              "page": "PG-02|null",
+              "node": "start|screen|decision|end",
+              "branch": { "label": "예", "from_step": "FLOW-01.4" },
+              "note": "겹침 재판정"
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

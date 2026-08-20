@@ -15,7 +15,7 @@ import { useMeta } from '../App.tsx';
 import { useSuggestions } from '../lib/suggestions.ts';
 import { rememberLastDoc } from '../lib/newPlan.ts';
 import { AppShell } from '../components/AppShell.tsx';
-import { DocChainTree } from '../components/DocChainTree.tsx';
+import { DeliverablesNav } from '../components/DeliverablesNav.tsx';
 import { InterviewPanel } from '../components/InterviewPanel.tsx';
 import { DocumentEditor } from '../components/DocumentEditor.tsx';
 import { SuggestionsPanel } from '../components/SuggestionsPanel.tsx';
@@ -28,6 +28,7 @@ const TYPE_LABEL: Record<DocumentType, string> = {
   'feature-spec': '기능명세',
   ia: 'IA',
   'user-flow': '유저플로우',
+  handoff: '개발 지시서',
 };
 
 export function DocumentWorkspace() {
@@ -224,12 +225,12 @@ export function DocumentWorkspace() {
   );
 
   const nav = project ? (
-    <DocChainTree
+    <DeliverablesNav
       projectId={pid!}
       projectName={project.name}
       documents={project.documents}
-      activeDocId={docId}
-      suggestionCounts={sug.supported ? { [docId]: openCount } : {}}
+      active="PRD"
+      activeCount={openCount}
     />
   ) : undefined;
 

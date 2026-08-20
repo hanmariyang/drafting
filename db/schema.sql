@@ -51,12 +51,15 @@ CREATE TABLE IF NOT EXISTS suggestions (
   id          TEXT PRIMARY KEY,
   document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   section_id  TEXT REFERENCES sections(id) ON DELETE CASCADE,   -- nullable = document-level
-  kind        TEXT NOT NULL,          -- add | revise | delete | question | stale
+  -- Structure-doc suggestions target a plan_item instead of a section (v0.4+).
+  -- Forward-references plan_items (created below); SQLite resolves at insert time.
+  target_item_id TEXT REFERENCES plan_items(id) ON DELETE CASCADE,
+  kind        TEXT NOT NULL,          -- add | revise | delete | question | stale | lint
   title       TEXT NOT NULL DEFAULT '',
   body        TEXT NOT NULL DEFAULT '',   -- human explanation
   quote_before TEXT NOT NULL DEFAULT '',  -- current text (revise/delete)
   quote_after  TEXT NOT NULL DEFAULT '',  -- proposed text (add/revise)
-  source      TEXT NOT NULL DEFAULT '',   -- basis: "Q3" | "PRD §2" | "사용자 지시: …"
+  source      TEXT NOT NULL DEFAULT '',   -- basis: "Q3" | "PRD §2" | lint code "W-ORPHAN-SPEC"
   status      TEXT NOT NULL DEFAULT 'open',  -- open | accepted | rejected | dismissed
   created_at  TEXT NOT NULL,
   resolved_at TEXT
@@ -64,6 +67,26 @@ CREATE TABLE IF NOT EXISTS suggestions (
 CREATE INDEX IF NOT EXISTS idx_suggestions_document ON suggestions(document_id);
 CREATE INDEX IF NOT EXISTS idx_suggestions_section  ON suggestions(section_id);
 CREATE INDEX IF NOT EXISTS idx_suggestions_status   ON suggestions(document_id, status);
+
+-- Plan items — the rows of the STRUCTURE documents (feature-spec · IA · user-flow).
+-- They coexist with sections (which back the prose PRD). AI never assigns ref_id
+-- (server-numbered, §1.2); AI output is always 'proposed' until accepted (§0.1).
+CREATE TABLE IF NOT EXISTS plan_items (
+  id           TEXT PRIMARY KEY,
+  document_id  TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  parent_id    TEXT REFERENCES plan_items(id) ON DELETE CASCADE,
+  kind         TEXT NOT NULL,          -- feature-group|feature|page|flow|step
+  ref_id       TEXT NOT NULL,          -- F-01|F-01-3|PG-01|FLOW-01|FLOW-01.2 (server)
+  position     INTEGER NOT NULL,
+  title        TEXT NOT NULL,
+  body         TEXT NOT NULL DEFAULT '',   -- acceptance criteria etc (newline-separated)
+  meta         TEXT NOT NULL DEFAULT '{}', -- JSON: links/priority/page_type/branch (§1.1)
+  status       TEXT NOT NULL DEFAULT 'proposed',  -- proposed|accepted|rejected
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_plan_items_document ON plan_items(document_id);
+CREATE INDEX IF NOT EXISTS idx_plan_items_parent   ON plan_items(parent_id);
 
 CREATE TABLE IF NOT EXISTS interview_sessions (
   id            TEXT PRIMARY KEY,

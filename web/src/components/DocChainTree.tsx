@@ -8,6 +8,7 @@ const TYPE_BADGE: Record<DocumentType, string> = {
   'feature-spec': 'SPEC',
   ia: 'IA',
   'user-flow': 'FLOW',
+  handoff: 'DEV',
 };
 
 interface ChainNode {
@@ -109,7 +110,7 @@ export function DocChainTree({
  * 프로젝트 스위처 (진입 재설계 시안 2) — 프로젝트 목록 페이지를 대체한다.
  * ▾ 로 전환, + 로 새 기획 시트.
  */
-function ProjectSwitcher({ currentId, currentName }: { currentId: string; currentName: string }) {
+export function ProjectSwitcher({ currentId, currentName }: { currentId: string; currentName: string }) {
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Project[] | null>(null);

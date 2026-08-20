@@ -3,6 +3,7 @@ import { z } from 'zod';
 import * as repo from '../db/repos.ts';
 import { HttpError, parse } from './helpers.ts';
 import { rewriteSection } from '../lib/ai.ts';
+import { applyLintFixByKey } from '../lib/lint-service.ts';
 import type { Suggestion } from '../lib/types.ts';
 
 const SUG_STATUSES = ['open', 'accepted', 'rejected', 'dismissed'] as const;
@@ -89,6 +90,17 @@ export async function suggestionRoutes(app: FastifyInstance): Promise<void> {
 }
 
 function applyAccept(sug: Suggestion): void {
+  // lint suggestion accepted -> apply the code's default remediation (§4.2)
+  if (sug.kind === 'lint') {
+    const doc = repo.getDocument(sug.document_id);
+    if (doc && sug.quote_before) applyLintFixByKey(doc.project_id, sug.quote_before);
+    return;
+  }
+  // structure-doc item proposal accepted -> the item becomes the document (§1.3)
+  if (sug.target_item_id) {
+    repo.setItemStatus(sug.target_item_id, 'accepted');
+    return;
+  }
   if (!sug.section_id) return; // document-level (e.g. question/stale) — nothing to flip
   const section = repo.getSection(sug.section_id);
   if (!section) return;
@@ -102,6 +114,14 @@ function applyAccept(sug: Suggestion): void {
 }
 
 function applyReject(sug: Suggestion): void {
+  // lint suggestion rejected = waive (§4.3) — nothing to mutate; the rejected
+  // status itself records the waive (read by lint-service.waivedKeys).
+  if (sug.kind === 'lint') return;
+  // structure-doc item proposal rejected -> the item is excluded from the document
+  if (sug.target_item_id) {
+    repo.setItemStatus(sug.target_item_id, 'rejected');
+    return;
+  }
   if (!sug.section_id) return;
   const section = repo.getSection(sug.section_id);
   if (!section) return;
