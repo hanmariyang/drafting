@@ -37,6 +37,13 @@ function migrate(d: DatabaseSync): void {
   if (!cols.some((c) => c.name === 'status')) {
     d.exec("ALTER TABLE sections ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'");
   }
+  // v0.4: structure-doc suggestions target a plan_item. Add the column to
+  // suggestions tables created before it existed (default NULL, no REFERENCES on
+  // ADD COLUMN — the base schema carries the FK for fresh DBs).
+  const sugCols = d.prepare('PRAGMA table_info(suggestions)').all() as Array<{ name: string }>;
+  if (sugCols.length && !sugCols.some((c) => c.name === 'target_item_id')) {
+    d.exec('ALTER TABLE suggestions ADD COLUMN target_item_id TEXT');
+  }
 }
 
 export function setDb(instance: DatabaseSync): void {

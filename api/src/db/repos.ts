@@ -15,7 +15,12 @@ import type {
   DocumentType,
   ProviderId,
   VersionEvent,
+  PlanItem,
+  PlanItemKind,
+  PlanItemStatus,
+  PlanItemMeta,
 } from '../lib/types.ts';
+import { nextRefId, toRefRows } from '../lib/numbering.ts';
 
 function db(): DatabaseSync {
   return getDb();
@@ -252,6 +257,7 @@ export function reorderSections(documentId: string, orderedIds: string[]): Secti
 export function createSuggestion(input: {
   documentId: string;
   sectionId?: string | null;
+  targetItemId?: string | null;
   kind: SuggestionKind;
   title: string;
   body?: string;
@@ -264,14 +270,15 @@ export function createSuggestion(input: {
   db()
     .prepare(
       `INSERT INTO suggestions
-         (id, document_id, section_id, kind, title, body, quote_before, quote_after,
-          source, status, created_at, resolved_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, NULL)`,
+         (id, document_id, section_id, target_item_id, kind, title, body,
+          quote_before, quote_after, source, status, created_at, resolved_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, NULL)`,
     )
     .run(
       id,
       input.documentId,
       input.sectionId ?? null,
+      input.targetItemId ?? null,
       input.kind,
       input.title,
       input.body ?? '',
@@ -319,6 +326,154 @@ export function resolveSuggestion(id: string, status: Suggestion['status']): Sug
     .prepare('UPDATE suggestions SET status = ?, resolved_at = ? WHERE id = ?')
     .run(status, nowIso(), id);
   return getSuggestion(id);
+}
+
+/** Open suggestions targeting a specific plan item (structure-doc rows). */
+export function listItemSuggestions(itemId: string, status: Suggestion['status'] = 'open'): Suggestion[] {
+  return db()
+    .prepare(
+      'SELECT * FROM suggestions WHERE target_item_id = ? AND status = ? ORDER BY created_at ASC',
+    )
+    .all(itemId, status) as unknown as Suggestion[];
+}
+
+/** All lint suggestions for a document by status (waive判정에 사용). */
+export function listLintSuggestions(documentId: string, status?: Suggestion['status']): Suggestion[] {
+  if (status) {
+    return db()
+      .prepare(
+        "SELECT * FROM suggestions WHERE document_id = ? AND kind = 'lint' AND status = ? ORDER BY created_at ASC",
+      )
+      .all(documentId, status) as unknown as Suggestion[];
+  }
+  return db()
+    .prepare("SELECT * FROM suggestions WHERE document_id = ? AND kind = 'lint' ORDER BY created_at ASC")
+    .all(documentId) as unknown as Suggestion[];
+}
+
+// ─── Plan items (structure docs: feature-spec · IA · user-flow) ──────────────
+
+export function parsePlanItemMeta(item: Pick<PlanItem, 'meta'>): PlanItemMeta {
+  try {
+    return JSON.parse(item.meta || '{}') as PlanItemMeta;
+  } catch {
+    return {};
+  }
+}
+
+export function listItems(documentId: string): PlanItem[] {
+  return db()
+    .prepare('SELECT * FROM plan_items WHERE document_id = ? ORDER BY position ASC')
+    .all(documentId) as unknown as PlanItem[];
+}
+
+export function getItem(id: string): PlanItem | null {
+  return (db().prepare('SELECT * FROM plan_items WHERE id = ?').get(id) as
+    | PlanItem
+    | undefined) ?? null;
+}
+
+/** All plan items across every document in a project (lint/hub/wireframe input). */
+export function listProjectItems(projectId: string): PlanItem[] {
+  const docs = listDocuments(projectId);
+  const out: PlanItem[] = [];
+  for (const d of docs) out.push(...listItems(d.id));
+  return out;
+}
+
+/**
+ * Create a plan item. `refId` is ALWAYS assigned here (server-numbered §1.2) —
+ * any id-like field in an LLM response is ignored. Numbering scope = the whole
+ * document for that kind (and the parent's children for feature/step).
+ */
+export function createItem(input: {
+  documentId: string;
+  kind: PlanItemKind;
+  title: string;
+  body?: string;
+  meta?: PlanItemMeta;
+  parentId?: string | null;
+  position?: number;
+  status?: PlanItemStatus;
+}): PlanItem {
+  const id = nanoid();
+  const ts = nowIso();
+  const existing = listItems(input.documentId);
+  const parent = input.parentId ? getItem(input.parentId) : null;
+  const refId = nextRefId(toRefRows(existing), input.kind, parent?.ref_id ?? null);
+  const pos =
+    input.position ??
+    ((db()
+      .prepare('SELECT COALESCE(MAX(position), -1) + 1 AS p FROM plan_items WHERE document_id = ?')
+      .get(input.documentId) as { p: number }).p);
+  db()
+    .prepare(
+      `INSERT INTO plan_items
+         (id, document_id, parent_id, kind, ref_id, position, title, body, meta, status,
+          created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      input.documentId,
+      input.parentId ?? null,
+      input.kind,
+      refId,
+      pos,
+      input.title,
+      input.body ?? '',
+      JSON.stringify(input.meta ?? {}),
+      input.status ?? 'proposed',
+      ts,
+      ts,
+    );
+  return getItem(id)!;
+}
+
+export function updateItem(
+  id: string,
+  patch: Partial<{ title: string; body: string; meta: PlanItemMeta; position: number }>,
+): PlanItem | null {
+  const cur = getItem(id);
+  if (!cur) return null;
+  db()
+    .prepare('UPDATE plan_items SET title = ?, body = ?, meta = ?, position = ?, updated_at = ? WHERE id = ?')
+    .run(
+      patch.title ?? cur.title,
+      patch.body ?? cur.body,
+      patch.meta ? JSON.stringify(patch.meta) : cur.meta,
+      patch.position ?? cur.position,
+      nowIso(),
+      id,
+    );
+  return getItem(id);
+}
+
+export function setItemStatus(id: string, status: PlanItemStatus): PlanItem | null {
+  if (!getItem(id)) return null;
+  db()
+    .prepare('UPDATE plan_items SET status = ?, updated_at = ? WHERE id = ?')
+    .run(status, nowIso(), id);
+  return getItem(id);
+}
+
+export function deleteItem(id: string): void {
+  db().prepare('DELETE FROM plan_items WHERE id = ?').run(id);
+}
+
+/**
+ * REQ-nn ids derived from a project's PRD accepted sections in position order
+ * (§1.2). REQ ids are NOT stored — this is the single derivation point.
+ */
+export function reqIdsForProject(projectId: string): Array<{ id: string; heading: string; sectionId: string }> {
+  const prd = listDocuments(projectId).find((d) => d.type === 'prd');
+  if (!prd) return [];
+  const sections = listAcceptedSections(prd.id);
+  return sections.map((s, i) => ({
+    id: `REQ-${String(i + 1).padStart(2, '0')}`,
+    heading: s.heading,
+    sectionId: s.id,
+  }));
 }
 
 // ─── Version history & context chain (P-01, SPEC-12) ─────────────────────────

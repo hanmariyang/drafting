@@ -1,7 +1,48 @@
 // Typed client for the Drafting API. Same-origin in prod; vite proxies in dev.
 
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow';
+export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'handoff';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
+
+// ── plan items (structure docs) ──────────────────────────────────────────────
+export type PlanItemKind = 'feature-group' | 'feature' | 'page' | 'flow' | 'step';
+export type PlanItemStatus = 'proposed' | 'accepted' | 'rejected';
+export type Priority = 'P0' | 'P1' | 'P2';
+export type PageType = 'LIST' | 'DETAIL' | 'FORM' | 'DASH' | 'SETTINGS' | 'GENERIC';
+export interface PlanItemLinks {
+  reqs?: string[];
+  pages?: string[];
+  flows?: string[];
+  features?: string[];
+}
+export interface PlanItemMeta {
+  priority?: Priority;
+  page_type?: PageType;
+  source?: string;
+  links?: PlanItemLinks;
+  page?: string | null;
+  branch?: { label: string; from_step?: string } | null;
+  note?: string;
+  node?: 'start' | 'screen' | 'decision' | 'end';
+}
+export interface PlanItem {
+  id: string;
+  document_id: string;
+  parent_id: string | null;
+  kind: PlanItemKind;
+  ref_id: string;
+  position: number;
+  title: string;
+  body: string;
+  meta: string; // JSON — parse with parseItemMeta
+  status: PlanItemStatus;
+}
+export function parseItemMeta(i: PlanItem): PlanItemMeta {
+  try {
+    return JSON.parse(i.meta || '{}') as PlanItemMeta;
+  } catch {
+    return {};
+  }
+}
 
 export interface Project {
   id: string;
@@ -53,16 +94,21 @@ export interface Section {
 }
 
 // ── 제안 (신규 병렬 API, 계약 고정) ──────────────────────────────
-export type SuggestionKind = 'add' | 'revise' | 'delete' | 'question' | 'stale';
+export type SuggestionKind = 'add' | 'revise' | 'delete' | 'question' | 'stale' | 'lint';
 
 export interface Suggestion {
   id: string;
+  // 백엔드는 snake_case 원행을 그대로 반환한다 (기존 계약). camel 별칭은 방어적.
   sectionId?: string;
+  section_id?: string | null;
+  target_item_id?: string | null;
   kind: SuggestionKind;
   title: string;
   body: string;
   quoteBefore?: string;
   quoteAfter?: string;
+  quote_before?: string;
+  quote_after?: string;
   source: string;
   status: string;
 }
@@ -306,6 +352,42 @@ export const api = {
     }),
   listShares: (docId: string) => req<ShareLink[]>(`/api/documents/${docId}/shares`),
   revokeShare: (id: string) => req(`/api/shares/${id}/revoke`, { method: 'POST' }),
+
+  // ── plan items (structure docs — SPEC/IA/FLOW) ─────────────────────────────
+  items: (docId: string) => req<{ items: PlanItem[] }>(`/api/documents/${docId}/items`),
+  createItem: (
+    docId: string,
+    body: {
+      kind: PlanItemKind;
+      title: string;
+      body?: string;
+      meta?: PlanItemMeta;
+      parentId?: string | null;
+      status?: PlanItemStatus;
+    },
+  ) =>
+    req<PlanItem>(`/api/documents/${docId}/items`, { method: 'POST', body: JSON.stringify(body) }),
+  updateItem: (id: string, patch: { title?: string; body?: string; meta?: PlanItemMeta; position?: number }) =>
+    req<PlanItem>(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteItem: (id: string) => req(`/api/items/${id}`, { method: 'DELETE' }),
+  acceptItem: (id: string) => req<PlanItem>(`/api/items/${id}/accept`, { method: 'POST' }),
+  rejectItem: (id: string) => req<PlanItem>(`/api/items/${id}/reject`, { method: 'POST' }),
+
+  // ── project deliverables ───────────────────────────────────────────────────
+  lint: (pid: string) => req<LintReport>(`/api/projects/${pid}/lint`),
+  lintSuggest: (pid: string) =>
+    req<{ created: number; report: LintReport }>(`/api/projects/${pid}/lint/suggest`, {
+      method: 'POST',
+    }),
+  wireframes: (pid: string) => req<{ wireframes: Wireframe[] }>(`/api/projects/${pid}/wireframes`),
+  compileHandoff: (pid: string) =>
+    req<{ documentId: string; report: LintReport }>(`/api/projects/${pid}/handoff`, {
+      method: 'POST',
+    }),
+  promptPackHref: (pid: string) => `/api/projects/${pid}/handoff/prompt-pack`,
+  hub: (pid: string) => req<HubSnapshot>(`/api/projects/${pid}/hub`),
+  sampleDeliverables: () =>
+    req<{ projectId: string; created: boolean }>('/api/sample/deliverables', { method: 'POST' }),
 };
 
 export interface GraphNode {
@@ -362,3 +444,87 @@ export const streamDraft = (docId: string, h: DraftHandlers) =>
 
 export const streamRegenerate = (sectionId: string, h: DraftHandlers) =>
   streamSse(`/api/sections/${sectionId}/regenerate/stream`, h);
+
+// ── deliverables types ────────────────────────────────────────────────────────
+export interface LintViolation {
+  code: string;
+  message: string;
+  refs: string[];
+  severity: 'E' | 'W';
+  key?: string;
+  waived?: boolean;
+}
+export interface LintReport {
+  violations: LintViolation[];
+  effectiveCount: number;
+  waivedCount: number;
+  gatePasses: boolean;
+}
+export interface WfSeed {
+  search?: string;
+  rows?: Array<{ title: string; meta: string; action: string; hot?: string }>;
+  slots?: Array<{ label: string; state: 'on' | 'off' | 'dis' | 'idle' }>;
+  detailTitle?: string;
+  cta?: string;
+  fields?: Array<{ label: string; value: string }>;
+  stats?: Array<{ value: string; label: string }>;
+  bars?: number[];
+  toggles?: Array<{ label: string; on: boolean }>;
+  blocks?: string[];
+}
+export interface Wireframe {
+  ref: string;
+  title: string;
+  pageType: PageType;
+  status: 'accepted' | 'proposed';
+  featureRefs: string[];
+  flowRefs: string[];
+  hotspot: { toPage: string; label: string } | null;
+  lintWarning: string | null;
+  seed: WfSeed;
+}
+export interface DocRollup {
+  accepted: number;
+  proposed: number;
+  total: number;
+  documentId: string | null;
+}
+export interface HubSnapshot {
+  perDoc: Record<'prd' | 'feature-spec' | 'ia' | 'user-flow', DocRollup>;
+  lint: LintReport;
+  derived: {
+    wireframes: { count: number };
+    handoff: { compiled: boolean; documentId: string | null; locked: boolean; blocking: number };
+  };
+}
+
+// ── SSE structure-item generation ─────────────────────────────────────────────
+export interface ItemStreamHandlers {
+  onItem?: (item: PlanItem) => void;
+  onDone?: (count: number) => void;
+  onError?: (msg: string) => void;
+}
+export function streamItems(docId: string, h: ItemStreamHandlers): EventSource {
+  const es = new EventSource(`/api/documents/${docId}/items/generate/stream`);
+  es.addEventListener('item', (e) => h.onItem?.(JSON.parse((e as MessageEvent).data).item));
+  es.addEventListener('done', (e) => {
+    try {
+      h.onDone?.(JSON.parse((e as MessageEvent).data).count ?? 0);
+    } catch {
+      h.onDone?.(0);
+    }
+    es.close();
+  });
+  es.addEventListener('error', (e) => {
+    const data = (e as MessageEvent).data;
+    if (data) {
+      try {
+        h.onError?.(JSON.parse(data).message);
+      } catch {
+        h.onError?.('stream error');
+      }
+    }
+    es.close();
+  });
+  return es;
+}

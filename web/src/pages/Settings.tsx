@@ -19,6 +19,7 @@ const DOC_LABEL: Record<DocumentType, string> = {
   'feature-spec': '기능명세',
   ia: 'IA',
   'user-flow': '유저플로우',
+  handoff: '지시서',
 };
 
 export function Settings() {

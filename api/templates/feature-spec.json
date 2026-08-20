@@ -49,5 +49,25 @@
     "데이터 입출력",
     "수용 기준",
     "엣지케이스 및 실패 처리"
-  ]
+  ],
+  "itemSchema": {
+    "root": "groups",
+    "note": "번호(F-)는 서버가 매긴다. LLM 은 내용만 반환한다.",
+    "shape": {
+      "groups": [
+        {
+          "title": "string",
+          "features": [
+            {
+              "title": "string",
+              "body": "string (수용 기준, 줄바꿈 구분)",
+              "priority": "P0|P1|P2",
+              "source": "REQ-01|Q3|PRD §4",
+              "links": { "reqs": ["REQ-01"], "pages": ["PG-02"], "flows": ["FLOW-01"] }
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

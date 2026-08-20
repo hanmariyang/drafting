@@ -13,6 +13,7 @@ import { projectRoutes } from './routes/projects.ts';
 import { documentRoutes } from './routes/documents.ts';
 import { interviewRoutes } from './routes/interview.ts';
 import { suggestionRoutes } from './routes/suggestions.ts';
+import { deliverableRoutes } from './routes/deliverables.ts';
 import { keyRoutes } from './routes/keys.ts';
 import { settingsRoutes } from './routes/settings.ts';
 import { shareRoutes } from './routes/share.ts';
@@ -56,6 +57,7 @@ export async function buildServer() {
   await app.register(documentRoutes);
   await app.register(interviewRoutes);
   await app.register(suggestionRoutes);
+  await app.register(deliverableRoutes);
   await app.register(keyRoutes);
   await app.register(settingsRoutes);
   await app.register(shareRoutes);

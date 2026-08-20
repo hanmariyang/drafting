@@ -2,8 +2,10 @@ import { useEffect, useState, createContext, useContext, useCallback } from 'rea
 import { Routes, Route } from 'react-router-dom';
 import { api, type Meta } from './lib/api.ts';
 import { StartScreen } from './pages/StartScreen.tsx';
-import { ProjectView } from './pages/ProjectView.tsx';
-import { DocumentWorkspace } from './pages/DocumentWorkspace.tsx';
+import { Hub } from './pages/Hub.tsx';
+import { DocumentRoute } from './pages/DocumentRoute.tsx';
+import { WireframesPage } from './pages/WireframesPage.tsx';
+import { HandoffPage } from './pages/HandoffPage.tsx';
 import { Settings } from './pages/Settings.tsx';
 import { OnboardingWizard } from './components/OnboardingWizard.tsx';
 import { NewPlanSheet } from './components/NewPlanSheet.tsx';
@@ -63,8 +65,10 @@ export function App() {
     <MetaContext.Provider value={{ meta, reload }}>
       <Routes>
         <Route path="/" element={<StartScreen />} />
-        <Route path="/projects/:pid" element={<ProjectView />} />
-        <Route path="/projects/:pid/documents/:did" element={<DocumentWorkspace />} />
+        <Route path="/projects/:pid" element={<Hub />} />
+        <Route path="/projects/:pid/documents/:did" element={<DocumentRoute />} />
+        <Route path="/projects/:pid/wireframes" element={<WireframesPage />} />
+        <Route path="/projects/:pid/handoff" element={<HandoffPage />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
 

@@ -35,5 +35,18 @@
     "화면 목록",
     "콘텐츠 계층",
     "주요 이동 경로"
-  ]
+  ],
+  "itemSchema": {
+    "root": "pages",
+    "note": "번호(PG-)는 서버가 매긴다. LLM 은 내용만 반환한다.",
+    "shape": {
+      "pages": [
+        {
+          "title": "string",
+          "page_type": "LIST|DETAIL|FORM|DASH|SETTINGS|GENERIC",
+          "links": { "features": ["F-01-1"] }
+        }
+      ]
+    }
+  }
 }
