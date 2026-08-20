@@ -59,7 +59,7 @@ async function createWindow() {
     await waitHealth();
     await win.loadURL('http://127.0.0.1:' + EMBED_PORT + '/');
   } catch (e) {
-    await win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">Drafting server failed to start: ' + String(e.message) + '</body>');
+    await win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">제가 좀 구겨졌어요 — server failed to start: ' + String(e.message) + '</body>');
   }
 }
 
@@ -145,7 +145,7 @@ app.whenReady().then(async () => {
   } catch (e) {
     try { fs.appendFileSync(path.join(DATA_DIR, 'server.log'), String((e && e.stack) || e) + '\n'); } catch { /* ignore */ }
     win = new BrowserWindow({ width: 900, height: 600, backgroundColor: '#F7F7F5', title: 'Drafting' });
-    win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">Drafting server failed to start: ' + encodeURIComponent(String((e && e.message) || e)) + '<br><br>See ~/.drafting/server.log</body>');
+    win.loadURL('data:text/html,<body style="background:%23F7F7F5;color:%23AA3333;font-family:monospace;padding:40px">제가 좀 구겨졌어요 — server failed to start: ' + encodeURIComponent(String((e && e.message) || e)) + '<br><br>See ~/.drafting/server.log</body>');
     return;
   }
   createWindow();

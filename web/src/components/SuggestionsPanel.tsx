@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Choani } from './Choani.tsx';
 import type { Suggestion } from '../lib/api.ts';
 import { kindLabel, type UseSuggestions } from '../lib/suggestions.ts';
 
@@ -27,9 +28,10 @@ export function SuggestionsPanel({ s, onFocusSection, focusedSection, doneLine }
 
       {count === 0 ? (
         <div className="panel-empty">
-          검토할 제안이 없습니다.
+          <Choani pose="wait" size={72} />
+          검토할 제안이 없어요.
           <br />
-          <b>수락된 것만 문서입니다.</b>
+          <b>문서를 이어 쓰면 다시 물어올게요.</b>
         </div>
       ) : (
         suggestions.map((sg) => (
@@ -104,7 +106,7 @@ function SuggestionCard({
       onMouseLeave={onLeave}
     >
       <div className="who">
-        <span className="av">AI</span>
+        <Choani pose="fetch" size={20} animate={false} />
         <b>{sg.title || kindLabel(sg.kind)}</b>
         <span className="why">{sg.source}</span>
       </div>

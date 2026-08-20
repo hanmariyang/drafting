@@ -1,3 +1,4 @@
+import { Choani } from './Choani.tsx';
 import {
   useRef,
   useState,
@@ -100,6 +101,13 @@ export function DocumentEditor({
         {error && (
           <div className="err" style={{ marginBottom: 12 }}>
             {error}
+          </div>
+        )}
+
+        {streaming && (
+          <div className="ch-strip">
+            <Choani pose="write" size={34} />
+            초안을 쓰는 중이에요. 다 쓰면 전부 제안으로 보여드릴게요.
           </div>
         )}
 

@@ -4,7 +4,7 @@
 > **셀프호스팅 오픈소스** 도구. 자신의 AI 키를 연결(BYOK)해 로컬/서버에 설치하고, 결과물을
 > MD·HTML로 팀·클라이언트와 공유한다.
 
-**AI는 제안을 쓰고, 문서는 당신이 씁니다.** AI가 쓴 모든 문장은 제안(그린 하이라이트)으로 들어오고, 수락해야만 문서가 됩니다. 랜딩: [hanmariyang.github.io/drafting](https://hanmariyang.github.io/drafting)
+**AI는 제안을 쓰고, 문서는 당신이 씁니다.** 마스코트 **초안이**(제안을 물어오는 초안 종이)가 첫 실행·빈 상태·에러에서 안내합니다. AI가 쓴 모든 문장은 제안(그린 하이라이트)으로 들어오고, 수락해야만 문서가 됩니다. 랜딩: [hanmariyang.github.io/drafting](https://hanmariyang.github.io/drafting)
 
 ---
 

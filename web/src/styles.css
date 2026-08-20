@@ -540,3 +540,37 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .pal-item .gd i { width: 5px; height: 5px; border-radius: 99px; background: var(--sug); }
 .pal-empty { padding: 18px; font-size: 12px; color: var(--sub); text-align: center; }
 .pal-foot { border-top: 1px solid var(--hair); padding: 7px 12px; font-size: 9.5px; color: var(--faint, var(--sub)); }
+
+/* ── 초안이 모션 (design/CHARACTER.md §모션) ───────────────────── */
+.ch-eye, .ch-tag, .ch-pen, .ch-td, .ch-sp, .ch-rock, .ch-bob, .ch-shiver { transform-box: fill-box; transform-origin: center; }
+.ch { animation: ch-flutter 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes ch-flutter { 0% { transform: translateY(10px) rotate(-4deg); opacity: 0; } 60% { transform: translateY(-2px) rotate(1.5deg); opacity: 1; } 100% { transform: translateY(0) rotate(0); } }
+.ch-eye { animation: ch-blink 4.6s infinite; }
+@keyframes ch-blink { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(0.12); } }
+.ch-rock { animation: ch-rock 3.4s ease-in-out infinite; }
+@keyframes ch-rock { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(2.6deg); } 60% { transform: rotate(-1.4deg); } }
+.ch-tag { animation: ch-tagbob 2.1s ease-in-out infinite; }
+@keyframes ch-tagbob { 0%, 100% { transform: rotate(0) translateY(0); } 45% { transform: rotate(-3.5deg) translateY(-1.6px); } }
+.ch-draw { stroke-dasharray: 1; animation: ch-drawline 2.6s ease-in-out infinite; }
+@keyframes ch-drawline { 0% { stroke-dashoffset: 1; } 45%, 72% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 1; } }
+.ch-pen { animation: ch-penmove 2.6s ease-in-out infinite; }
+@keyframes ch-penmove { 0% { transform: translateX(-15px); } 45%, 72% { transform: translateX(0); } 100% { transform: translateX(-15px); } }
+.ch-td { opacity: 0.2; animation: ch-tdp 1.8s infinite; }
+.ch-td2 { animation-delay: 0.3s; }
+.ch-td3 { animation-delay: 0.6s; }
+@keyframes ch-tdp { 0%, 100% { opacity: 0.2; } 35% { opacity: 0.9; } }
+.ch-bob { animation: ch-bob 3.8s ease-in-out infinite; }
+@keyframes ch-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2.2px); } }
+.ch-sp { animation: ch-tw 1.6s ease-in-out infinite; }
+.ch-sp2 { animation-delay: 0.8s; }
+@keyframes ch-tw { 0%, 100% { opacity: 0.25; transform: scale(0.75); } 50% { opacity: 1; transform: scale(1.1); } }
+.ch-shiver { animation: ch-shiver 3.2s infinite; }
+@keyframes ch-shiver { 0%, 88%, 100% { transform: rotate(0); } 90% { transform: rotate(1.8deg); } 93% { transform: rotate(-1.8deg); } 96% { transform: rotate(1.2deg); } }
+.ch-static, .ch-static * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ch, .ch * { animation: none !important; } }
+/* 스트리밍 스트립 */
+.ch-strip { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--hair); border-radius: var(--r-card); padding: 8px 14px; font-size: 12.5px; color: var(--sub); margin-bottom: 14px; }
+/* 패널 빈 상태 캐릭터 */
+.panel-empty .ch { display: block; margin: 0 auto 10px; }
+.app-name .logo-ch { vertical-align: -5px; margin-right: 6px; }
+.start-ch { margin-bottom: 6px; }

@@ -4,6 +4,7 @@ import { api, openSuggestionsOf, type Project } from '../lib/api.ts';
 import { startFromIdea, getLastDoc, getOpenMode, type LastDoc } from '../lib/newPlan.ts';
 import { AppShell } from '../components/AppShell.tsx';
 import { AppName } from '../components/AppName.tsx';
+import { Choani } from '../components/Choani.tsx';
 import { useMeta } from '../App.tsx';
 
 /**
@@ -90,12 +91,12 @@ export function StartScreen() {
     >
       <main className="start">
         <div className="start-in">
-          <div className="start-mark">D</div>
+          <Choani pose="greet" size={92} className="start-ch" />
           <h1>무엇을 만들까요?</h1>
           <p className="start-phil">
-            아이디어 한 줄이면 인터뷰가 시작됩니다. AI가 쓴 모든 것은 제안으로 들어오고,
+            한 줄이면 제가 인터뷰를 열게요. AI가 쓴 모든 것은 제안으로 들어오고,
             <br />
-            <b>수락해야만 문서가 됩니다.</b> 이름과 범위는 인터뷰에서 정리됩니다.
+            <b>수락해야만 문서가 됩니다.</b> 이름과 범위는 인터뷰에서 정리돼요.
           </p>
 
           <div className="idea-box">
