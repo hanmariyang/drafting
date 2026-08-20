@@ -136,7 +136,7 @@
       <a class="btn primary" href="#download" data-i18n="hero.cta1">Download</a>
       <a class="btn ghost" href="#quickstart" data-i18n="hero.cta2">Self-host in a minute</a>
     </div>
-    <p class="fine" data-i18n="hero.fine">MIT · BYOK (your API key, encrypted at rest) · your machine, your documents</p>
+    <p class="fine" data-i18n="hero.fine">MIT · runs on your Claude Code login, no API key (BYOK fallback) · your machine, your documents</p>
 
     <!-- signature: try the grammar right here -->
     <div class="demo">
@@ -178,7 +178,7 @@
       <div class="fcard"><h3><span class="g">INT</span><span data-i18n="ch.c1h">The interview is a document</span></h3><p data-i18n="ch.c1p">Your answers are saved as document zero — re-readable, and cited as the source of later proposals.</p></div>
       <div class="fcard"><h3><span class="g">PRD</span><span data-i18n="ch.c2h">Context flows down the chain</span></h3><p data-i18n="ch.c2p">Feature specs inherit the PRD; IA inherits both. Each document knows which version of its parent it was written against.</p></div>
       <div class="fcard"><h3><span class="g">STALE</span><span data-i18n="ch.c3h">Upstream changes re-propose, never overwrite</span></h3><p data-i18n="ch.c3p">Change the PRD and affected downstream items return to proposal state. Nothing is silently rewritten.</p></div>
-      <div class="fcard"><h3><span class="g">BYOK</span><span data-i18n="ch.c4h">Your key, your machine</span></h3><p data-i18n="ch.c4p">Bring an Anthropic, OpenAI or OpenRouter key. Encrypted with AES-256-GCM; plaintext is never stored — a test enforces it.</p></div>
+      <div class="fcard"><h3><span class="g">BYOK</span><span data-i18n="ch.c4h">Your login, your machine</span></h3><p data-i18n="ch.c4p">The desktop app drives your local Claude Code login — no API key. Docker self-host falls back to BYOK keys (AES-256-GCM, plaintext never stored).</p></div>
     </div>
     <figure><img class="shot" src="shot-interview.png" alt="Idea interview" loading="lazy" />
       <figcaption data-i18n="ch.cap">The interview: one question at a time, with hints and examples.</figcaption></figure>
@@ -193,7 +193,7 @@
     <pre class="code"><span class="c"># run</span>
 <span class="p">$</span> git clone https://github.com/hanmariyang/drafting && cd drafting
 <span class="p">$</span> docker compose up -d
-<span class="c"># open http://localhost:8477 — add your API key in Settings</span></pre>
+<span class="c"># open http://localhost:8477 — docker uses BYOK keys; the desktop app needs none</span></pre>
   </section>
 
   <section id="download">
@@ -246,7 +246,7 @@
     'hero.sub':{en:'A self-hosted planning workspace. One idea line starts an interview; PRD, feature spec and IA follow — but nothing AI writes becomes the document until you accept it.',ko:'셀프호스트 기획 워크스페이스. 아이디어 한 줄이면 인터뷰가 시작되고 PRD·기능명세·IA가 이어집니다. 단, AI가 쓴 어떤 문장도 수락 전에는 문서가 되지 않습니다.'},
     'hero.cta1':{en:'Download',ko:'다운로드'},
     'hero.cta2':{en:'Self-host in a minute',ko:'1분 셀프호스트'},
-    'hero.fine':{en:'MIT · BYOK (your API key, encrypted at rest) · your machine, your documents',ko:'MIT · BYOK(내 API 키, 저장 시 암호화) · 내 머신, 내 문서'},
+    'hero.fine':{en:'MIT · runs on your Claude Code login, no API key (BYOK fallback) · your machine, your documents',ko:'MIT · Claude Code 로그인이면 API 키 불필요(BYOK 폴백) · 내 머신, 내 문서'},
     'demo.eyebrow':{en:'Try it — this is the whole product',ko:'눌러보세요. 이게 제품의 전부입니다'},
     'demo.h3':{en:'Scope',ko:'범위'},
     'demo.base':{en:'The first release ships one Slack digest bot, reading a single spreadsheet.',ko:'1차 릴리스는 스프레드시트 1개를 읽는 슬랙 요약 봇 하나를 출하한다.'},
@@ -276,8 +276,8 @@
     'ch.c2p':{en:'Feature specs inherit the PRD; IA inherits both. Each document knows which version of its parent it was written against.',ko:'기능명세는 PRD를, IA는 둘 다 승계합니다. 각 문서는 자신이 어느 버전의 상위 문서 기준인지 압니다.'},
     'ch.c3h':{en:'Upstream changes re-propose, never overwrite',ko:'상위 변경은 재제안, 덮어쓰기 금지'},
     'ch.c3p':{en:'Change the PRD and affected downstream items return to proposal state. Nothing is silently rewritten.',ko:'PRD를 고치면 영향받는 하위 항목이 제안 상태로 돌아옵니다. 조용히 다시 쓰이는 것은 없습니다.'},
-    'ch.c4h':{en:'Your key, your machine',ko:'내 키, 내 머신'},
-    'ch.c4p':{en:'Bring an Anthropic, OpenAI or OpenRouter key. Encrypted with AES-256-GCM; plaintext is never stored — a test enforces it.',ko:'Anthropic·OpenAI·OpenRouter 키를 직접 등록합니다. AES-256-GCM 암호화, 평문 미저장 — 테스트가 강제합니다.'},
+    'ch.c4h':{en:'Your login, your machine',ko:'내 로그인, 내 머신'},
+    'ch.c4p':{en:'The desktop app drives your local Claude Code login — no API key. Docker self-host falls back to BYOK keys (AES-256-GCM, plaintext never stored).',ko:'데스크톱 앱은 로컬 Claude Code 로그인으로 생성합니다 — API 키 불필요. docker 셀프호스트는 BYOK 키 폴백(AES-256-GCM, 평문 미저장).'},
     'ch.cap':{en:'The interview: one question at a time, with hints and examples.',ko:'인터뷰 — 한 번에 한 질문, 힌트와 예시 포함.'},
     'ch.cap2':{en:'First run: one idea line, and a sample plan with pending suggestions to practice on.',ko:'첫 실행 — 아이디어 한 줄, 그리고 수락·거절을 연습할 제안 대기 샘플 기획서.'},
     'qs.label':{en:'Quickstart',ko:'시작하기'},

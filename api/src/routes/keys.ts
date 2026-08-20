@@ -46,7 +46,7 @@ export async function keyRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(z.object({ model: z.string().optional() }), req.body ?? {});
     let ai;
     try {
-      ai = resolveProvider(provider);
+      ai = resolveProvider(provider, { forceByok: true }); // 키 테스트는 항상 BYOK 경로
     } catch (e) {
       throw new HttpError(400, (e as Error).message);
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, type KeyInfo, type ProviderId } from '../lib/api.ts';
 import { useMeta } from '../App.tsx';
 import { AppName } from './AppName.tsx';
+import { Choani } from './Choani.tsx';
 
 const PROVIDERS: { id: ProviderId; name: string; placeholder: string; hint: string }[] = [
   { id: 'anthropic', name: 'Anthropic', placeholder: 'sk-ant-…', hint: 'console.anthropic.com' },
@@ -51,6 +52,14 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
     await onDone();
   }
 
+  // CLI(구독) 감지 시: 키 없이 바로 시작 (엔진 모드 cli 확정)
+  async function startWithCli() {
+    setBusy(true);
+    await api.setAiMode('cli');
+    await api.completeOnboarding();
+    await onDone();
+  }
+
   return (
     <div className="overlay">
       <div className="dialog">
@@ -61,6 +70,9 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
 
         {step === 0 && (
           <>
+            <div style={{ textAlign: 'center', marginBottom: 6 }}>
+              <Choani pose="greet" size={72} />
+            </div>
             <h2>
               <AppName />에 오신 것을 환영합니다
             </h2>
@@ -68,23 +80,42 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
               AI가 쓴 모든 것은 <b style={{ color: 'var(--sug)' }}>제안</b>으로 들어오고, 수락해야만
               문서가 됩니다. 당신이 편집장입니다.
             </p>
-            <div className="mini-card">
-              <p className="subtle" style={{ margin: 0 }}>
-                <b>BYOK(Bring Your Own Key)</b> 방식입니다. 당신의 AI 제공자 키를 직접 등록하면 모든
-                AI 호출은 당신의 키로만 이뤄집니다. 키는 이 서버에 <b>암호화되어 저장</b>되며 평문으로
-                노출되지 않습니다.
-              </p>
-            </div>
-            <p className="subtle" style={{ marginTop: 12 }}>
-              다음 단계에서 최소 한 곳의 키를 등록하세요. (Anthropic · OpenAI · OpenRouter)
-            </p>
+            {meta?.cliAvailable ? (
+              <div className="mini-card">
+                <p className="subtle" style={{ margin: 0 }}>
+                  <b>Claude Code 를 찾았어요.</b> 구독 로그인으로 생성하니 API 키가 필요 없습니다.
+                  {meta.cliBin && (
+                    <span className="muted"> ({meta.cliBin})</span>
+                  )}
+                </p>
+              </div>
+            ) : (
+              <div className="mini-card">
+                <p className="subtle" style={{ margin: 0 }}>
+                  <b>BYOK(Bring Your Own Key)</b> 방식으로 시작합니다. 키는 이 서버에{' '}
+                  <b>암호화되어 저장</b>되며 평문으로 노출되지 않습니다. (Claude Code CLI 가 있는
+                  환경에서는 키 없이 시작할 수 있어요.)
+                </p>
+              </div>
+            )}
             {meta?.aiStub && (
               <p className="ok">STUB 모드가 켜져 있어 키 없이도 진행할 수 있습니다(오프라인 데모용).</p>
             )}
             <div className="foot-actions">
-              <button className="btn pri lg" onClick={() => setStep(1)}>
-                시작하기
-              </button>
+              {meta?.cliAvailable ? (
+                <>
+                  <button className="btn" disabled={busy} onClick={() => setStep(1)}>
+                    API 키로 쓸래요
+                  </button>
+                  <button className="btn pri lg" disabled={busy} onClick={startWithCli}>
+                    키 없이 시작하기
+                  </button>
+                </>
+              ) : (
+                <button className="btn pri lg" onClick={() => setStep(1)}>
+                  시작하기
+                </button>
+              )}
             </div>
           </>
         )}

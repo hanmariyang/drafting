@@ -29,6 +29,7 @@ export function Settings() {
   const [models, setModels] = useState<ProviderModels>({});
   const [savedMsg, setSavedMsg] = useState('');
   const [openMode, setOpenModeState] = useState<OpenMode>(getOpenMode());
+  const [cliStatus, setCliStatus] = useState('');
 
   async function loadKeys() {
     setKeys(await api.keys());
@@ -98,6 +99,52 @@ export function Settings() {
             설정
           </div>
           <h1>설정</h1>
+
+          <h3>AI 엔진</h3>
+          <p className="subtle">
+            Claude Code(구독)는 API 키 없이 로컬 CLI 로 생성합니다. docker 등 CLI 가 없는
+            환경에서는 API 키(BYOK)를 사용하세요.
+          </p>
+          <div className="rows">
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <label className="opt">
+                <input
+                  type="radio"
+                  name="aiMode"
+                  checked={meta?.aiMode === 'cli'}
+                  disabled={!meta?.cliAvailable}
+                  onChange={async () => {
+                    await api.setAiMode('cli');
+                    await reload();
+                  }}
+                />
+                Claude Code (구독{meta?.cliAvailable ? '' : ' · CLI 미감지'})
+              </label>
+              <label className="opt">
+                <input
+                  type="radio"
+                  name="aiMode"
+                  checked={meta?.aiMode === 'byok'}
+                  onChange={async () => {
+                    await api.setAiMode('byok');
+                    await reload();
+                  }}
+                />
+                API 키 (BYOK)
+              </label>
+              <button
+                className="btn"
+                onClick={async () => {
+                  setCliStatus('테스트 중…');
+                  const r = await api.testCli();
+                  setCliStatus(r.ok ? `연결 성공 · ${r.detail ?? ''}` : `실패 · ${r.detail ?? ''}`);
+                }}
+              >
+                CLI 테스트
+              </button>
+              {cliStatus && <span className="muted" style={{ fontSize: 12 }}>{cliStatus}</span>}
+            </div>
+          </div>
 
           <h3>실행 시 착지</h3>
           <p className="subtle">앱을 열 때 어디에 착지할지 정합니다.</p>

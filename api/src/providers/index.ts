@@ -6,6 +6,8 @@ import { AnthropicProvider } from './byok/anthropic.ts';
 import { OpenAIProvider, OpenRouterProvider } from './byok/openai-compat.ts';
 import { StubProvider } from './stub.ts';
 import { ManagedProvider } from './managed.ts';
+import { CliProvider, cliAvailable } from './cli.ts';
+import { getSetting } from '../db/repos.ts';
 
 export class ProviderKeyError extends Error {
   provider: ProviderId;
@@ -25,9 +27,17 @@ export { type AIProvider } from './types.ts';
  *   - AI_STUB=1          -> StubProvider (offline, deterministic)
  *   - otherwise          -> BYOK provider using the decrypted key
  */
-export function resolveProvider(providerId: ProviderId): AIProvider {
+/** 엔진 모드: 'cli'(Claude Code 구독, 기본) | 'byok'(API 키). 미설정 시 CLI 감지로 결정. */
+export function aiMode(): 'cli' | 'byok' {
+  const saved = getSetting<string>('ai_mode');
+  if (saved === 'cli' || saved === 'byok') return saved;
+  return cliAvailable() ? 'cli' : 'byok';
+}
+
+export function resolveProvider(providerId: ProviderId, opts?: { forceByok?: boolean }): AIProvider {
   if (config.managedTier) return new ManagedProvider();
   if (config.aiStub) return new StubProvider();
+  if (!opts?.forceByok && aiMode() === 'cli') return new CliProvider();
 
   const key = getDecryptedKey(providerId);
   if (!key) throw new ProviderKeyError(providerId);
@@ -47,5 +57,6 @@ export function resolveProvider(providerId: ProviderId): AIProvider {
 /** True if we can produce SOME provider (stub, managed, or a stored key). */
 export function hasUsableProvider(providerId: ProviderId): boolean {
   if (config.managedTier || config.aiStub) return true;
+  if (aiMode() === 'cli') return cliAvailable();
   return getDecryptedKey(providerId) !== null;
 }

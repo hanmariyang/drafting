@@ -114,6 +114,9 @@ export interface Meta {
   onboardingComplete: boolean;
   keysConfigured: ProviderId[];
   latestVersion: string;
+  aiMode: 'cli' | 'byok';
+  cliAvailable: boolean;
+  cliBin: string | null;
 }
 
 export interface VersionEntry {
@@ -252,6 +255,15 @@ export const api = {
     }),
   completeInterview: (sessionId: string) =>
     req(`/api/interview/${sessionId}/complete`, { method: 'POST' }),
+
+  // engine mode (CLI vs BYOK)
+  setAiMode: (mode: 'cli' | 'byok') =>
+    req<{ aiMode: string }>('/api/settings/ai-mode', {
+      method: 'PUT',
+      body: JSON.stringify({ mode }),
+    }),
+  testCli: () =>
+    req<{ ok: boolean; detail?: string }>('/api/settings/cli/test', { method: 'POST' }),
 
   // keys (SPEC-18)
   keys: () => req<KeyInfo[]>('/api/keys'),

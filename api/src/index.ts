@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { config } from './lib/config.ts';
 import { getDb } from './db/index.ts';
@@ -77,7 +78,8 @@ export async function buildServer() {
 }
 
 // only start when run directly (tests import buildServer without listening)
-const isMain = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+const isMain =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const app = await buildServer();
   try {

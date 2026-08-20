@@ -4,6 +4,7 @@
 
 ## Overview
 
+- **Engine modes**: default `cli` — drives the user's local Claude Code CLI (`api/src/providers/cli.ts`, subscription auth, no keys; isolated via empty cwd + `--setting-sources ""` + `--system-prompt`). Fallback `byok` for docker/no-CLI. `resolveProvider` stays the single gate.
 - **Grammar first**: AI output is always `proposed`; accepting a suggestion is the only way text becomes the document. Exports/share links contain accepted sections only. Every suggestion carries a `source` (interview answer, parent doc clause, or a user rewrite instruction).
 - **Document chain**: `interview → PRD → feature-spec → IA / user-flow`. Children inherit parent context; upstream edits mark children stale and re-propose — never overwrite (G-02).
 - **Entry structure**: no home dashboard. Start screen (idea line → interview) when needed, restore-to-last-document landing (Settings), project switcher in the nav, ⌘N new-plan sheet.
