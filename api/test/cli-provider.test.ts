@@ -30,3 +30,13 @@ test('result is_error 를 오류로 뽑는다', () => {
   );
   assert.equal(errorFromResultLine(JSON.stringify({ type: 'result', is_error: false })), null);
 });
+
+test('actionableCliError 는 조직 차단 메시지에 복구 안내를 덧붙인다', async () => {
+  const { actionableCliError } = await import('../src/providers/cli.ts');
+  const org = 'Your organization has disabled Claude subscription access for Claude Code';
+  const out = actionableCliError(org);
+  assert.ok(out.startsWith(org), '원문 보존');
+  assert.match(out, /API 키|BYOK|로그인/, '복구 경로 안내 포함');
+  // 일반 메시지는 그대로
+  assert.equal(actionableCliError('some unrelated failure'), 'some unrelated failure');
+});

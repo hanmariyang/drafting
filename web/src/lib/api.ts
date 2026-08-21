@@ -319,7 +319,9 @@ export const api = {
       body: JSON.stringify({ mode }),
     }),
   testCli: () =>
-    req<{ ok: boolean; detail?: string }>('/api/settings/cli/test', { method: 'POST' }),
+    req<{ ok: boolean; blocked?: boolean; detail?: string }>('/api/settings/cli/test', {
+      method: 'POST',
+    }),
 
   // keys (SPEC-18)
   keys: () => req<KeyInfo[]>('/api/keys'),
@@ -383,6 +385,7 @@ export const api = {
   deleteItem: (id: string) => req(`/api/items/${id}`, { method: 'DELETE' }),
   acceptItem: (id: string) => req<PlanItem>(`/api/items/${id}/accept`, { method: 'POST' }),
   rejectItem: (id: string) => req<PlanItem>(`/api/items/${id}/reject`, { method: 'POST' }),
+  restoreItem: (id: string) => req<PlanItem>(`/api/items/${id}/restore`, { method: 'POST' }),
 
   // ── project deliverables ───────────────────────────────────────────────────
   lint: (pid: string) => req<LintReport>(`/api/projects/${pid}/lint`),

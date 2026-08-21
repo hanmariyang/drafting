@@ -87,6 +87,10 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
     await api.rejectItem(id);
     await reload();
   }
+  async function restoreItem(id: string) {
+    await api.restoreItem(id);
+    await reload();
+  }
   async function acceptSug(id: string) {
     await api.acceptSuggestion(id);
     await reload();
@@ -191,8 +195,56 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
       statusLeft={<span>{doc.status === 'streaming' ? '생성 중…' : `항목 ${items.length}`}</span>}
       statusRight={<span>v{doc.version}</span>}
     >
-      <main className="ed structure-ed">{body}</main>
+      <main className="ed structure-ed">
+        {body}
+        {!empty && <RejectedItemsBar items={items} onRestore={restoreItem} />}
+      </main>
     </AppShell>
+  );
+}
+
+// ── 제외(rejected)된 항목 복구 — 정합성 '모두 수락' 등으로 사라진 항목을 되살린다 ──
+function RejectedItemsBar({
+  items,
+  onRestore,
+}: {
+  items: PlanItem[];
+  onRestore: (id: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const rejected = items.filter((i) => i.status === 'rejected');
+  if (rejected.length === 0) return null;
+
+  async function restore(id: string) {
+    setBusy(id);
+    try {
+      await onRestore(id);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="rejected-bar">
+      <button className="rejected-head" onClick={() => setOpen((o) => !o)}>
+        <span>제외된 항목 {rejected.length}개</span>
+        <span className="muted">{open ? '접기' : '펼쳐서 되살리기'}</span>
+      </button>
+      {open && (
+        <div className="rejected-list">
+          {rejected.map((it) => (
+            <div key={it.id} className="rejected-row">
+              <span className="rid">{it.ref_id}</span>
+              <span className="rtitle">{it.title}</span>
+              <button className="btn sm" disabled={busy === it.id} onClick={() => restore(it.id)}>
+                되살리기
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

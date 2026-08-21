@@ -258,6 +258,15 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 }
 .sug-card .quote { color: var(--sub); border-top: 1px dashed var(--hair); margin-top: 7px; padding-top: 7px; font-size: 11.5px; }
 .sug-card .quote .arrow { color: var(--sug); font-weight: 700; }
+
+/* AI 생성 차단(조직 차단 등) 복구 배너 — 답변 보존 + 설정/재생성 유도 */
+.gen-block-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin: 12px 16px 0; padding: 11px 14px; font-size: 12.5px; line-height: 1.55;
+  background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card);
+}
+.gen-block-banner .acts { display: flex; gap: 8px; flex-shrink: 0; }
+.gen-block-banner .btn { text-decoration: none; }
 .sug-acts { display: flex; gap: 6px; margin-top: 9px; }
 .sug-acts .btn { padding: 4px 10px; font-size: 11px; font-weight: 700; }
 .sug-acts.rewrite { margin-top: 6px; }
@@ -304,6 +313,22 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
   font-size: 9.5px; font-weight: 800; color: var(--sug); border: 1px solid var(--sug-line);
   background: var(--paper); border-radius: var(--r-pill); padding: 1px 8px;
 }
+/* 제외된 항목 복구 바 (구조 문서 하단) */
+.rejected-bar { margin: 16px 12px 0; border-top: 1px solid var(--hair); padding-top: 10px; }
+.rejected-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px;
+  background: transparent; border: none; cursor: pointer; font-size: 12px; color: var(--ink);
+}
+.rejected-head .muted { margin-left: auto; font-size: 11px; }
+.rejected-list { margin-top: 4px; }
+.rejected-row {
+  display: flex; align-items: center; gap: 9px; padding: 6px 8px;
+  border-bottom: 1px solid var(--hair); font-size: 12.5px;
+}
+.rejected-row .rid { font-family: var(--mono); font-size: 10px; color: var(--sub); min-width: 62px; flex-shrink: 0; }
+.rejected-row .rtitle { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sub); }
+.rejected-row .btn.sm { flex-shrink: 0; }
+
 .spec-row .row-acts { display: flex; gap: 4px; flex-shrink: 0; }
 .spec-row .row-acts button {
   border: 1px solid var(--sug-line); background: var(--paper); color: var(--sug);

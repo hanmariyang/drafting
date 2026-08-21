@@ -34,6 +34,11 @@ docker compose up --build     # 빌드 후 기동
 
 첫 접속 시 설정 위저드가 뜬다. **Claude Code CLI 가 감지되면 키 없이 바로 시작**, 아니면 BYOK 키 1개 등록.
 
+> **조직 계정이라면**: 회사·조직 계정으로 로그인된 Claude Code 는 조직이 구독 접근을 막아둔 경우
+> 생성이 거부된다(`disabled Claude subscription access for Claude Code`). '키 없이 시작' 을 누르면
+> 앱이 실제 생성 권한을 먼저 확인하고, 막혀 있으면 **BYOK 키 등록** 화면으로 안내한다.
+> 이 경우 개인 구독 계정으로 CLI 를 다시 로그인(`claude /login`)하거나, Anthropic/OpenRouter API 키를 등록하면 된다.
+
 > **키 없이 데모만 보고 싶다면**: `.env`에 `AI_STUB=1`을 설정하고 `docker compose up`.
 > 오프라인 스텁 AI가 결정적 초안을 생성하므로 전체 흐름을 키 없이 체험할 수 있다.
 
