@@ -32,6 +32,7 @@ export function Settings() {
   const [openMode, setOpenModeState] = useState<OpenMode>(getOpenMode());
   const [cliStatus, setCliStatus] = useState('');
   const [gwUrl, setGwUrl] = useState('');
+  const [gwHeaders, setGwHeaders] = useState('');
   const [gwMsg, setGwMsg] = useState('');
 
   async function loadKeys() {
@@ -45,10 +46,23 @@ export function Settings() {
     setGwUrl(meta?.openaiBaseUrl ?? '');
   }, [meta?.openaiBaseUrl]);
 
+  // "Name: value" 한 줄씩 → 헤더 객체
+  function parseHeaders(text: string): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const line of text.split('\n')) {
+      const i = line.indexOf(':');
+      if (i <= 0) continue;
+      const name = line.slice(0, i).trim();
+      const val = line.slice(i + 1).trim();
+      if (name && val) out[name] = val;
+    }
+    return out;
+  }
   async function saveGateway() {
     setGwMsg('저장 중…');
     try {
-      await api.saveOpenaiEndpoint(gwUrl.trim());
+      const headers = parseHeaders(gwHeaders);
+      await api.saveOpenaiEndpoint(gwUrl.trim(), headers);
       await reload();
       setGwMsg('저장됨 · openai 키로 이 게이트웨이를 사용합니다');
     } catch (e) {
@@ -262,6 +276,17 @@ export function Settings() {
                 </span>
               )}
             </div>
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <b style={{ width: 100 }}>추가 헤더</b>
+              <textarea
+                className="field grow"
+                rows={2}
+                style={{ resize: 'vertical', fontFamily: 'var(--mono)', fontSize: 12 }}
+                placeholder="선택 · 한 줄에 하나: 예) X-My-Header: value (표준 Bearer 는 자동 전송)"
+                value={gwHeaders}
+                onChange={(e) => setGwHeaders(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="divider" />
@@ -289,7 +314,7 @@ export function Settings() {
                   </select>
                   <input
                     className="field grow"
-                    placeholder="모델 id (예: anthropic/claude-3.5-sonnet)"
+                    placeholder="모델 id (예: anthropic/claude-sonnet-4.6)"
                     value={(entry.model as string) ?? ''}
                     onChange={(e) => setModel(dt, 'model', e.target.value)}
                   />

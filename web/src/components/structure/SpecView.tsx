@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api, parseItemMeta, type PlanItem, type LintViolation } from '../../lib/api.ts';
+import { useCallback, useEffect, useState } from 'react';
+import { api, parseItemMeta, type PlanItem, type LintViolation, type Priority } from '../../lib/api.ts';
 
 interface Props {
   projectId: string;
@@ -10,13 +10,16 @@ interface Props {
   onReject: (id: string) => Promise<void>;
   generating: boolean;
   onRegenerate: () => void;
+  onChanged?: () => void;
 }
 
-export function SpecView({ projectId, items, selected, onSelect, onAccept, onReject }: Props) {
+const PRIORITY_CYCLE: Priority[] = ['P0', 'P1', 'P2'];
+
+export function SpecView({ projectId, items, selected, onSelect, onAccept, onReject, onChanged }: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
   const [effective, setEffective] = useState(0);
 
-  useEffect(() => {
+  const refetchLint = useCallback(() => {
     api
       .lint(projectId)
       .then((r) => {
@@ -26,7 +29,28 @@ export function SpecView({ projectId, items, selected, onSelect, onAccept, onRej
         setEffective(r.effectiveCount);
       })
       .catch(() => {});
-  }, [projectId, items]);
+  }, [projectId]);
+
+  useEffect(() => {
+    refetchLint();
+  }, [refetchLint, items]);
+
+  // 우선순위 변경 (P0→P1→P2 순환) — W-NO-FLOW 등 P0 전용 위반을 근본 해소
+  async function cyclePriority(f: PlanItem) {
+    const m = parseItemMeta(f);
+    const cur = (m.priority ?? 'P2') as Priority;
+    const next = PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(cur) + 1) % PRIORITY_CYCLE.length];
+    await api.updateItem(f.id, { meta: { ...m, priority: next } });
+    onChanged?.();
+    refetchLint();
+  }
+
+  // 위반 하나를 무시(비파괴적) — 인라인 배지에서 바로
+  async function waiveViolation(v: LintViolation) {
+    if (!v.key) return;
+    await api.lintWaiveOne(projectId, v.key);
+    refetchLint();
+  }
 
   const groups = items.filter((i) => i.kind === 'feature-group' && i.status !== 'rejected');
   const featuresOf = (gid: string) =>
@@ -92,6 +116,8 @@ export function SpecView({ projectId, items, selected, onSelect, onAccept, onRej
                 onToggle={() => onSelect(selected === f.id ? null : f.id)}
                 onAccept={() => onAccept(f.id)}
                 onReject={() => onReject(f.id)}
+                onCyclePriority={() => cyclePriority(f)}
+                onWaive={waiveViolation}
               />
             ))}
           </div>
@@ -108,6 +134,8 @@ function FeatureRow({
   onToggle,
   onAccept,
   onReject,
+  onCyclePriority,
+  onWaive,
 }: {
   feature: PlanItem;
   open: boolean;
@@ -115,6 +143,8 @@ function FeatureRow({
   onToggle: () => void;
   onAccept: () => void;
   onReject: () => void;
+  onCyclePriority: () => void;
+  onWaive: (v: LintViolation) => void;
 }) {
   const m = parseItemMeta(feature);
   const proposed = feature.status === 'proposed';
@@ -125,7 +155,7 @@ function FeatureRow({
       <button className={`trow lv2 ${proposed ? 'sug' : ''}`} onClick={onToggle}>
         <span className="rid">{feature.ref_id}</span>
         <span className="rt">{feature.title}</span>
-        {violation && <span className="dpill amber">검사 위반</span>}
+        {violation && <span className="dpill amber">{violation.code}</span>}
         <span className="src">{m.source ?? ''}</span>
         <span className="pri-tag">{m.priority ?? ''}</span>
       </button>
@@ -146,6 +176,17 @@ function FeatureRow({
             수락됨
           </span>
         )}
+        {/* 우선순위 클릭 = P0→P1→P2 순환 (P0 전용 위반 근본 해소) */}
+        <button
+          className="pri-edit"
+          title="우선순위 변경 (P0→P1→P2)"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCyclePriority();
+          }}
+        >
+          {m.priority ?? 'P?'}
+        </button>
         <span className="mini">
           <button onClick={onAccept} title="수락">
             ✓
@@ -155,6 +196,15 @@ function FeatureRow({
           </button>
         </span>
       </div>
+      {violation && (
+        <div className="viol-bar">
+          <span className="vcode">{violation.code}</span>
+          <span className="vmsg">{violation.message}</span>
+          <button className="btn sm" onClick={() => onWaive(violation)} title="이 위반만 무시(내용 유지)">
+            무시
+          </button>
+        </div>
+      )}
       {critLines.length > 0 && (
         <div className="ac">
           <span className="lb">수용 기준</span>
