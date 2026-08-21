@@ -79,9 +79,17 @@ export function buildSectionMessages(params: {
   guidance: string;
 }): ChatMessage[] {
   const parent = parentContextBlock(params.documentId);
+  // 문서 전체 섹션 구성을 알려줘야 섹션 간 내용 중복(개요에 문제 정의 통째 포함 등)이 없다
+  const allSections = getTemplateForType(params.docType)?.sections ?? [];
+  const outline = allSections.length
+    ? `이 문서의 전체 섹션 구성: ${allSections.map((s) => `"${s}"`).join(' · ')}. ` +
+      `너는 그중 "${params.heading}" 하나만 쓴다. 다른 섹션에서 다룰 내용은 이 섹션에서 반복하거나 미리 쓰지 말라. `
+    : '';
   const system =
     `${params.guidance}\n\n` +
     `너는 지금 "${params.docType}" 문서의 한 섹션만 작성한다. ` +
+    outline +
+    `섹션 제목("${params.heading}")은 앱이 별도로 표시하므로 본문에 다시 쓰지 말라. ` +
     `제목이나 다른 섹션은 쓰지 말고, 요청된 섹션 본문만 마크다운으로 출력하라. ` +
     `간결하고 구체적으로, 불릿과 짧은 문단을 섞어 작성하라.`;
   const user =
@@ -92,6 +100,25 @@ export function buildSectionMessages(params: {
     { role: 'system', content: system },
     { role: 'user', content: user },
   ];
+}
+
+/**
+ * 모델이 프롬프트 지시를 어기고 본문 첫 줄에 섹션 제목을 반복하는 경우가 있다
+ * ("## 문제 정의" / "**문제 정의**" / "문제 정의:" 등). 앱이 heading 을 별도
+ * 렌더하므로 저장 전에 걷어낸다. 제목과 일치할 때만 — 일반 본문은 건드리지 않는다.
+ */
+export function stripLeadingHeading(body: string, heading: string): string {
+  const trimmed = body.trim();
+  const nl = trimmed.indexOf('\n');
+  const first = (nl === -1 ? trimmed : trimmed.slice(0, nl)).trim();
+  const normalize = (s: string) =>
+    s
+      .replace(/^#{1,6}\s*/, '') // 마크다운 heading 마커
+      .replace(/^\*\*(.*)\*\*$/, '$1') // 볼드 감싸기
+      .replace(/[\s:：.]+$/, '') // 꼬리 콜론·마침표
+      .trim();
+  if (normalize(first) !== normalize(heading)) return trimmed;
+  return nl === -1 ? '' : trimmed.slice(nl + 1).trim();
 }
 
 // ── streaming orchestration ──────────────────────────────────────────────────
@@ -164,7 +191,8 @@ export async function* streamDocumentDraft(
         body += delta;
         yield { type: 'token', sectionId: section.id, delta };
       }
-      repo.updateSection(section.id, { body: body.trim() });
+      const finalBody = stripLeadingHeading(body, section.heading);
+      repo.updateSection(section.id, { body: finalBody });
       // Each generated section arrives as an 'add' proposal with its basis.
       repo.createSuggestion({
         documentId,
@@ -172,7 +200,7 @@ export async function* streamDocumentDraft(
         kind: 'add',
         title: `"${section.heading}" 섹션 초안`,
         body: '인터뷰 답변을 바탕으로 생성된 초안입니다. 수락하면 문서에 반영됩니다.',
-        quoteAfter: body.trim(),
+        quoteAfter: finalBody,
         source: draftSource,
       });
       yield { type: 'section_end', sectionId: section.id };
@@ -232,7 +260,7 @@ export async function rewriteSection(
   })) {
     body += delta;
   }
-  const next = body.trim();
+  const next = stripLeadingHeading(body, section.heading);
   repo.updateSection(section.id, { body: next });
   repo.setSectionStatus(section.id, 'proposed');
   repo.snapshotDocument(doc.id, 'save', { reason: 'rewrite_section', sectionId });
@@ -299,7 +327,8 @@ export async function* streamSectionRegeneration(
       yield { type: 'token', sectionId: section.id, delta };
     }
     // Regenerated content is a fresh PROPOSAL — back to 'proposed' until re-accepted.
-    repo.updateSection(section.id, { body: body.trim() });
+    const finalBody = stripLeadingHeading(body, section.heading);
+    repo.updateSection(section.id, { body: finalBody });
     repo.setSectionStatus(section.id, 'proposed');
     repo.createSuggestion({
       documentId: doc.id,
@@ -308,7 +337,7 @@ export async function* streamSectionRegeneration(
       title: `"${section.heading}" 섹션 재생성`,
       body: '섹션을 재생성했습니다. 수락하면 새 본문이 문서에 반영됩니다.',
       quoteBefore: before,
-      quoteAfter: body.trim(),
+      quoteAfter: finalBody,
       source: draftSourceLabel(answers),
     });
     yield { type: 'section_end', sectionId: section.id };

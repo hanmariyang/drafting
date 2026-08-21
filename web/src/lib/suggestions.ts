@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { api, type Suggestion } from './api.ts';
+import { api, normalizeSuggestion, type Suggestion } from './api.ts';
 
 const KIND_LABEL: Record<Suggestion['kind'], string> = {
   add: '추가 제안',
@@ -40,7 +40,7 @@ export function useSuggestions(docId: string | null, onDocChanged: () => void): 
     try {
       const res = await api.suggestions(docId, 'open');
       const list = Array.isArray(res) ? res : Array.isArray(res?.suggestions) ? res.suggestions : [];
-      setSuggestions(list);
+      setSuggestions(list.map(normalizeSuggestion));
       setSupported(true);
     } catch {
       // 병렬 API 미배포/404 — 조용히 빈 큐로

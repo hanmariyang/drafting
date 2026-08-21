@@ -85,3 +85,21 @@ test('regenerate replaces only the target section (SPEC-07)', async () => {
   const regenerated = after.find((s) => s.id === target.id)!;
   assert.notEqual(regenerated.body, 'SENTINEL', 'target section was regenerated');
 });
+
+// ── stripLeadingHeading — 모델이 본문 첫 줄에 섹션 제목을 반복한 경우만 걷어낸다 ──
+test('stripLeadingHeading removes a repeated heading line (md/bold/colon variants)', async () => {
+  const { stripLeadingHeading } = await import('../src/lib/ai.ts');
+  assert.equal(stripLeadingHeading('## 문제 정의\n\n본문이다.', '문제 정의'), '본문이다.');
+  assert.equal(stripLeadingHeading('**문제 정의**\n본문이다.', '문제 정의'), '본문이다.');
+  assert.equal(stripLeadingHeading('문제 정의:\n본문이다.', '문제 정의'), '본문이다.');
+  assert.equal(stripLeadingHeading('# 문제 정의', '문제 정의'), '');
+});
+
+test('stripLeadingHeading leaves normal bodies untouched', async () => {
+  const { stripLeadingHeading } = await import('../src/lib/ai.ts');
+  const stub = '이 섹션은 "문제 정의" 에 대한 초안입니다.\n\n- 항목';
+  assert.equal(stripLeadingHeading(stub, '문제 정의'), stub);
+  assert.equal(stripLeadingHeading('  본문만 있다  ', '개요 및 배경'), '본문만 있다');
+  // 다른 섹션 제목은 건드리지 않는다
+  assert.equal(stripLeadingHeading('## 목표\n본문', '문제 정의'), '## 목표\n본문');
+});

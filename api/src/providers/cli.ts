@@ -108,6 +108,20 @@ export function errorFromResultLine(line: string): string | null {
   return null;
 }
 
+/**
+ * 구독 차단(조직이 Claude Code 구독 접근을 끈 경우)·미로그인 등 인증 계열 에러에
+ * 앱 안에서의 해결 경로를 덧붙인다. 원문은 보존한다.
+ */
+export function actionableCliError(msg: string): string {
+  if (/disabled Claude subscription|API key instead|log ?in|authenticat|OAuth|credential/i.test(msg)) {
+    return (
+      `${msg} — 설정(⌘,)에서 엔진을 API 키(BYOK) 모드로 전환해 Anthropic/OpenRouter 키를 등록하거나, ` +
+      `이 머신의 claude CLI 를 구독이 허용된 계정으로 다시 로그인(claude /login)하세요.`
+    );
+  }
+  return msg;
+}
+
 function agentCwd(): string {
   const dir = path.join(path.dirname(config.databasePath), 'agent');
   fs.mkdirSync(dir, { recursive: true });
@@ -204,10 +218,12 @@ export class CliProvider implements AIProvider {
     }
 
     if (spawnError) throw new Error(`agent CLI 실행 실패: ${(spawnError as Error).message}`);
-    if (resultError) throw new Error(resultError);
+    if (resultError) throw new Error(actionableCliError(resultError));
     if (!sawDelta && fallbackText) yield fallbackText;
     if (!sawDelta && !fallbackText && child.exitCode !== 0) {
-      throw new Error(`agent CLI 종료 코드 ${child.exitCode}: ${stderrTail.slice(-300)}`);
+      throw new Error(
+        actionableCliError(`agent CLI 종료 코드 ${child.exitCode}: ${stderrTail.slice(-300)}`),
+      );
     }
   }
 
