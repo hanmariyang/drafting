@@ -104,6 +104,11 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
     await api.lintSuggest(pid);
     await reload();
   }
+  async function waiveAll() {
+    if (!pid) return;
+    await api.lintWaiveAll(pid);
+    await reload();
+  }
 
   const openCount = suggestions.length;
   const empty = items.length === 0 && !generating;
@@ -115,6 +120,9 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
       </span>
       <button className="btn" onClick={runLint}>
         정합성 검사
+      </button>
+      <button className="btn" title="모든 위반을 무시(내용은 그대로 유지). 게이트만 통과합니다." onClick={waiveAll}>
+        위반 모두 무시
       </button>
       <a className="btn pri" href={`/api/documents/${docId}/export.md`}>
         내보내기
