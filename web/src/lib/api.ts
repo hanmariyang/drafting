@@ -173,6 +173,7 @@ export interface Meta {
   aiMode: 'cli' | 'byok';
   cliAvailable: boolean;
   cliBin: string | null;
+  openaiBaseUrl?: string;
 }
 
 export interface VersionEntry {
@@ -317,6 +318,12 @@ export const api = {
     req<{ aiMode: string }>('/api/settings/ai-mode', {
       method: 'PUT',
       body: JSON.stringify({ mode }),
+    }),
+  // OpenAI 호환 게이트웨이(LiteLLM 등) 엔드포인트 설정
+  saveOpenaiEndpoint: (baseUrl: string, headers?: Record<string, string>) =>
+    req<{ baseUrl: string; headers: Record<string, string> }>('/api/settings/openai-endpoint', {
+      method: 'PUT',
+      body: JSON.stringify({ baseUrl, headers }),
     }),
   testCli: () =>
     req<{ ok: boolean; blocked?: boolean; detail?: string }>('/api/settings/cli/test', {

@@ -39,6 +39,12 @@ docker compose up --build     # 빌드 후 기동
 > 앱이 실제 생성 권한을 먼저 확인하고, 막혀 있으면 **BYOK 키 등록** 화면으로 안내한다.
 > 이 경우 개인 구독 계정으로 CLI 를 다시 로그인(`claude /login`)하거나, Anthropic/OpenRouter API 키를 등록하면 된다.
 
+> **OpenAI 호환 게이트웨이(LiteLLM·Azure·사내 프록시)를 쓰려면**: 설정 화면의
+> **"OpenAI 호환 게이트웨이"** 에 base URL 을 넣거나(예: `https://gateway.example.com/v1`),
+> 환경변수 `OPENAI_BASE_URL`(또는 `LITELLM_BASE_URL`)을 설정한다. 그다음 **openai** 키 칸에
+> 게이트웨이 키를 등록하고, 모델 설정에 게이트웨이가 제공하는 모델 id 를 지정하면 된다.
+> 게이트웨이 주소·키는 설정/환경에만 두며 저장소 코드에는 넣지 않는다.
+
 > **키 없이 데모만 보고 싶다면**: `.env`에 `AI_STUB=1`을 설정하고 `docker compose up`.
 > 오프라인 스텁 AI가 결정적 초안을 생성하므로 전체 흐름을 키 없이 체험할 수 있다.
 

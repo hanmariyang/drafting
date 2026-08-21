@@ -50,6 +50,9 @@ export const config = {
   templatesDir: path.join(REPO_ROOT, 'api', 'templates'),
   webDist: path.join(REPO_ROOT, 'web', 'dist'),
   version: readVersion(),
+  // OpenAI 호환 게이트웨이(LiteLLM·Azure·사내 프록시 등) base URL 오버라이드.
+  // 비워두면 표준 OpenAI. 회사 게이트웨이 주소는 여기(env/설정)에만 두고 코드엔 넣지 않는다.
+  openaiBaseUrl: (process.env.OPENAI_BASE_URL ?? process.env.LITELLM_BASE_URL ?? '').trim(),
 };
 
 export type AppConfig = typeof config;

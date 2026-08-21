@@ -77,9 +77,17 @@ export class OpenAICompatProvider implements AIProvider {
 }
 
 export class OpenAIProvider extends OpenAICompatProvider {
-  constructor(apiKey: string) {
-    super('openai', apiKey, 'https://api.openai.com/v1');
+  // base 를 넘기면 OpenAI 호환 게이트웨이(LiteLLM·Azure·사내 프록시)를 그대로 사용한다.
+  // 게이트웨이가 표준 Bearer 외 다른 헤더를 요구하면 extraHeaders 로 주입한다.
+  constructor(apiKey: string, base?: string, extraHeaders: Record<string, string> = {}) {
+    super('openai', apiKey, normalizeBase(base) ?? 'https://api.openai.com/v1', extraHeaders);
   }
+}
+
+/** 사용자가 붙인 base 를 정규화 — 끝 슬래시 제거. 빈 값이면 null(기본값 사용). */
+function normalizeBase(base?: string): string | null {
+  const b = (base ?? '').trim().replace(/\/+$/, '');
+  return b || null;
 }
 
 export class OpenRouterProvider extends OpenAICompatProvider {

@@ -27,6 +27,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       aiMode: aiMode(),
       cliAvailable: cliAvailable(),
       cliBin: resolveCliBin(),
+      openaiBaseUrl: repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '',
       // In v1 there is no update server; the client shows the running version.
       // A real deployment can point this at a release feed.
       latestVersion: repo.getSetting<string>('latest_version') ?? config.version,
@@ -59,6 +60,24 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     const merged = { ...current, ...body };
     repo.setSetting('provider_models', merged);
     return merged;
+  });
+
+  // OpenAI 호환 게이트웨이(LiteLLM·Azure·사내 프록시) 엔드포인트 설정.
+  // base 를 비우면 표준 OpenAI. 회사 게이트웨이 주소·키는 여기(런타임 설정)에만 둔다.
+  app.put('/api/settings/openai-endpoint', async (req) => {
+    const body = parse(
+      z.object({
+        baseUrl: z.string().optional(),
+        headers: z.record(z.string()).optional(),
+      }),
+      req.body ?? {},
+    );
+    repo.setSetting('openai_base_url', (body.baseUrl ?? '').trim());
+    if (body.headers) repo.setSetting('openai_headers', body.headers);
+    return {
+      baseUrl: repo.getSetting<string>('openai_base_url') ?? '',
+      headers: repo.getSetting<Record<string, string>>('openai_headers') ?? {},
+    };
   });
 
   // 엔진 모드: CLI(구독) vs BYOK(API 키)

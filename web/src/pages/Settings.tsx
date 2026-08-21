@@ -31,6 +31,8 @@ export function Settings() {
   const [savedMsg, setSavedMsg] = useState('');
   const [openMode, setOpenModeState] = useState<OpenMode>(getOpenMode());
   const [cliStatus, setCliStatus] = useState('');
+  const [gwUrl, setGwUrl] = useState('');
+  const [gwMsg, setGwMsg] = useState('');
 
   async function loadKeys() {
     setKeys(await api.keys());
@@ -39,6 +41,21 @@ export function Settings() {
     loadKeys().catch(() => {});
     api.settings().then((s) => setModels(s.providerModels ?? {})).catch(() => {});
   }, []);
+  useEffect(() => {
+    setGwUrl(meta?.openaiBaseUrl ?? '');
+  }, [meta?.openaiBaseUrl]);
+
+  async function saveGateway() {
+    setGwMsg('저장 중…');
+    try {
+      await api.saveOpenaiEndpoint(gwUrl.trim());
+      await reload();
+      setGwMsg('저장됨 · openai 키로 이 게이트웨이를 사용합니다');
+    } catch (e) {
+      setGwMsg(`실패 · ${(e as Error).message}`);
+    }
+    setTimeout(() => setGwMsg(''), 3000);
+  }
 
   async function saveKey(p: ProviderId) {
     const key = (drafts[p] ?? '').trim();
@@ -217,6 +234,34 @@ export function Settings() {
                 </div>
               );
             })}
+          </div>
+
+          <div className="divider" />
+
+          <h3>OpenAI 호환 게이트웨이 (선택)</h3>
+          <p className="subtle">
+            LiteLLM·Azure·사내 프록시 등 OpenAI 호환 엔드포인트를 쓰려면 base URL 을 넣으세요.
+            비워두면 표준 OpenAI 를 사용합니다. 키는 위 <b>openai</b> 칸에 게이트웨이 키를 등록하고,
+            아래 모델 칸에 게이트웨이가 제공하는 모델 id 를 지정하세요.
+          </p>
+          <div className="rows">
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <b style={{ width: 100 }}>base URL</b>
+              <input
+                className="field grow"
+                placeholder="예: https://gateway.example.com/v1 (비우면 표준 OpenAI)"
+                value={gwUrl}
+                onChange={(e) => setGwUrl(e.target.value)}
+              />
+              <button className="btn pri" onClick={saveGateway}>
+                저장
+              </button>
+              {gwMsg && (
+                <span className={gwMsg.startsWith('실패') ? 'err' : 'ok'} style={{ width: '100%' }}>
+                  {gwMsg}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="divider" />
