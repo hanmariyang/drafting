@@ -45,8 +45,12 @@ export function resolveProvider(providerId: ProviderId, opts?: { forceByok?: boo
   switch (providerId) {
     case 'anthropic':
       return new AnthropicProvider(key);
-    case 'openai':
-      return new OpenAIProvider(key);
+    case 'openai': {
+      // OpenAI 호환 게이트웨이(LiteLLM 등) 지원: 인앱 설정 > env > 표준 OpenAI 순.
+      const base = getSetting<string>('openai_base_url') || config.openaiBaseUrl || undefined;
+      const headers = getSetting<Record<string, string>>('openai_headers') || undefined;
+      return new OpenAIProvider(key, base, headers);
+    }
     case 'openrouter':
       return new OpenRouterProvider(key);
     default:
