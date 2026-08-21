@@ -31,6 +31,8 @@ COPY --from=build /app/api/node_modules ./api/node_modules
 COPY --from=build /app/api/dist ./api/dist
 COPY --from=build /app/api/templates ./api/templates
 COPY --from=build /app/api/package.json ./api/package.json
+# 루트 package.json = 앱 버전 단일 소스 (config.readVersion 이 REPO_ROOT 에서 읽음)
+COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/db ./db
 # built frontend served statically by the api
 COPY --from=build /app/web/dist ./web/dist
