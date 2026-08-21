@@ -121,6 +121,24 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return { created, report: lintReport(id) };
   });
 
+  // 위반 하나를 키로 무시(waive)한다 — 인라인 배지에서 개별 처리. 비파괴적.
+  app.post('/api/projects/:id/lint/waive', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    const { key } = parse(z.object({ key: z.string().min(1) }), req.body);
+    suggestLint(id); // 해당 위반의 lint 제안이 없으면 생성
+    let waived = false;
+    for (const doc of repo.listDocuments(id)) {
+      for (const s of repo.listLintSuggestions(doc.id, 'open')) {
+        if (s.quote_before === key) {
+          repo.resolveSuggestion(s.id, 'rejected');
+          waived = true;
+        }
+      }
+    }
+    return { waived, report: lintReport(id) };
+  });
+
   // 모든 현재 위반을 비파괴적으로 무시(waive)한다 — 항목·본문은 그대로 두고
   // 게이트만 통과시킨다('모두 수락'의 항목 제외와 다름). §4.3 waive 를 일괄 적용.
   app.post('/api/projects/:id/lint/waive-all', async (req) => {

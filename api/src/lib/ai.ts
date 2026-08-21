@@ -14,7 +14,8 @@ export interface ModelConfig {
 const DEFAULT_MODELS: Record<ProviderId, string> = {
   anthropic: 'claude-sonnet-4-6',
   openai: 'gpt-4o-mini',
-  openrouter: 'anthropic/claude-3.5-sonnet',
+  // 3.5-sonnet 은 OpenRouter 에서 deprecated(404) — 활성 4.x 최신으로.
+  openrouter: 'anthropic/claude-sonnet-4.6',
 };
 
 const PROVIDER_ORDER: ProviderId[] = ['openrouter', 'anthropic', 'openai'];

@@ -405,6 +405,12 @@ export const api = {
     req<{ waived: number; report: LintReport }>(`/api/projects/${pid}/lint/waive-all`, {
       method: 'POST',
     }),
+  // 위반 하나를 키로 무시 (인라인 배지에서)
+  lintWaiveOne: (pid: string, key: string) =>
+    req<{ waived: boolean; report: LintReport }>(`/api/projects/${pid}/lint/waive`, {
+      method: 'POST',
+      body: JSON.stringify({ key }),
+    }),
   wireframes: (pid: string) => req<{ wireframes: Wireframe[] }>(`/api/projects/${pid}/wireframes`),
   compileHandoff: (pid: string) =>
     req<{ documentId: string; report: LintReport }>(`/api/projects/${pid}/handoff`, {

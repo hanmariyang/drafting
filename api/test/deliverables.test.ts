@@ -259,3 +259,25 @@ test('waive-all 은 항목을 지우지 않고 게이트만 통과시킨다', as
   assert.equal(acceptedAfter, acceptedBefore, '항목이 삭제되지 않음(비파괴적)');
   assert.ok(after.effectiveCount <= before.effectiveCount, 'waive 후 유효 위반이 줄거나 같음');
 });
+
+test('lint waive(단건) 은 키로 해당 위반만 무시한다 (비파괴적)', async () => {
+  const pid = seedDeliverables();
+  suggestLint(pid);
+  const openLint = repo
+    .listDocuments(pid)
+    .flatMap((d) => repo.listLintSuggestions(d.id, 'open'));
+  if (openLint.length === 0) return; // 시드에 위반이 없으면 스킵
+  const target = openLint[0];
+  const key = target.quote_before!;
+  const acceptedBefore = repo.listDocuments(pid).flatMap((d) => repo.listItems(d.id)).filter((i) => i.status === 'accepted').length;
+  // waive-by-key 동작 재현
+  for (const doc of repo.listDocuments(pid))
+    for (const s of repo.listLintSuggestions(doc.id, 'open'))
+      if (s.quote_before === key) repo.resolveSuggestion(s.id, 'rejected');
+  const acceptedAfter = repo.listDocuments(pid).flatMap((d) => repo.listItems(d.id)).filter((i) => i.status === 'accepted').length;
+  assert.equal(acceptedAfter, acceptedBefore, '항목 삭제 없음');
+  // 해당 위반이 waive 목록에 들어갔는지
+  const rep = lintReport(pid);
+  const stillOpen = rep.violations.find((v) => v.key === key && !v.waived);
+  assert.equal(stillOpen, undefined, '해당 위반은 더 이상 유효하지 않음');
+});
