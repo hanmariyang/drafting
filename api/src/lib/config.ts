@@ -26,6 +26,18 @@ function bool(v: string | undefined): boolean {
   return v === '1' || v === 'true' || v === 'yes';
 }
 
+/** 앱 버전은 루트 package.json 의 단일 소스에서 읽는다 (하드코딩 금지 — 릴리스마다 어긋남). */
+function readVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
+      version?: string;
+    };
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 8080),
   host: process.env.HOST ?? '0.0.0.0',
@@ -37,7 +49,7 @@ export const config = {
   schemaPath: path.join(REPO_ROOT, 'db', 'schema.sql'),
   templatesDir: path.join(REPO_ROOT, 'api', 'templates'),
   webDist: path.join(REPO_ROOT, 'web', 'dist'),
-  version: '0.4.0',
+  version: readVersion(),
 };
 
 export type AppConfig = typeof config;
