@@ -7,7 +7,6 @@ import {
   type DocumentModel,
   type InterviewSession,
   type InterviewTemplate,
-  type Project,
   type DocumentType,
 } from '../lib/api.ts';
 import { toLive, type LiveSection } from '../lib/live.ts';
@@ -31,6 +30,13 @@ const TYPE_LABEL: Record<DocumentType, string> = {
   handoff: '개발 지시서',
 };
 
+/** 생성 실패 메시지가 CLI 차단·인증 계열인지 — 키 등록으로 복구 가능한 경우. */
+function isAuthBlockError(msg: string): boolean {
+  return /Claude Code|구독|subscription|API 키|API key|로그인|log ?in|authenticat|인증|key 모드|BYOK/i.test(
+    msg || '',
+  );
+}
+
 export function DocumentWorkspace() {
   const { pid, did } = useParams();
   const docId = did!;
@@ -46,6 +52,9 @@ export function DocumentWorkspace() {
   const [streaming, setStreaming] = useState(false);
   const [mode, setMode] = useState<'interview' | 'editor'>('editor');
   const [error, setError] = useState('');
+  // 생성 실패가 CLI 차단·인증 계열인지 — true 면 복구 배너(설정 링크 + 다시 생성)를 띄운다.
+  // 인터뷰 답변은 서버에 보존돼 있어 키 등록 후 재생성으로 손실 없이 복구된다.
+  const [genBlocked, setGenBlocked] = useState(false);
   const [modal, setModal] = useState<'versions' | 'share' | 'context' | null>(null);
   const [focusSection, setFocusSection] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -107,6 +116,7 @@ export function DocumentWorkspace() {
   function generate() {
     if (!session) return;
     setError('');
+    setGenBlocked(false);
     api.completeInterview(session.id).catch(() => {});
     setStreaming(true);
     setSections([]);
@@ -134,6 +144,7 @@ export function DocumentWorkspace() {
       onError: (msg) => {
         setStreaming(false);
         setError(msg || '초안 생성 실패 · 설정에서 AI 키를 확인하세요.');
+        setGenBlocked(isAuthBlockError(msg));
       },
     });
   }
@@ -316,6 +327,22 @@ export function DocumentWorkspace() {
       }
       statusRight={statusRight}
     >
+      {genBlocked && (
+        <div className="gen-block-banner">
+          <div>
+            <b>AI 생성이 막혔어요.</b> 이 계정은 Claude Code 접근이 막혀 있을 수 있어요(조직 차단).
+            <span className="muted"> 인터뷰 답변은 그대로 보존돼 있어, 키를 등록하면 다시 채워집니다.</span>
+          </div>
+          <div className="acts">
+            <Link className="btn" to="/settings">
+              설정에서 키 등록
+            </Link>
+            <button className="btn pri" disabled={streaming} onClick={generate}>
+              다시 생성
+            </button>
+          </div>
+        </div>
+      )}
       <DocumentEditor
         doc={doc}
         sections={sections}

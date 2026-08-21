@@ -128,6 +128,68 @@ function agentCwd(): string {
   return dir;
 }
 
+export interface CliAccess {
+  /** 실제 생성 권한까지 확인됨 (온보딩에서 '키 없이 시작' 허용 신호) */
+  ok: boolean;
+  /** 로그인은 됐지만 조직이 Claude Code 접근을 막았거나 인증이 거부됨 → BYOK 로 유도 */
+  blocked: boolean;
+  detail: string;
+}
+
+const AUTH_BLOCK_RE =
+  /disabled Claude subscription|subscription access|API key instead|log ?in|not logged|authenticat|OAuth|credential|invalid API key|unauthorized|401|403/i;
+
+/**
+ * `--version`(존재 확인)을 넘어 실제 생성 권한을 검증한다. 조직이 Claude Code
+ * 구독 접근을 끈 계정은 CLI 가 설치·로그인돼 있어도 첫 생성에서 거부되므로,
+ * 온보딩에서 '키 없이 시작'을 누르는 즉시 이 검증으로 미리 잡아 BYOK 로 보낸다.
+ * 검증용 최소 프롬프트 + haiku 로 토큰을 아낀다.
+ */
+export async function verifyCliAccess(binOverride?: string): Promise<CliAccess> {
+  const bin = binOverride ?? resolveCliBin();
+  if (!bin) {
+    return { ok: false, blocked: false, detail: 'Claude Code CLI 를 찾지 못했습니다 (claude 설치·로그인 필요)' };
+  }
+  return new Promise<CliAccess>((resolve) => {
+    const child = spawn(
+      bin,
+      ['-p', '응답으로 OK 한 단어만 출력', '--output-format', 'json', '--max-turns', '1', '--model', 'haiku', '--setting-sources', ''],
+      { cwd: agentCwd(), env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    let out = '';
+    let err = '';
+    const timer = setTimeout(() => {
+      try { child.kill('SIGTERM'); } catch { /* gone */ }
+      resolve({ ok: false, blocked: false, detail: 'CLI 응답 시간 초과 — 네트워크·로그인 상태를 확인하세요.' });
+    }, 30000);
+    child.stdout.on('data', (c: Buffer) => { out += c.toString(); });
+    child.stderr.on('data', (c: Buffer) => { err += c.toString(); });
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      resolve({ ok: false, blocked: false, detail: `CLI 실행 실패: ${(e as Error).message}` });
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      let isErr = false;
+      let resultText = '';
+      for (const line of out.split('\n')) {
+        const t = line.trim();
+        if (!t) continue;
+        try {
+          const ev = JSON.parse(t) as { type?: string; is_error?: boolean; result?: string };
+          if (ev.type === 'result') { isErr = !!ev.is_error; resultText = ev.result ?? ''; }
+        } catch { /* not json */ }
+      }
+      const combined = `${resultText}\n${err}`;
+      const blocked = AUTH_BLOCK_RE.test(combined);
+      if (code === 0 && !isErr && !blocked) {
+        return resolve({ ok: true, blocked: false, detail: 'Claude Code 생성 권한 확인됨' });
+      }
+      resolve({ ok: false, blocked, detail: actionableCliError(resultText || err || `CLI 종료 코드 ${code}`) });
+    });
+  });
+}
+
 export class CliProvider implements AIProvider {
   readonly id = 'cli';
   private bin: string;

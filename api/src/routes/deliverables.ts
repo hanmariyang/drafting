@@ -90,6 +90,16 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return repo.getItem(id);
   });
 
+  // 제외(rejected)된 항목을 되살린다 — 정합성 '모두 수락' 등으로 통째로 제외돼
+  // 화면에서 사라진 항목을 재검토(proposed)로 복귀. 본문은 보존돼 있어 손실 없음.
+  app.post('/api/items/:id/restore', async (req) => {
+    const { id } = req.params as { id: string };
+    const item = repo.getItem(id);
+    if (!item) throw new HttpError(404, 'item not found');
+    repo.setItemStatus(id, 'proposed');
+    return repo.getItem(id);
+  });
+
   // SSE generation of a structure document's items (EventSource)
   app.get('/api/documents/:id/items/generate/stream', async (req, reply) => {
     const { id } = req.params as { id: string };

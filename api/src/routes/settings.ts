@@ -4,7 +4,7 @@ import * as repo from '../db/repos.ts';
 import { parse } from './helpers.ts';
 import { config } from '../lib/config.ts';
 import { aiMode } from '../providers/index.ts';
-import { cliAvailable, resolveCliBin, resetCliBinCache, CliProvider } from '../providers/cli.ts';
+import { cliAvailable, resolveCliBin, resetCliBinCache, verifyCliAccess } from '../providers/cli.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
 
@@ -68,12 +68,10 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     return { aiMode: body.mode };
   });
 
+  // 실제 생성 권한까지 검증 — 조직이 Claude Code 접근을 막은 계정을 온보딩에서 미리 잡는다.
   app.post('/api/settings/cli/test', async () => {
     resetCliBinCache();
-    if (!cliAvailable()) {
-      return { ok: false, detail: 'Claude Code CLI 를 찾지 못했습니다 (claude 설치·로그인 필요)' };
-    }
-    return new CliProvider().testConnection('');
+    return verifyCliAccess();
   });
 
   app.post('/api/settings/onboarding/complete', async () => {

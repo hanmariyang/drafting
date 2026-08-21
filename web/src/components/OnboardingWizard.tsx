@@ -21,6 +21,7 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [cliNotice, setCliNotice] = useState('');
 
   useEffect(() => {
     api.keys().then(setKeys).catch(() => {});
@@ -52,12 +53,35 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
     await onDone();
   }
 
-  // CLI(구독) 감지 시: 키 없이 바로 시작 (엔진 모드 cli 확정)
+  // CLI(구독) 감지 시: 키 없이 바로 시작. 다만 CLI 가 설치·로그인돼 있어도
+  // 조직이 Claude Code 접근을 막았을 수 있으므로, 여기서 실제 생성 권한을
+  // 검증한 뒤에만 진행한다. 막혀 있으면 BYOK 스텝으로 유도한다.
   async function startWithCli() {
     setBusy(true);
-    await api.setAiMode('cli');
-    await api.completeOnboarding();
-    await onDone();
+    setCliNotice('Claude Code 생성 권한 확인 중…');
+    try {
+      const res = await api.testCli();
+      if (!res.ok) {
+        setCliNotice('');
+        setStep(1);
+        setStatus((s) => ({
+          ...s,
+          _cli: res.blocked
+            ? `이 계정은 Claude Code 접근이 막혀 있어요 (조직 차단 가능). API 키를 등록하거나 개인 구독 계정으로 로그인하세요. · ${res.detail ?? ''}`
+            : `Claude Code 로 생성할 수 없어요. API 키를 등록하세요. · ${res.detail ?? ''}`,
+        }));
+        return;
+      }
+      await api.setAiMode('cli');
+      await api.completeOnboarding();
+      await onDone();
+    } catch (e) {
+      setCliNotice('');
+      setStep(1);
+      setStatus((s) => ({ ...s, _cli: `확인 실패 · ${(e as Error).message}` }));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -116,6 +140,11 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
                   시작하기
                 </button>
               )}
+              {cliNotice && (
+                <p className="subtle" style={{ width: '100%', marginTop: 8 }}>
+                  {cliNotice}
+                </p>
+              )}
             </div>
           </>
         )}
@@ -124,6 +153,7 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
           <>
             <h2>AI 키 등록</h2>
             <p className="subtle">등록 후 각 키의 연결을 테스트합니다. 건너뛸 수 없습니다.</p>
+            {status._cli && <div className="err" style={{ marginBottom: 4 }}>{status._cli}</div>}
             {PROVIDERS.map((p) => {
               const configured = keys.find((k) => k.provider === p.id)?.configured;
               return (

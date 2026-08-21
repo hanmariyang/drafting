@@ -215,3 +215,16 @@ test('violationKey is stable regardless of ref order', () => {
     violationKey({ code: 'E-BROKEN-REF', refs: ['PG-02', 'F-01'] }),
   );
 });
+
+test('rejected 구조 항목은 restore 로 되살아난다 (본문 보존)', () => {
+  freshDb();
+  const project = repo.createProject('P');
+  const doc = repo.createDocument({ projectId: project.id, type: 'feature-spec', title: 'Spec' });
+  const it = repo.createItem({ documentId: doc.id, kind: 'feature-group', title: '퍼스널 캐릭터 시스템', body: '본문', status: 'accepted' });
+  repo.setItemStatus(it.id, 'rejected');
+  assert.equal(repo.getItem(it.id)!.status, 'rejected');
+  // restore endpoint 의 동작 = proposed 로 복귀
+  const restored = repo.setItemStatus(it.id, 'proposed');
+  assert.equal(restored!.status, 'proposed');
+  assert.equal(restored!.body, '본문', '본문 손실 없음');
+});
