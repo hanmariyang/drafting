@@ -113,6 +113,16 @@ export interface Suggestion {
   status: string;
 }
 
+/** 백엔드 snake_case 원행 → 카드가 읽는 camel 별칭 채움 (hover 포커스·인용 비교에 필요). */
+export function normalizeSuggestion(s: Suggestion): Suggestion {
+  return {
+    ...s,
+    sectionId: s.sectionId ?? s.section_id ?? undefined,
+    quoteBefore: s.quoteBefore ?? s.quote_before ?? undefined,
+    quoteAfter: s.quoteAfter ?? s.quote_after ?? undefined,
+  };
+}
+
 export interface InterviewAnswer {
   questionId: string;
   question: string;
@@ -336,11 +346,12 @@ export const api = {
     ),
   acceptSuggestion: (id: string) => req(`/api/suggestions/${id}/accept`, { method: 'POST' }),
   rejectSuggestion: (id: string) => req(`/api/suggestions/${id}/reject`, { method: 'POST' }),
+  // 응답은 { suggestion, section } 래퍼 — suggestion 만 꺼내 camel 정규화해 반환
   rewriteSuggestion: (id: string, instruction: string) =>
-    req<Suggestion>(`/api/suggestions/${id}/rewrite`, {
+    req<{ suggestion: Suggestion }>(`/api/suggestions/${id}/rewrite`, {
       method: 'POST',
       body: JSON.stringify({ instruction }),
-    }),
+    }).then((r) => normalizeSuggestion(r.suggestion)),
   acceptAllSuggestions: (docId: string) =>
     req(`/api/documents/${docId}/accept-all`, { method: 'POST' }),
 
