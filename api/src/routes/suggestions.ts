@@ -73,7 +73,11 @@ export async function suggestionRoutes(app: FastifyInstance): Promise<void> {
     const doc = repo.getDocument(id);
     if (!doc) throw new HttpError(404, 'document not found');
     const open = repo.listSuggestions(id, 'open');
-    for (const sug of open) {
+    // 파괴적 제안(lint 정리 = 대상 항목 제외, delete = 섹션 제외)은 일괄 수락에서
+    // 제외한다 — 정합성 지적을 '모두 수락'하면 지적된 항목이 통째로 사라지는 사고 방지.
+    // 파괴적 제안은 카드에서 개별적으로만 수락할 수 있다.
+    const safe = open.filter((s) => s.kind !== 'lint' && s.kind !== 'delete');
+    for (const sug of safe) {
       applyAccept(sug);
       repo.resolveSuggestion(sug.id, 'accepted');
     }
@@ -82,7 +86,8 @@ export async function suggestionRoutes(app: FastifyInstance): Promise<void> {
       repo.refreshContext(id);
     }
     return {
-      accepted: open.length,
+      accepted: safe.length,
+      skippedDestructive: open.length - safe.length,
       sections: repo.listSections(id),
       openRemaining: repo.countOpenSuggestions(id),
     };
