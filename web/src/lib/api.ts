@@ -393,6 +393,11 @@ export const api = {
     req<{ created: number; report: LintReport }>(`/api/projects/${pid}/lint/suggest`, {
       method: 'POST',
     }),
+  // 모든 위반을 비파괴적으로 무시(waive) — 항목·본문 보존, 게이트만 통과
+  lintWaiveAll: (pid: string) =>
+    req<{ waived: number; report: LintReport }>(`/api/projects/${pid}/lint/waive-all`, {
+      method: 'POST',
+    }),
   wireframes: (pid: string) => req<{ wireframes: Wireframe[] }>(`/api/projects/${pid}/wireframes`),
   compileHandoff: (pid: string) =>
     req<{ documentId: string; report: LintReport }>(`/api/projects/${pid}/handoff`, {

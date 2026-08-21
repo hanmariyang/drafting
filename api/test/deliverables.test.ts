@@ -228,3 +228,34 @@ test('rejected 구조 항목은 restore 로 되살아난다 (본문 보존)', ()
   assert.equal(restored!.status, 'proposed');
   assert.equal(restored!.body, '본문', '본문 손실 없음');
 });
+
+test('구조 문서(feature-spec) 내보내기가 항목을 렌더한다 (빈칸 아님)', async () => {
+  const { documentToMarkdown } = await import('../src/lib/render.ts');
+  const pid = seedDeliverables();
+  const spec = repo.listDocuments(pid).find((d) => d.type === 'feature-spec')!;
+  const md = documentToMarkdown(spec.id);
+  // 제목만 있는 빈칸이 아니라 실제 기능 항목이 들어있어야 한다
+  assert.ok(md.length > 40, '내보내기 결과가 제목 이상이어야 함');
+  assert.match(md, /F-\d/, '기능 ref_id 가 렌더됨');
+});
+
+test('waive-all 은 항목을 지우지 않고 게이트만 통과시킨다', async () => {
+  const pid = seedDeliverables();
+  // 위반을 만든다: P0 기능을 어떤 플로우에도 없게 (feature-spec 시드는 위반이 있을 수 있음)
+  const before = lintReport(pid);
+  const acceptedBefore = repo
+    .listDocuments(pid)
+    .flatMap((d) => repo.listItems(d.id))
+    .filter((i) => i.status === 'accepted').length;
+  // waive-all = 모든 open lint 제안을 rejected(무시)로
+  suggestLint(pid);
+  for (const doc of repo.listDocuments(pid))
+    for (const s of repo.listLintSuggestions(doc.id, 'open')) repo.resolveSuggestion(s.id, 'rejected');
+  const after = lintReport(pid);
+  const acceptedAfter = repo
+    .listDocuments(pid)
+    .flatMap((d) => repo.listItems(d.id))
+    .filter((i) => i.status === 'accepted').length;
+  assert.equal(acceptedAfter, acceptedBefore, '항목이 삭제되지 않음(비파괴적)');
+  assert.ok(after.effectiveCount <= before.effectiveCount, 'waive 후 유효 위반이 줄거나 같음');
+});

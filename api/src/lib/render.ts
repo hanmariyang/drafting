@@ -12,11 +12,67 @@ export function documentToMarkdown(documentId: string): string {
   for (const s of sections) {
     parts.push(`## ${s.heading}`, '', s.body.trim(), '');
   }
+  // 구조 문서(기능명세·IA·유저플로우)는 내용이 sections 가 아니라 plan_items 에 있다.
+  // sections 만 렌더하면 제목만 나오므로, 수락된 항목을 마크다운으로 렌더한다.
+  parts.push(structureItemsToMarkdown(documentId));
   const excluded = repo.countExcludedSections(documentId);
   if (excluded > 0) {
     parts.push('---', '', `> 검토 대기 ${excluded}개 제외`, '');
   }
   return parts.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+}
+
+/** 수락된 plan_items 를 트리(그룹/부모 → 자식)로 마크다운 렌더. 항목이 없으면 빈 문자열. */
+export function structureItemsToMarkdown(documentId: string): string {
+  const items = repo.listItems(documentId).filter((i) => i.status === 'accepted');
+  if (items.length === 0) return '';
+  const byParent = new Map<string | null, typeof items>();
+  for (const it of items) {
+    const key = it.parent_id ?? null;
+    (byParent.get(key) ?? byParent.set(key, []).get(key)!).push(it);
+  }
+  const roots = (byParent.get(null) ?? []).sort((a, b) => a.position - b.position);
+  const lines: string[] = [];
+
+  const linkLine = (it: (typeof items)[number]): string | null => {
+    const m = repo.parsePlanItemMeta(it);
+    const refs = [
+      ...(m.links?.reqs ?? []),
+      ...(m.links?.features ?? []),
+      ...(m.links?.pages ?? []),
+      ...(m.links?.flows ?? []),
+    ];
+    return refs.length ? `연결: ${refs.join(' · ')}` : null;
+  };
+
+  for (const root of roots) {
+    const rm = repo.parsePlanItemMeta(root);
+    const pri = rm.priority ? ` — ${rm.priority}` : '';
+    lines.push('', `## ${root.ref_id} ${root.title}${pri}`, '');
+    if (root.body.trim()) lines.push(root.body.trim(), '');
+    const rl = linkLine(root);
+    if (rl) lines.push(rl, '');
+
+    const kids = (byParent.get(root.id) ?? []).sort((a, b) => a.position - b.position);
+    kids.forEach((kid, idx) => {
+      const km = repo.parsePlanItemMeta(kid);
+      const kpri = km.priority ? ` — ${km.priority}` : '';
+      // 스텝(플로우 자식)은 번호 목록, 그 외(기능 등)는 소제목으로
+      if (kid.kind === 'step') {
+        const page = km.page ? `[${km.page}] ` : '';
+        const branch = km.branch?.label ? ` _(분기: ${km.branch.label})_` : '';
+        lines.push(`${idx + 1}. ${page}${kid.title}${branch}`);
+        if (km.note) lines.push(`   ${km.note}`);
+      } else {
+        lines.push(`### ${kid.ref_id} ${kid.title}${kpri}`, '');
+        if (kid.body.trim()) lines.push(kid.body.trim(), '');
+        const kl = linkLine(kid);
+        if (kl) lines.push(kl, '');
+      }
+    });
+    lines.push('');
+  }
+  return lines.join('\n');
 }
 
 /** Minimal sanitization: strip <script>/<iframe> and inline event handlers. */
@@ -32,12 +88,17 @@ export function documentToHtml(documentId: string, opts?: { readOnly?: boolean }
   if (!doc) throw new Error('document not found');
   // Only ACCEPTED sections are the document (SYSTEM.md §0.2).
   const sections = repo.listAcceptedSections(documentId);
-  const body = sections
+  let body = sections
     .map(
       (s) =>
         `<section><h2>${escapeHtml(s.heading)}</h2>${sanitize(marked.parse(s.body) as string)}</section>`,
     )
     .join('\n');
+  // 구조 문서 항목(plan_items)을 렌더 — sections 만 있으면 제목만 나오는 문제 방지
+  const itemsMd = structureItemsToMarkdown(documentId);
+  if (itemsMd.trim()) {
+    body += `\n<section>${sanitize(marked.parse(itemsMd) as string)}</section>`;
+  }
   const excluded = repo.countExcludedSections(documentId);
   const footnote =
     excluded > 0
