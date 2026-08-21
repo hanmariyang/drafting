@@ -196,3 +196,35 @@ test('parent change reverts child sections to proposed + opens a stale suggestio
   assert.ok(stale[0].source.includes('PRD') || stale[0].source.includes('prd'));
   await app.close();
 });
+
+test('accept-all skips destructive suggestions (lint/delete stay open, content kept)', async () => {
+  const app = await makeApp();
+  const { doc } = seedProject();
+  await drain(streamDocumentDraft(doc.id));
+
+  // 콘텐츠 제안 위에 파괴적 제안 2종을 얹는다
+  const section = repo.listSections(doc.id)[0];
+  repo.createSuggestion({
+    documentId: doc.id,
+    kind: 'lint',
+    title: 'REQ-01 · W-ORPHAN-SPEC',
+    body: '이 기능이 어느 요구에도 연결되지 않았어요.',
+    quoteBefore: 'W-ORPHAN-SPEC::REQ-01',
+    source: 'W-ORPHAN-SPEC',
+  });
+  repo.createSuggestion({
+    documentId: doc.id,
+    kind: 'delete',
+    sectionId: section.id,
+    title: '섹션 삭제 제안',
+    source: 'review',
+  });
+
+  const res = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/accept-all` });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().skippedDestructive, 2, 'lint+delete are excluded from accept-all');
+  assert.equal(repo.countOpenSuggestions(doc.id), 2, 'destructive suggestions remain open');
+  // delete 제안이 일괄 수락으로 실행되지 않았다 — 섹션 보존
+  assert.notEqual(repo.getSection(section.id)!.status, 'rejected');
+  await app.close();
+});

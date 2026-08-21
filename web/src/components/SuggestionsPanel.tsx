@@ -74,6 +74,8 @@ function SuggestionCard({
   const [instruction, setInstruction] = useState('');
   const [busy, setBusy] = useState(false);
   const isQuestion = sg.kind === 'question';
+  // lint 수락 = 지적 항목을 문서에서 제외, delete 수락 = 섹션 제외 — 파괴적임을 버튼에 드러낸다
+  const isDestructive = sg.kind === 'lint' || sg.kind === 'delete';
 
   // 처리 시 카드 접힘 모션(180ms) 후 실제 처리
   function withCollapse(fn: () => Promise<void>) {
@@ -123,13 +125,13 @@ function SuggestionCard({
       )}
       <div className="sug-acts">
         <button className="btn ok" disabled={busy} onClick={() => withCollapse(onAccept)}>
-          {isQuestion ? '답하기' : '수락'}
+          {isQuestion ? '답하기' : isDestructive ? '정리 수락 (항목 제외)' : '수락'}
         </button>
         <button className="btn" disabled={busy} onClick={() => withCollapse(onReject)}>
-          {isQuestion ? '넘기기' : '거절'}
+          {isQuestion ? '넘기기' : isDestructive ? '유지' : '거절'}
         </button>
       </div>
-      {!isQuestion && (
+      {!isQuestion && sg.kind !== 'lint' && (
         <div className="sug-acts rewrite">
           <input
             placeholder="고쳐쓰기 지시"
