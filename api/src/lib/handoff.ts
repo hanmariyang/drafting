@@ -207,15 +207,104 @@ export async function compileHandoff(projectId: string): Promise<{ documentId: s
  * Prompt pack for agent hand-off (§6 출구 ①): the full handoff (accepted
  * sections only) with an "implement only accepted items" header. Markdown.
  */
+/**
+ * AI 코딩 에이전트가 바로 실행 가능한 발주서. 지시서 섹션 덤프가 아니라, 수락된 항목에서
+ * 역할·요구·기능(수용 기준 체크박스)·화면·플로우·비범위·작업 순서를 구조적으로 조립한다.
+ */
 export function promptPack(projectId: string): string {
   const doc = getHandoffDoc(projectId);
   if (!doc) return '# 개발 지시서\n\n아직 컴파일되지 않았습니다. 정합성 검사를 통과한 뒤 생성하세요.\n';
   const project = repo.getProject(projectId);
-  const sections = repo.listAcceptedSections(doc.id);
-  const header =
-    `# 발주: ${project?.name ?? '프로젝트'} 개발 지시서\n\n` +
-    `> 이 지시서의 **수락된 항목만 구현하라.** 수락하지 않은 항목은 지시서에 없습니다.\n` +
-    `> 각 기능의 수용 기준을 만족시키고, 임의 범위 확장을 하지 마라.\n\n---\n`;
-  const bodyMd = sections.map((s) => `## ${s.heading}\n\n${s.body.trim()}`).join('\n\n');
-  return `${header}\n${bodyMd}\n`;
+  const items = repo.listProjectItems(projectId).filter((i) => i.status === 'accepted');
+  const reqs = repo.reqIdsForProject(projectId);
+  const groups = items.filter((i) => i.kind === 'feature-group');
+  const features = items.filter((i) => i.kind === 'feature');
+  const pages = items.filter((i) => i.kind === 'page');
+  const flows = items.filter((i) => i.kind === 'flow');
+  const steps = items.filter((i) => i.kind === 'step');
+
+  // 수락된 지시서 §개요(있으면) — AI 생성 요약
+  const overview = repo
+    .listAcceptedSections(doc.id)
+    .find((s) => /개요|overview|배경/i.test(s.heading))?.body.trim();
+
+  const L: string[] = [];
+  L.push(`# ${project?.name ?? '프로젝트'} — 구현 발주 (AI 에이전트용)`, '');
+  L.push('## 역할과 규칙');
+  L.push('너는 이 제품의 구현을 맡은 시니어 엔지니어다. 아래를 지켜라:');
+  L.push('- **수락된 명세만 구현한다.** 여기 없는 것은 만들지 않는다(범위 확장 금지).');
+  L.push('- 각 기능의 **수용 기준을 모두 충족**해야 그 기능이 완료다.');
+  L.push('- 화면은 IA 명세를, 화면 전환은 유저 플로우를 따른다.');
+  L.push('- 불명확한 점은 임의로 정하지 말고 **질문으로 남겨라**.', '');
+
+  if (overview) L.push('## 제품 개요', overview, '');
+
+  L.push('## 요구사항 (REQ)');
+  if (reqs.length) for (const r of reqs) L.push(`- **${r.id}** ${r.heading}`);
+  else L.push('- (PRD 수락 섹션 없음)');
+  L.push('');
+
+  L.push('## 구현할 기능 (수락분)');
+  const prioRank = (f: PlanItem) => ({ P0: 0, P1: 1, P2: 2 }[meta(f).priority ?? 'P2'] ?? 3);
+  const byGroup = (g: PlanItem) => features.filter((f) => f.parent_id === g.id).sort((a, b) => prioRank(a) - prioRank(b));
+  const emit = (f: PlanItem) => {
+    const m = meta(f);
+    const links = [...(m.links?.reqs ?? []), ...(m.links?.pages ?? []), ...(m.links?.flows ?? [])];
+    L.push(`### [${m.priority ?? 'P?'}] ${f.ref_id} ${f.title}`);
+    if (links.length) L.push(`- 연결: ${links.join(' · ')}`);
+    const crit = f.body.split('\n').map((l) => l.replace(/^[·\-*]\s*/, '').trim()).filter(Boolean);
+    if (crit.length) {
+      L.push('- 수용 기준:');
+      for (const c of crit) L.push(`  - [ ] ${c}`);
+    }
+    L.push('');
+  };
+  for (const g of groups.sort((a, b) => a.ref_id.localeCompare(b.ref_id))) {
+    const feats = byGroup(g);
+    if (!feats.length) continue;
+    L.push(`#### ${g.ref_id} ${g.title}`, '');
+    for (const f of feats) emit(f);
+  }
+  const orphanFeats = features.filter((f) => !groups.some((g) => g.id === f.parent_id)).sort((a, b) => prioRank(a) - prioRank(b));
+  if (orphanFeats.length) {
+    L.push('#### 기타', '');
+    for (const f of orphanFeats) emit(f);
+  }
+
+  if (pages.length) {
+    L.push('## 화면 (IA)');
+    for (const pg of pages) {
+      const m = meta(pg);
+      L.push(`- **${pg.ref_id}** ${pg.title} [${m.page_type ?? 'GENERIC'}]` + (m.links?.features?.length ? ` · 기능 ${m.links.features.join(', ')}` : ''));
+    }
+    L.push('');
+  }
+
+  if (flows.length) {
+    L.push('## 유저 플로우');
+    for (const fl of flows) {
+      const flSteps = steps.filter((s) => s.parent_id === fl.id).sort((a, b) => a.position - b.position);
+      const chain = flSteps
+        .map((s) => {
+          const sm = meta(s);
+          const pg = sm.page ? `[${sm.page}] ` : '';
+          const br = sm.branch?.label ? ` (${sm.branch.label})` : '';
+          return `${pg}${s.title}${br}`;
+        })
+        .join(' → ');
+      L.push(`- **${fl.ref_id}** ${fl.title}: ${chain || '(스텝 없음)'}`);
+    }
+    L.push('');
+  }
+
+  L.push('## 비범위 (구현 금지)');
+  L.push('- PRD 비범위 및 수락하지 않은 항목은 이번 구현에서 제외한다.', '');
+
+  L.push('## 작업 순서');
+  L.push('1. **P0 기능**부터 순서대로 구현한다. 각 기능은 수용 기준 체크박스를 모두 충족해야 완료.');
+  L.push('2. 화면(IA)과 플로우 명세대로 연결한다.');
+  L.push('3. 범위 확장·임의 기능 추가 금지. 불명확하면 질문으로 남긴다.');
+  L.push('4. 완료 시 각 수용 기준을 어떻게 충족했는지 근거와 함께 요약한다.', '');
+
+  return L.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }

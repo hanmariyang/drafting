@@ -189,9 +189,13 @@ test('handoff gate blocks until violations are waived (§6/§4.3)', async () => 
   assert.equal(sections[0].status, 'proposed');
   assert.ok(sections.slice(1).every((s) => s.status === 'accepted'));
 
-  // prompt pack carries the "accepted only" header
+  // prompt pack: 에이전트 실행형 — 역할·수락범위·수용기준 체크박스·플로우
   const pack = promptPack(pid);
-  assert.match(pack, /수락된 항목만 구현하라/);
+  assert.match(pack, /역할과 규칙/);
+  assert.match(pack, /수락된 명세만 구현한다/);
+  assert.match(pack, /- \[ \] /, '수용 기준이 체크박스로');
+  assert.match(pack, /구현할 기능/);
+  assert.match(pack, /작업 순서/);
 });
 
 test('accepting a lint suggestion applies the default fix (§4.2)', () => {
