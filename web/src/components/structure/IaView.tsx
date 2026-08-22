@@ -13,6 +13,8 @@ interface Props {
   onNavPage?: (pgRef: string) => void;
   /** 기능명세 문서의 기능들 (화면→기능 연결, W-EMPTY-PAGE 해소) */
   features?: PlanItem[];
+  /** 유저플로우 문서의 스텝·플로우 (도달 플로우 판정 — IA 문서엔 스텝이 없다) */
+  flowItems?: PlanItem[];
   onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }
 
@@ -24,6 +26,7 @@ export function IaView({
   onAccept,
   onReject,
   features = [],
+  flowItems = [],
   onEditLink,
 }: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
@@ -41,12 +44,13 @@ export function IaView({
   }, [projectId, items]);
 
   const pages = items.filter((i) => i.kind === 'page' && i.status !== 'rejected');
-  const steps = items.filter((i) => i.kind === 'step');
+  // 스텝·플로우는 유저플로우 문서에 있으므로 flowItems 로 판정한다(IA 문서의 items 엔 없음).
+  const steps = flowItems.filter((i) => i.kind === 'step');
   const flowsForPage = (ref: string) => {
     const set = new Set<string>();
     for (const st of steps) {
       if (parseItemMeta(st).page === ref) {
-        const flow = items.find((f) => f.id === st.parent_id);
+        const flow = flowItems.find((f) => f.id === st.parent_id);
         if (flow) set.add(flow.ref_id);
       }
     }
