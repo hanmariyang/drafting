@@ -291,6 +291,10 @@ export const api = {
       `/api/documents/${docId}/versions/${versionId}/restore`,
       { method: 'POST' },
     ),
+  undo: (docId: string) =>
+    req<{ document: DocumentModel; sections: Section[] }>(`/api/documents/${docId}/undo`, {
+      method: 'POST',
+    }),
 
   // interview
   templates: () => req<InterviewTemplate[]>('/api/templates'),

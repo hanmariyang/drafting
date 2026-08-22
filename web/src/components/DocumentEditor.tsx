@@ -7,7 +7,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { api, type DocumentModel } from '../lib/api.ts';
-import type { LiveSection } from '../lib/live.ts';
+import { toLive, type LiveSection } from '../lib/live.ts';
 import { renderMarkdown } from '../lib/md.ts';
 
 interface Props {
@@ -98,6 +98,19 @@ export function DocumentEditor({
     }
   }
 
+  // 마지막 변경 되돌리기 — 직전 스냅샷 복원. 실패(되돌릴 것 없음)는 조용히 무시.
+  async function undoLast() {
+    try {
+      const res = await api.undo(doc.id);
+      setSections(res.sections.map((s) => toLive(s)));
+      onStructuralChange();
+      onSaveState('saved');
+      setTimeout(() => onSaveState('idle'), 1200);
+    } catch {
+      /* 되돌릴 변경 없음 등 — 무시 */
+    }
+  }
+
   async function removeSection(id: string) {
     await api.deleteSection(id);
     setSections((prev) => prev.filter((s) => s.id !== id));
@@ -129,6 +142,15 @@ export function DocumentEditor({
             <span className="sep">·</span>
             <button className="btn ghost sm" onClick={onBackToInterview} title="인터뷰로 돌아가기">
               인터뷰
+            </button>
+            <span className="sep">·</span>
+            <button
+              className="btn ghost sm"
+              disabled={streaming}
+              onClick={undoLast}
+              title="마지막 변경 되돌리기 (더 깊은 복원은 버전 기록)"
+            >
+              되돌리기
             </button>
           </div>
         </div>
