@@ -26,6 +26,15 @@
 
 ## 빠른 시작 — Docker (권장, 원클릭)
 
+빌드 없이 배포된 이미지로 바로 실행:
+
+```bash
+docker run -p 8477:8080 -v drafting:/data ghcr.io/hanmariyang/drafting:latest
+# → http://localhost:8477 접속
+```
+
+또는 소스에서 빌드:
+
 ```bash
 cp .env.example .env          # (선택) 값 조정
 docker compose up --build     # 빌드 후 기동
