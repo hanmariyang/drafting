@@ -22,6 +22,23 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
   const [status, setStatus] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [cliNotice, setCliNotice] = useState('');
+  const [gwUrl, setGwUrl] = useState('');
+  const [gwMsg, setGwMsg] = useState('');
+
+  async function saveGateway() {
+    setGwMsg('저장·감지 중…');
+    try {
+      const res = await api.saveOpenaiEndpoint(gwUrl.trim());
+      if (res.baseUrl) setGwUrl(res.baseUrl);
+      setGwMsg(
+        res.models?.length
+          ? `연결됨 · 모델 ${res.models.length}개 (openai 칸에 게이트웨이 키를 등록하세요)`
+          : '저장됨 · openai 칸에 게이트웨이 키를 먼저 등록하면 모델을 불러옵니다',
+      );
+    } catch (e) {
+      setGwMsg(`실패 · ${(e as Error).message}`);
+    }
+  }
 
   useEffect(() => {
     api.keys().then(setKeys).catch(() => {});
@@ -154,6 +171,32 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
             <h2>AI 키 등록</h2>
             <p className="subtle">등록 후 각 키의 연결을 테스트합니다. 건너뛸 수 없습니다.</p>
             {status._cli && <div className="err" style={{ marginBottom: 4 }}>{status._cli}</div>}
+
+            {/* 경로 3: OpenAI 호환 게이트웨이(LiteLLM·사내 프록시) — 선택 */}
+            <div className="mini-card" style={{ marginBottom: 4 }}>
+              <label className="lbl" style={{ marginTop: 0 }}>
+                OpenAI 호환 게이트웨이 (선택 · LiteLLM·Azure·사내 프록시)
+              </label>
+              <div className="h-row">
+                <input
+                  className="field"
+                  placeholder="예: https://gateway.example.com (비우면 표준 provider)"
+                  value={gwUrl}
+                  onChange={(e) => setGwUrl(e.target.value)}
+                />
+                <button className="btn" disabled={busy || !gwUrl.trim()} onClick={saveGateway}>
+                  연결
+                </button>
+              </div>
+              {gwMsg && (
+                <div className={gwMsg.startsWith('실패') ? 'err' : 'ok'} style={{ marginTop: 4 }}>
+                  {gwMsg}
+                </div>
+              )}
+              <p className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                게이트웨이를 쓰면 아래 <b>openai</b> 칸에 게이트웨이 키를 등록하세요. (/v1 은 자동 감지)
+              </p>
+            </div>
             {PROVIDERS.map((p) => {
               const configured = keys.find((k) => k.provider === p.id)?.configured;
               return (
