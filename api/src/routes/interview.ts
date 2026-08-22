@@ -2,18 +2,45 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import * as repo from '../db/repos.ts';
 import { HttpError, parse, sseStream } from './helpers.ts';
-import { listTemplates, getTemplate, getTemplateForType } from '../lib/templates.ts';
+import {
+  listTemplates,
+  getTemplate,
+  getTemplateForType,
+  templateSource,
+  saveCustomTemplate,
+  deleteCustomTemplate,
+} from '../lib/templates.ts';
 import { streamDocumentDraft, streamSectionRegeneration } from '../lib/ai.ts';
 import type { DraftEvent } from '../lib/ai.ts';
 
 export async function interviewRoutes(app: FastifyInstance): Promise<void> {
-  // ── templates (SPEC-01/02) ──────────────────────────────────────────────────
-  app.get('/api/templates', async () => listTemplates());
+  // ── templates (SPEC-01/02) + 라이브러리 편집 ─────────────────────────────────
+  app.get('/api/templates', async () =>
+    listTemplates().map((t) => ({ ...t, source: templateSource(t.id) })),
+  );
   app.get('/api/templates/:id', async (req) => {
     const { id } = req.params as { id: string };
     const t = getTemplate(id);
     if (!t) throw new HttpError(404, 'template not found');
-    return t;
+    return { ...t, source: templateSource(id) };
+  });
+
+  // 커스텀 템플릿 생성/수정 — 파일 템플릿 위에 DB 로 오버레이(파일 미수정, G-06 유지).
+  app.put('/api/templates/:id', async (req) => {
+    const { id } = req.params as { id: string };
+    const body = parse(TEMPLATE_SCHEMA, req.body);
+    if (body.id !== id) throw new HttpError(400, 'id 가 경로와 일치해야 합니다');
+    saveCustomTemplate(body as never);
+    return { ...getTemplate(id)!, source: templateSource(id) };
+  });
+
+  // 커스텀 삭제 — 오버라이드면 파일 버전으로 복귀, 순수 커스텀이면 제거.
+  app.delete('/api/templates/:id', async (req) => {
+    const { id } = req.params as { id: string };
+    const removed = deleteCustomTemplate(id);
+    if (!removed) throw new HttpError(404, '커스텀 템플릿이 아닙니다(파일 템플릿은 삭제 불가)');
+    const reverted = getTemplate(id);
+    return { ok: true, reverted: reverted ? { ...reverted, source: templateSource(id) } : null };
   });
 
   // ── interview session (SPEC-03 autosave/resume) ─────────────────────────────
@@ -106,3 +133,24 @@ async function pipeDraft(
     sse.end();
   }
 }
+
+const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'handoff'] as const;
+const TEMPLATE_SCHEMA = z.object({
+  id: z.string().min(1).max(60).regex(/^[a-z0-9-]+$/, 'id 는 소문자·숫자·하이픈만'),
+  docType: z.enum(DOC_TYPES),
+  name: z.string().min(1).max(120),
+  description: z.string().max(400).default(''),
+  questions: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(40),
+        prompt: z.string().min(1).max(600),
+        hint: z.string().max(300).optional(),
+        example: z.string().max(400).optional(),
+      }),
+    )
+    .min(1, '질문이 최소 1개 필요합니다'),
+  sections: z.array(z.string().min(1).max(80)).min(1, '섹션이 최소 1개 필요합니다'),
+  draftGuidance: z.string().min(1).max(2000),
+  itemSchema: z.unknown().optional(),
+});

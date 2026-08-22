@@ -424,6 +424,28 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
    ───────────────────────────────────────────────────────────── */
 .settings { overflow-y: auto; padding: 40px 46px 90px; }
 .settings-inner { max-width: 760px; margin: 0 auto; }
+
+/* 템플릿 라이브러리 — 좌 목록 / 우 편집 */
+.tpl-wrap { display: grid; grid-template-columns: 230px 1fr; gap: 20px; max-width: 900px; margin: 0 auto; }
+.tpl-list { display: flex; flex-direction: column; gap: 4px; }
+.tpl-list-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 8px; }
+.tpl-row {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 10px;
+  border: 1px solid var(--hair); border-radius: var(--r-card); background: var(--paper); cursor: pointer;
+}
+/* 선택 강조는 중립 잉크 보더(제안 그린은 상태색 전용) */
+.tpl-row.active { border-color: var(--ink); }
+.tpl-row .tpl-name { font-size: 13px; font-weight: 700; }
+.tpl-row .tpl-meta { font-family: var(--mono); font-size: 9.5px; color: var(--sub); }
+.tpl-row .tpl-src { align-self: flex-start; font-size: 9px; font-weight: 700; color: var(--sug);
+  border: 1px solid var(--sug-line); border-radius: var(--r-pill); padding: 0 6px; }
+.tpl-edit { min-width: 0; }
+.tpl-form-head { display: flex; align-items: center; justify-content: space-between; }
+.tpl-2col { display: grid; grid-template-columns: 1fr 160px; gap: 10px; }
+.tpl-inline { display: flex; gap: 6px; margin-bottom: 5px; }
+.tpl-inline .field { flex: 1; min-width: 0; }
+.tpl-q { border: 1px solid var(--hair); border-radius: var(--r-card); padding: 8px; margin-bottom: 8px; }
+.tpl-save { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .settings h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.4px; margin: 0 0 6px; }
 .settings h3 { font-size: 15px; font-weight: 800; margin: 28px 0 6px; }
 .settings .subtle { font-size: 12.5px; color: var(--sub); line-height: 1.6; margin-bottom: 12px; }
