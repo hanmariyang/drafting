@@ -186,8 +186,17 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
       <button className="btn" title="모든 위반을 무시(내용은 그대로 유지). 게이트만 통과합니다." onClick={waiveAll}>
         위반 모두 무시
       </button>
-      <a className="btn pri" href={`/api/documents/${docId}/export.md`}>
-        내보내기
+      <a className="btn" href={`/api/documents/${docId}/export.md`}>
+        MD
+      </a>
+      <a
+        className="btn"
+        href={`/api/documents/${docId}/export.html?print=1`}
+        target="_blank"
+        rel="noreferrer"
+        title="브라우저 인쇄 대화상자에서 'PDF로 저장'"
+      >
+        PDF
       </a>
       <span className="cmdk">⌘K</span>
     </>
