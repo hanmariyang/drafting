@@ -5,6 +5,8 @@ import { parse } from './helpers.ts';
 import { config } from '../lib/config.ts';
 import { aiMode } from '../providers/index.ts';
 import { cliAvailable, resolveCliBin, resetCliBinCache, verifyCliAccess } from '../providers/cli.ts';
+import { getDecryptedKey } from '../db/repos.ts';
+import { probeGateway } from '../lib/gateway.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
 
@@ -72,12 +74,38 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       }),
       req.body ?? {},
     );
-    repo.setSetting('openai_base_url', (body.baseUrl ?? '').trim());
     if (body.headers) repo.setSetting('openai_headers', body.headers);
-    return {
-      baseUrl: repo.getSetting<string>('openai_base_url') ?? '',
-      headers: repo.getSetting<Record<string, string>>('openai_headers') ?? {},
-    };
+    const raw = (body.baseUrl ?? '').trim();
+    if (!raw) {
+      repo.setSetting('openai_base_url', '');
+      return { baseUrl: '', models: [], detected: 'cleared' as const };
+    }
+    // /v1 자동 감지 + 모델 목록 조회 (키가 있으면). 사용자는 호스트만 붙이면 된다.
+    const headers = repo.getSetting<Record<string, string>>('openai_headers') ?? {};
+    const key = getDecryptedKey('openai');
+    let stored = raw.replace(/\/+$/, '');
+    let models: string[] = [];
+    let detected: 'v1' | 'root' | 'as-is' | 'no-key' = key ? 'as-is' : 'no-key';
+    if (key) {
+      const probe = await probeGateway(raw, key, headers);
+      if (probe) {
+        stored = probe.chatBase;
+        models = probe.models;
+        detected = stored.endsWith('/v1') ? 'v1' : 'root';
+      }
+    }
+    repo.setSetting('openai_base_url', stored);
+    return { baseUrl: stored, models, detected };
+  });
+
+  // 저장된 게이트웨이 base + openai 키로 모델 목록 재조회 (드롭다운 새로고침·마운트용)
+  app.get('/api/settings/openai-models', async () => {
+    const base = repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '';
+    const key = getDecryptedKey('openai');
+    if (!base || !key) return { models: [], baseUrl: base };
+    const headers = repo.getSetting<Record<string, string>>('openai_headers') ?? {};
+    const probe = await probeGateway(base, key, headers);
+    return { models: probe?.models ?? [], baseUrl: probe?.chatBase ?? base };
   });
 
   // 엔진 모드: CLI(구독) vs BYOK(API 키)
