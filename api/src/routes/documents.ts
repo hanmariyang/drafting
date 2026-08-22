@@ -151,6 +151,17 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
+  // 되돌리기(undo) — 직전 스냅샷으로 1단계 복원. 더 깊은 복원은 버전 기록 사용.
+  app.post('/api/documents/:id/undo', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getDocument(id)) throw new HttpError(404, 'document not found');
+    const versions = repo.listVersions(id); // 최신순
+    if (versions.length < 2) throw new HttpError(400, '되돌릴 변경이 없습니다');
+    const restored = repo.restoreVersion(id, versions[1].id);
+    if (!restored) throw new HttpError(404, 'version not found');
+    return { document: restored, sections: repo.listSections(id) };
+  });
+
   // ── export (SPEC-13/14) ─────────────────────────────────────────────────────
   app.get('/api/documents/:id/export.md', async (req, reply) => {
     const { id } = req.params as { id: string };

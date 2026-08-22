@@ -185,3 +185,26 @@ test('템플릿 라이브러리: 커스텀 저장이 파일 템플릿을 overrid
   assert.equal(del.json().reverted.name, prd.name);
   await app.close();
 });
+
+test('undo 는 마지막 변경을 되돌린다', async () => {
+  const app = await makeApp();
+  const project = repo.createProject('P');
+  const doc = repo.createDocument({ projectId: project.id, type: 'prd', title: 'PRD' });
+  const s = repo.createSection(doc.id, '개요', '원본', undefined, 'accepted');
+  repo.snapshotDocument(doc.id, 'save', { reason: 'v1' }); // 원본 스냅샷
+  // 편집 + 스냅샷
+  repo.updateSection(s.id, { body: '수정됨' });
+  repo.snapshotDocument(doc.id, 'save', { reason: 'edit' });
+  assert.equal(repo.getSection(s.id)!.body, '수정됨');
+
+  const res = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/undo` });
+  assert.equal(res.statusCode, 200);
+  const sec = repo.listSections(doc.id).find((x) => x.heading === '개요')!;
+  assert.equal(sec.body, '원본', '직전 상태로 복원');
+
+  // 되돌릴 게 없는 새 문서는 400
+  const empty = repo.createDocument({ projectId: project.id, type: 'prd', title: 'E' });
+  const r2 = await app.inject({ method: 'POST', url: `/api/documents/${empty.id}/undo` });
+  assert.equal(r2.statusCode, 400);
+  await app.close();
+});
