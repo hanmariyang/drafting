@@ -90,8 +90,36 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return repo.getItem(id);
   });
 
-  // 플로우(:id)의 links.features 에 기능 ref 를 추가/제거한다 — W-NO-FLOW 등 근본 해소.
-  // 링크는 플로우 쪽 배열에 산다(lint 가 검사하는 곳). 기능은 다른 문서라 ref 로만 잇는다.
+  // 범용 링크 편집 — 항목(:id)의 meta.links.<field> 배열에서 ref 를 추가/제거한다.
+  // 링크 위반 근본 해소에 공용: 기능→요구(reqs)·화면→기능(features)·플로우→기능(features).
+  // lint 가 검사하는 배열이 subject 쪽에 있으므로 편집도 subject 항목에서 한다.
+  app.post('/api/items/:id/link', async (req) => {
+    const { id } = req.params as { id: string };
+    const item = repo.getItem(id);
+    if (!item) throw new HttpError(404, 'item not found');
+    const { field, ref, op } = parse(
+      z.object({
+        field: z.enum(['reqs', 'pages', 'flows', 'features']),
+        ref: z.string().min(1),
+        op: z.enum(['add', 'remove']),
+      }),
+      req.body,
+    );
+    const meta = repo.parsePlanItemMeta(item);
+    const links = meta.links ?? {};
+    const cur = links[field] ?? [];
+    const next = op === 'add' ? Array.from(new Set([...cur, ref])) : cur.filter((r) => r !== ref);
+    return repo.updateItem(id, { meta: { ...meta, links: { ...links, [field]: next } } as never });
+  });
+
+  // 이 프로젝트의 유효 REQ id 목록 (PRD 수락 섹션에서 파생) — 기능→요구 연결 드롭다운용.
+  app.get('/api/projects/:id/reqs', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    return { reqs: repo.reqIdsForProject(id) };
+  });
+
+  // 하위호환: 기존 link-feature/unlink-feature (플로우→기능) 유지
   app.post('/api/items/:id/link-feature', async (req) => {
     const { id } = req.params as { id: string };
     const flow = repo.getItem(id);

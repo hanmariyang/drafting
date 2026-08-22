@@ -41,18 +41,27 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   const [error, setError] = useState('');
   const esRef = useRef<EventSource | null>(null);
 
-  // feature-spec 화면에서 기능↔플로우 연결 편집을 위해 유저플로우 문서의 플로우를 함께 로드
+  // 링크 편집(위반 근본 해소)을 위해 다른 문서의 참조 대상을 함께 로드한다.
+  //  - feature-spec: 유저플로우 문서의 플로우(W-NO-FLOW) + 프로젝트 REQ 목록(W-ORPHAN-SPEC)
+  //  - ia: 기능명세 문서의 기능(W-EMPTY-PAGE)
   const [flows, setFlows] = useState<PlanItem[]>([]);
+  const [reqs, setReqs] = useState<Array<{ id: string; heading: string }>>([]);
+  const [features, setFeatures] = useState<PlanItem[]>([]);
 
-  const loadFlows = useCallback(
+  const loadCrossRefs = useCallback(
     async (docs: DocumentModel[]) => {
-      if (type !== 'feature-spec') return;
-      const flowDoc = docs.find((d) => d.type === 'user-flow');
-      if (!flowDoc) return setFlows([]);
-      const its = await api.items(flowDoc.id).then((r) => r.items).catch(() => []);
-      setFlows(its.filter((i) => i.kind === 'flow' && i.status !== 'rejected'));
+      if (type === 'feature-spec') {
+        const flowDoc = docs.find((d) => d.type === 'user-flow');
+        const its = flowDoc ? await api.items(flowDoc.id).then((r) => r.items).catch(() => []) : [];
+        setFlows(its.filter((i) => i.kind === 'flow' && i.status !== 'rejected'));
+        if (pid) api.projectReqs(pid).then((r) => setReqs(r.reqs)).catch(() => {});
+      } else if (type === 'ia') {
+        const specDoc = docs.find((d) => d.type === 'feature-spec');
+        const its = specDoc ? await api.items(specDoc.id).then((r) => r.items).catch(() => []) : [];
+        setFeatures(its.filter((i) => i.kind === 'feature' && i.status !== 'rejected'));
+      }
     },
-    [type],
+    [type, pid],
   );
 
   const reload = useCallback(async () => {
@@ -72,10 +81,10 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
         .getProject(pid)
         .then((p) => {
           setProject(p);
-          loadFlows(p.documents);
+          loadCrossRefs(p.documents);
         })
         .catch(() => {});
-  }, [docId, pid, reload, loadFlows]);
+  }, [docId, pid, reload, loadCrossRefs]);
 
   useEffect(() => {
     loadAll().catch((e) => setError((e as Error).message));
@@ -132,12 +141,18 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   }
   async function linkFeature(flowId: string, featureRef: string) {
     await api.linkFeatureToFlow(flowId, featureRef);
-    if (project) await loadFlows(project.documents);
+    if (project) await loadCrossRefs(project.documents);
     await reload();
   }
   async function unlinkFeature(flowId: string, featureRef: string) {
     await api.unlinkFeatureFromFlow(flowId, featureRef);
-    if (project) await loadFlows(project.documents);
+    if (project) await loadCrossRefs(project.documents);
+    await reload();
+  }
+  // 범용 링크 편집 (기능→REQ, 화면→기능) — subject 항목의 links.<field>
+  async function editLink(itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') {
+    await api.editLink(itemId, field, ref, op);
+    if (project) await loadCrossRefs(project.documents);
     await reload();
   }
 
@@ -198,11 +213,22 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
           {...common}
           projectId={pid!}
           flows={flows}
+          reqs={reqs}
           onLinkFeature={linkFeature}
           onUnlinkFeature={unlinkFeature}
+          onEditLink={editLink}
         />
       );
-    if (type === 'ia') return <IaView {...common} projectId={pid!} onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)} />;
+    if (type === 'ia')
+      return (
+        <IaView
+          {...common}
+          projectId={pid!}
+          features={features}
+          onEditLink={editLink}
+          onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)}
+        />
+      );
     return <FlowView {...common} />;
   })();
 
