@@ -32,6 +32,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         { key: 'a:new', kind: 'action', label: '새 기획', detail: '⌘N', go: () => { onClose(); openNewPlan(); } },
         { key: 'a:start', kind: 'action', label: '시작 화면', go: () => { onClose(); nav('/'); } },
         { key: 'a:settings', kind: 'action', label: '설정', go: () => { onClose(); nav('/settings'); } },
+        { key: 'a:templates', kind: 'action', label: '템플릿 라이브러리', go: () => { onClose(); nav('/templates'); } },
       ];
       if (alive) setItems(base);
       try {
