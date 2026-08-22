@@ -47,6 +47,7 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   const [flows, setFlows] = useState<PlanItem[]>([]);
   const [reqs, setReqs] = useState<Array<{ id: string; heading: string }>>([]);
   const [features, setFeatures] = useState<PlanItem[]>([]);
+  const [pages, setPages] = useState<PlanItem[]>([]);
 
   const loadCrossRefs = useCallback(
     async (docs: DocumentModel[]) => {
@@ -59,6 +60,10 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
         const specDoc = docs.find((d) => d.type === 'feature-spec');
         const its = specDoc ? await api.items(specDoc.id).then((r) => r.items).catch(() => []) : [];
         setFeatures(its.filter((i) => i.kind === 'feature' && i.status !== 'rejected'));
+      } else if (type === 'user-flow') {
+        const iaDoc = docs.find((d) => d.type === 'ia');
+        const its = iaDoc ? await api.items(iaDoc.id).then((r) => r.items).catch(() => []) : [];
+        setPages(its.filter((i) => i.kind === 'page' && i.status !== 'rejected'));
       }
     },
     [type, pid],
@@ -155,6 +160,12 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
     if (project) await loadCrossRefs(project.documents);
     await reload();
   }
+  // 스텝에 화면(page) 지정/해제 — W-UNREACHED-PAGE 근본 해소
+  async function setStepPage(stepId: string, page: string | null) {
+    await api.setStepPage(stepId, page);
+    if (project) await loadCrossRefs(project.documents);
+    await reload();
+  }
 
   const openCount = suggestions.length;
   const empty = items.length === 0 && !generating;
@@ -229,7 +240,7 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
           onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)}
         />
       );
-    return <FlowView {...common} />;
+    return <FlowView {...common} pages={pages} onSetStepPage={setStepPage} />;
   })();
 
   return (

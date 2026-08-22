@@ -343,3 +343,21 @@ test('hub nextAction: 위반이 있으면 lint 해소를 안내한다', () => {
   assert.equal(typeof hub.perDoc.prd.stale, 'boolean');
   assert.equal(typeof hub.perDoc['feature-spec'].openSuggestions, 'number');
 });
+
+test('step-page: 스텝에 화면 지정으로 W-UNREACHED-PAGE 해소', () => {
+  freshDb();
+  const project = repo.createProject('P');
+  const iaDoc = repo.createDocument({ projectId: project.id, type: 'ia', title: 'IA' });
+  const flowDoc = repo.createDocument({ projectId: project.id, type: 'user-flow', title: 'Flow' });
+  const page = repo.createItem({ documentId: iaDoc.id, kind: 'page', title: '화면', meta: { links: { features: ['F-01'] } } as never, status: 'accepted' });
+  const flow = repo.createItem({ documentId: flowDoc.id, kind: 'flow', title: '플로우', status: 'accepted' });
+  const step = repo.createItem({ documentId: flowDoc.id, kind: 'step', title: '스텝', parentId: flow.id, meta: {} as never, status: 'accepted' });
+
+  let viols = lintReport(project.id).violations.filter((v) => !v.waived);
+  assert.ok(viols.some((v) => v.code === 'W-UNREACHED-PAGE' && v.refs.includes(page.ref_id)));
+  // step.meta.page 지정
+  const sm = repo.parsePlanItemMeta(step);
+  repo.updateItem(step.id, { meta: { ...sm, page: page.ref_id } as never });
+  viols = lintReport(project.id).violations.filter((v) => !v.waived);
+  assert.ok(!viols.some((v) => v.code === 'W-UNREACHED-PAGE' && v.refs.includes(page.ref_id)), '해소됨');
+});
