@@ -7,6 +7,7 @@ import { DocumentRoute } from './pages/DocumentRoute.tsx';
 import { WireframesPage } from './pages/WireframesPage.tsx';
 import { HandoffPage } from './pages/HandoffPage.tsx';
 import { Settings } from './pages/Settings.tsx';
+import { Templates } from './pages/Templates.tsx';
 import { OnboardingWizard } from './components/OnboardingWizard.tsx';
 import { NewPlanSheet } from './components/NewPlanSheet.tsx';
 import { CommandPalette } from './components/CommandPalette.tsx';
@@ -70,6 +71,7 @@ export function App() {
         <Route path="/projects/:pid/wireframes" element={<WireframesPage />} />
         <Route path="/projects/:pid/handoff" element={<HandoffPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/templates" element={<Templates />} />
       </Routes>
 
       {planOpen && <NewPlanSheet onClose={() => setPlanOpen(false)} />}

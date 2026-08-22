@@ -159,3 +159,29 @@ test('meta reflects onboarding + configured keys (SPEC-21/22)', async () => {
   void nowIso;
   await app.close();
 });
+
+test('템플릿 라이브러리: 커스텀 저장이 파일 템플릿을 override 하고 삭제로 복귀', async () => {
+  const app = await makeApp();
+  const before = await app.inject({ url: '/api/templates' });
+  const prd = (before.json() as Array<{ id: string; source: string; name: string }>).find((t) => t.id === 'prd');
+  assert.ok(prd, 'file prd 템플릿 존재');
+  assert.equal(prd.source, 'file');
+
+  // override prd
+  const full = (await app.inject({ url: '/api/templates/prd' })).json() as Record<string, unknown>;
+  const put = await app.inject({
+    method: 'PUT',
+    url: '/api/templates/prd',
+    payload: { ...full, name: '커스텀 PRD' },
+  });
+  assert.equal(put.statusCode, 200);
+  assert.equal(put.json().source, 'override');
+  assert.equal(put.json().name, '커스텀 PRD');
+
+  // revert
+  const del = await app.inject({ method: 'DELETE', url: '/api/templates/prd' });
+  assert.equal(del.statusCode, 200);
+  assert.equal(del.json().reverted.source, 'file');
+  assert.equal(del.json().reverted.name, prd.name);
+  await app.close();
+});

@@ -153,6 +153,7 @@ export interface InterviewTemplate {
   questions: TemplateQuestion[];
   sections: string[];
   draftGuidance: string;
+  source?: 'file' | 'custom' | 'override';
 }
 
 export interface KeyInfo {
@@ -293,6 +294,12 @@ export const api = {
 
   // interview
   templates: () => req<InterviewTemplate[]>('/api/templates'),
+  saveTemplate: (t: InterviewTemplate) =>
+    req<InterviewTemplate>(`/api/templates/${t.id}`, { method: 'PUT', body: JSON.stringify(t) }),
+  deleteTemplate: (id: string) =>
+    req<{ ok: boolean; reverted: InterviewTemplate | null }>(`/api/templates/${id}`, {
+      method: 'DELETE',
+    }),
   startInterview: (docId: string) =>
     req<{ session: InterviewSession; template: InterviewTemplate }>(
       `/api/documents/${docId}/interview`,

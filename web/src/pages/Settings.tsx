@@ -162,6 +162,17 @@ export function Settings() {
           </div>
           <h1>설정</h1>
 
+          <div className="rows" style={{ marginBottom: 14 }}>
+            <div className="row">
+              <Link className="btn" to="/templates">
+                템플릿 라이브러리 편집
+              </Link>
+              <span className="muted" style={{ fontSize: 12 }}>
+                인터뷰 질문·섹션·지침을 문서 유형별로 커스터마이즈
+              </span>
+            </div>
+          </div>
+
           <h3>AI 엔진</h3>
           <p className="subtle">
             Claude Code(구독)는 API 키 없이 로컬 CLI 로 생성합니다. docker 등 CLI 가 없는
