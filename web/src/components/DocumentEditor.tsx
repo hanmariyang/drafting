@@ -175,9 +175,12 @@ export function DocumentEditor({
 
         {sections.length === 0 && !streaming && (
           <div className="empty">
-            <b>AI 초안 생성</b>을 누르면 여기에 초안이 <b>제안 상태</b>로 채워집니다.
-            <br />
-            수락한 문장만 문서에 남습니다.
+            <Choani pose="wait" size={64} />
+            <div style={{ marginTop: 10 }}>
+              <b>AI 초안 생성</b>을 누르면 여기에 초안이 <b>제안 상태</b>로 채워집니다.
+              <br />
+              수락한 문장만 문서에 남습니다.
+            </div>
           </div>
         )}
 
