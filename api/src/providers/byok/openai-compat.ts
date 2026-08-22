@@ -1,5 +1,6 @@
 import type { AIProvider, StreamParams, TestResult } from '../types.ts';
 import { iterateSse } from '../sse.ts';
+import { humanizeProviderError } from '../../lib/provider-errors.ts';
 
 /**
  * Shared implementation for OpenAI-compatible chat/completions endpoints.
@@ -43,7 +44,7 @@ export class OpenAICompatProvider implements AIProvider {
       }),
     });
     if (!res.ok) {
-      throw new Error(`${this.id} ${res.status}: ${await res.text()}`);
+      throw new Error(humanizeProviderError(res.status, await res.text()));
     }
     for await (const data of iterateSse(res)) {
       if (data === '[DONE]') break;

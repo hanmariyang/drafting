@@ -140,6 +140,16 @@ export function DocumentWorkspace() {
         setStreaming(false);
         refreshDocMeta();
         sug.reload();
+        // 추론형 모델이 예산 부족으로 본문을 못 낸 경우 감지 — 조용한 빈칸 방지
+        setSections((prev) => {
+          const empty = prev.filter((s) => !s.body.trim()).length;
+          if (empty > 0 && empty >= prev.length / 2) {
+            setError(
+              `생성된 본문이 비어 있어요(${empty}/${prev.length} 섹션). 추론형 모델은 토큰 예산이 작으면 본문을 못 냅니다 — 설정에서 max tokens 를 늘리거나 다른 모델로 시도하세요.`,
+            );
+          }
+          return prev;
+        });
       },
       onError: (msg) => {
         setStreaming(false);
