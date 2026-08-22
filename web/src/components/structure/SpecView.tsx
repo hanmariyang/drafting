@@ -15,6 +15,9 @@ interface Props {
   flows?: PlanItem[];
   onLinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
   onUnlinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
+  /** 프로젝트 REQ 목록 (기능→요구 연결, W-ORPHAN-SPEC 해소) */
+  reqs?: Array<{ id: string; heading: string }>;
+  onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }
 
 const PRIORITY_CYCLE: Priority[] = ['P0', 'P1', 'P2'];
@@ -30,6 +33,8 @@ export function SpecView({
   flows = [],
   onLinkFeature,
   onUnlinkFeature,
+  reqs = [],
+  onEditLink,
 }: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
   const [effective, setEffective] = useState(0);
@@ -136,6 +141,8 @@ export function SpecView({
                 flows={flows}
                 onLinkFeature={onLinkFeature}
                 onUnlinkFeature={onUnlinkFeature}
+                reqs={reqs}
+                onEditLink={onEditLink}
               />
             ))}
           </div>
@@ -157,6 +164,8 @@ function FeatureRow({
   flows,
   onLinkFeature,
   onUnlinkFeature,
+  reqs,
+  onEditLink,
 }: {
   feature: PlanItem;
   open: boolean;
@@ -169,11 +178,15 @@ function FeatureRow({
   flows: PlanItem[];
   onLinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
   onUnlinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
+  reqs: Array<{ id: string; heading: string }>;
+  onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }) {
   const m = parseItemMeta(feature);
   const proposed = feature.status === 'proposed';
   const linkedFlows = flows.filter((fl) => (parseItemMeta(fl).links?.features ?? []).includes(feature.ref_id));
   const unlinkedFlows = flows.filter((fl) => !(parseItemMeta(fl).links?.features ?? []).includes(feature.ref_id));
+  const myReqs = m.links?.reqs ?? [];
+  const availReqs = reqs.filter((r) => !myReqs.includes(r.id));
   const critLines = feature.body.split('\n').map((l) => l.replace(/^[·\-*]\s*/, '').trim()).filter(Boolean);
 
   if (!open) {
@@ -289,6 +302,38 @@ function FeatureRow({
               {unlinkedFlows.map((fl) => (
                 <option key={fl.id} value={fl.id}>
                   {fl.ref_id} {fl.title}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+      {/* 기능→요구(REQ) 연결 — W-ORPHAN-SPEC 근본 해소 */}
+      {onEditLink && (reqs.length > 0 || myReqs.length > 0) && (
+        <div className="flow-linker">
+          <span className="lb" style={{ width: 'auto', margin: '0 4px 0 0', display: 'inline' }}>
+            요구
+          </span>
+          {myReqs.length === 0 && <span className="muted" style={{ fontSize: 11 }}>연결된 요구 없음</span>}
+          {myReqs.map((r) => (
+            <span key={r} className="flowchip">
+              {r}
+              <button title="연결 해제" onClick={() => onEditLink(feature.id, 'reqs', r, 'remove')}>
+                ×
+              </button>
+            </span>
+          ))}
+          {availReqs.length > 0 && (
+            <select
+              className="field"
+              style={{ maxWidth: 240, fontSize: 12 }}
+              value=""
+              onChange={(e) => e.target.value && onEditLink(feature.id, 'reqs', e.target.value, 'add')}
+            >
+              <option value="">+ 요구에 연결…</option>
+              {availReqs.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.id} {r.heading}
                 </option>
               ))}
             </select>

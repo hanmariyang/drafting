@@ -11,9 +11,21 @@ interface Props {
   generating: boolean;
   onRegenerate: () => void;
   onNavPage?: (pgRef: string) => void;
+  /** 기능명세 문서의 기능들 (화면→기능 연결, W-EMPTY-PAGE 해소) */
+  features?: PlanItem[];
+  onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }
 
-export function IaView({ projectId, items, selected, onSelect, onAccept, onReject }: Props) {
+export function IaView({
+  projectId,
+  items,
+  selected,
+  onSelect,
+  onAccept,
+  onReject,
+  features = [],
+  onEditLink,
+}: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
   const [listMode, setListMode] = useState(false);
 
@@ -113,6 +125,8 @@ export function IaView({ projectId, items, selected, onSelect, onAccept, onRejec
           violation={violByRef.get(sel.ref_id) ?? null}
           onAccept={() => onAccept(sel.id)}
           onReject={() => onReject(sel.id)}
+          features={features}
+          onEditLink={onEditLink}
         />
       )}
     </div>
@@ -125,14 +139,20 @@ function IaDetail({
   violation,
   onAccept,
   onReject,
+  features,
+  onEditLink,
 }: {
   page: PlanItem;
   flows: string[];
   violation: LintViolation | null;
   onAccept: () => void;
   onReject: () => void;
+  features: PlanItem[];
+  onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }) {
   const m = parseItemMeta(page);
+  const myFeatures = m.links?.features ?? [];
+  const availFeatures = features.filter((f) => !myFeatures.includes(f.ref_id));
   return (
     <div className="iadetail">
       <div className="iathumb">
@@ -149,12 +169,36 @@ function IaDetail({
         </h4>
         <div className="mrowline">
           <span className="k">근거 기능</span>
-          {(m.links?.features ?? []).map((f) => (
-            <span key={f} className="pgchip">
-              {f}
-            </span>
-          ))}
-          {(m.links?.features ?? []).length === 0 && <span>연결 없음</span>}
+          {myFeatures.map((f) =>
+            onEditLink ? (
+              <span key={f} className="flowchip">
+                {f}
+                <button title="연결 해제" onClick={() => onEditLink(page.id, 'features', f, 'remove')}>
+                  ×
+                </button>
+              </span>
+            ) : (
+              <span key={f} className="pgchip">
+                {f}
+              </span>
+            ),
+          )}
+          {myFeatures.length === 0 && <span>연결 없음</span>}
+          {onEditLink && availFeatures.length > 0 && (
+            <select
+              className="field"
+              style={{ maxWidth: 240, fontSize: 12 }}
+              value=""
+              onChange={(e) => e.target.value && onEditLink(page.id, 'features', e.target.value, 'add')}
+            >
+              <option value="">+ 기능 연결…</option>
+              {availFeatures.map((f) => (
+                <option key={f.id} value={f.ref_id}>
+                  {f.ref_id} {f.title}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="mrowline">
           <span className="k">진입 플로우</span>

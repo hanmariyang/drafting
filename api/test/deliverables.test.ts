@@ -299,3 +299,36 @@ test('link-feature 는 플로우의 links.features 에 추가해 W-NO-FLOW 를 �
   rep = lintReport(project.id);
   assert.ok(!rep.violations.some((v) => v.code === 'W-NO-FLOW' && v.refs.includes(feat.ref_id) && !v.waived), 'W-NO-FLOW 해소됨');
 });
+
+test('generic link: 기능→REQ 로 W-ORPHAN-SPEC, 화면→기능 으로 W-EMPTY-PAGE 해소', () => {
+  freshDb();
+  const project = repo.createProject('P');
+  const prd = repo.createDocument({ projectId: project.id, type: 'prd', title: 'PRD' });
+  repo.replaceSections(prd.id, [{ heading: '문제 정의', body: '...' }]); // REQ-01 파생
+  const reqIds = repo.reqIdsForProject(project.id).map((r) => r.id);
+  assert.ok(reqIds.length >= 1);
+  const specDoc = repo.createDocument({ projectId: project.id, type: 'feature-spec', title: 'Spec' });
+  const iaDoc = repo.createDocument({ projectId: project.id, type: 'ia', title: 'IA' });
+  const grp = repo.createItem({ documentId: specDoc.id, kind: 'feature-group', title: 'G', status: 'accepted' });
+  const feat = repo.createItem({ documentId: specDoc.id, kind: 'feature', title: '기능', parentId: grp.id, meta: { priority: 'P1' } as never, status: 'accepted' });
+  const page = repo.createItem({ documentId: iaDoc.id, kind: 'page', title: '화면', meta: {} as never, status: 'accepted' });
+
+  let rep = repo && lintReportOf(project.id);
+  assert.ok(rep.some((v) => v.code === 'W-ORPHAN-SPEC' && v.refs.includes(feat.ref_id)));
+  assert.ok(rep.some((v) => v.code === 'W-EMPTY-PAGE' && v.refs.includes(page.ref_id)));
+
+  // 기능→REQ (feature.links.reqs)
+  const fm = repo.parsePlanItemMeta(feat);
+  repo.updateItem(feat.id, { meta: { ...fm, links: { ...(fm.links ?? {}), reqs: [reqIds[0]] } } as never });
+  // 화면→기능 (page.links.features)
+  const pm = repo.parsePlanItemMeta(page);
+  repo.updateItem(page.id, { meta: { ...pm, links: { ...(pm.links ?? {}), features: [feat.ref_id] } } as never });
+
+  rep = lintReportOf(project.id);
+  assert.ok(!rep.some((v) => v.code === 'W-ORPHAN-SPEC' && v.refs.includes(feat.ref_id)), 'orphan 해소');
+  assert.ok(!rep.some((v) => v.code === 'W-EMPTY-PAGE' && v.refs.includes(page.ref_id)), 'empty-page 해소');
+});
+
+function lintReportOf(pid: string) {
+  return lintReport(pid).violations.filter((v) => !v.waived);
+}
