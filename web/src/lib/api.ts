@@ -547,10 +547,21 @@ export interface DocRollup {
   proposed: number;
   total: number;
   documentId: string | null;
+  stale?: boolean;
+  openSuggestions?: number;
+  status?: string | null;
+}
+export interface HubNextAction {
+  kind: 'create' | 'review' | 'stale' | 'lint' | 'handoff' | 'done';
+  label: string;
+  detail: string;
+  documentId: string | null;
+  target: 'document' | 'handoff' | 'none';
 }
 export interface HubSnapshot {
   perDoc: Record<'prd' | 'feature-spec' | 'ia' | 'user-flow', DocRollup>;
   lint: LintReport;
+  nextAction?: HubNextAction;
   derived: {
     wireframes: { count: number };
     handoff: { compiled: boolean; documentId: string | null; locked: boolean; blocking: number };
