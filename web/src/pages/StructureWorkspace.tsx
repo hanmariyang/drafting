@@ -203,6 +203,21 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   );
 
   const body = (() => {
+    // 생성 중이고 아직 첫 항목이 안 왔을 때 — 빈 뷰가 아니라 명확한 로딩 상태(피드백 부재 방지)
+    if (generating && items.length === 0) {
+      return (
+        <div className="editor-inner">
+          <div className="eyebrow">{EYEBROW[type]}</div>
+          <h1 className="struct-h1">{TITLE[type]}</h1>
+          <div className="ch-strip" style={{ marginTop: 18 }}>
+            <Choani pose="write" size={40} />
+            <span>
+              {TITLE[type]} 구조를 제안받는 중이에요… 항목이 하나씩 채워집니다. (추론형 모델은 잠시 걸립니다)
+            </span>
+          </div>
+        </div>
+      );
+    }
     if (empty) {
       return (
         <div className="editor-inner">
@@ -296,8 +311,15 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
       statusRight={<span>v{doc.version}</span>}
     >
       <main className="ed structure-ed">
+        {/* 스트리밍 중(항목이 들어오는 중)엔 상단에 진행 스트립 — 멈춘 것처럼 보이지 않게 */}
+        {generating && items.length > 0 && (
+          <div className="ch-strip" style={{ margin: '0 0 12px' }}>
+            <Choani pose="write" size={34} />
+            <span>구조를 제안받는 중… 항목 {items.length}개 도착</span>
+          </div>
+        )}
         {body}
-        {!empty && <RejectedItemsBar items={items} onRestore={restoreItem} />}
+        {!empty && !generating && <RejectedItemsBar items={items} onRestore={restoreItem} />}
       </main>
     </AppShell>
   );
