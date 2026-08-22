@@ -208,3 +208,16 @@ test('undo 는 마지막 변경을 되돌린다', async () => {
   assert.equal(r2.statusCode, 400);
   await app.close();
 });
+
+test('CORS 는 기본 same-origin — 임의 오리진을 반사하지 않는다(CSRF/유출 방지)', async () => {
+  const app = await makeApp();
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/health',
+    headers: { origin: 'https://evil.example' },
+  });
+  const acao = res.headers['access-control-allow-origin'];
+  assert.notEqual(acao, 'https://evil.example', '악성 오리진을 반사하면 안 됨');
+  assert.notEqual(acao, '*', '와일드카드 허용 금지');
+  await app.close();
+});

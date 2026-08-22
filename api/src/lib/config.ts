@@ -53,6 +53,13 @@ export const config = {
   // OpenAI 호환 게이트웨이(LiteLLM·Azure·사내 프록시 등) base URL 오버라이드.
   // 비워두면 표준 OpenAI. 회사 게이트웨이 주소는 여기(env/설정)에만 두고 코드엔 넣지 않는다.
   openaiBaseUrl: (process.env.OPENAI_BASE_URL ?? process.env.LITELLM_BASE_URL ?? '').trim(),
+  // CORS 는 기본 same-origin 만(웹 UI 를 api 가 같은 오리진으로 서빙, dev 는 vite 프록시).
+  // 다른 오리진에서 프론트를 띄우는 리버스 프록시 구성만 여기에 허용 오리진을 명시한다.
+  // 이 값을 비워두면 브라우저의 교차 오리진 요청이 차단돼 로컬 API 가 CSRF·유출로부터 보호된다.
+  allowOrigins: (process.env.DRAFTING_ALLOW_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 };
 
 export type AppConfig = typeof config;
