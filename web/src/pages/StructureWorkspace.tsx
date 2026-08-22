@@ -48,6 +48,7 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   const [reqs, setReqs] = useState<Array<{ id: string; heading: string }>>([]);
   const [features, setFeatures] = useState<PlanItem[]>([]);
   const [pages, setPages] = useState<PlanItem[]>([]);
+  const [flowItems, setFlowItems] = useState<PlanItem[]>([]);
 
   const loadCrossRefs = useCallback(
     async (docs: DocumentModel[]) => {
@@ -60,6 +61,10 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
         const specDoc = docs.find((d) => d.type === 'feature-spec');
         const its = specDoc ? await api.items(specDoc.id).then((r) => r.items).catch(() => []) : [];
         setFeatures(its.filter((i) => i.kind === 'feature' && i.status !== 'rejected'));
+        // 도달 플로우 표시는 유저플로우 문서의 스텝(step.page)으로 판정 — IA 문서엔 스텝이 없다.
+        const flowDoc = docs.find((d) => d.type === 'user-flow');
+        const fits = flowDoc ? await api.items(flowDoc.id).then((r) => r.items).catch(() => []) : [];
+        setFlowItems(fits.filter((i) => i.status !== 'rejected'));
       } else if (type === 'user-flow') {
         const iaDoc = docs.find((d) => d.type === 'ia');
         const its = iaDoc ? await api.items(iaDoc.id).then((r) => r.items).catch(() => []) : [];
@@ -236,6 +241,7 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
           {...common}
           projectId={pid!}
           features={features}
+          flowItems={flowItems}
           onEditLink={editLink}
           onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)}
         />
