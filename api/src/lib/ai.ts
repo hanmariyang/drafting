@@ -33,12 +33,13 @@ export function getModelConfig(docType: DocumentType): ModelConfig {
   const base: ModelConfig = {
     provider: pickDefaultProvider(),
     model: '',
-    maxTokens: 4096,
+    // 추론형(reasoning) 모델은 추론 토큰이 예산을 먹어 본문이 비기 쉽다 — 헤드룸 확보.
+    maxTokens: 8192,
   };
   const merged = { ...base, ...(stored.default ?? {}), ...(stored[docType] ?? {}) };
   if (!merged.provider) merged.provider = base.provider;
   if (!merged.model) merged.model = DEFAULT_MODELS[merged.provider];
-  if (!merged.maxTokens) merged.maxTokens = 4096;
+  if (!merged.maxTokens) merged.maxTokens = 8192;
   return merged as ModelConfig;
 }
 
