@@ -265,6 +265,17 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .sug-card .quote { color: var(--sub); border-top: 1px dashed var(--hair); margin-top: 7px; padding-top: 7px; font-size: 11.5px; }
 .sug-card .quote .arrow { color: var(--sug); font-weight: 700; }
 
+/* 완료 세리머니 — 초안 생성 성공 시 하단에 잠깐 뜨는 토스트(저빈도·자동 소멸) */
+.ceremony {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; z-index: 40;
+  background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card);
+  padding: 10px 16px 10px 12px; box-shadow: var(--shadow-sug); font-size: 13px; color: var(--ink);
+  animation: ceremony-in 0.28s ease-out;
+}
+@keyframes ceremony-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .ceremony { animation: none; } }
+
 /* AI 생성 차단(조직 차단 등) 복구 배너 — 답변 보존 + 설정/재생성 유도 */
 .gen-block-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;

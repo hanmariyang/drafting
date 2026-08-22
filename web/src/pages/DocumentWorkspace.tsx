@@ -21,6 +21,7 @@ import { SuggestionsPanel } from '../components/SuggestionsPanel.tsx';
 import { VersionHistory } from '../components/VersionHistory.tsx';
 import { SharePanel } from '../components/SharePanel.tsx';
 import { ContextRefreshDialog } from '../components/ContextRefreshDialog.tsx';
+import { Choani } from '../components/Choani.tsx';
 
 const TYPE_LABEL: Record<DocumentType, string> = {
   prd: 'PRD',
@@ -55,6 +56,14 @@ export function DocumentWorkspace() {
   // 생성 실패가 CLI 차단·인증 계열인지 — true 면 복구 배너(설정 링크 + 다시 생성)를 띄운다.
   // 인터뷰 답변은 서버에 보존돼 있어 키 등록 후 재생성으로 손실 없이 복구된다.
   const [genBlocked, setGenBlocked] = useState(false);
+  // 완료 세리머니(초안이 done 포즈) — 저빈도, 자동 소멸
+  const [ceremony, setCeremony] = useState(false);
+  const ceremonyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function celebrate() {
+    setCeremony(true);
+    if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
+    ceremonyTimer.current = setTimeout(() => setCeremony(false), 2600);
+  }
   const [modal, setModal] = useState<'versions' | 'share' | 'context' | null>(null);
   const [focusSection, setFocusSection] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -147,6 +156,9 @@ export function DocumentWorkspace() {
             setError(
               `생성된 본문이 비어 있어요(${empty}/${prev.length} 섹션). 추론형 모델은 토큰 예산이 작으면 본문을 못 냅니다 — 설정에서 max tokens 를 늘리거나 다른 모델로 시도하세요.`,
             );
+          } else if (prev.length > 0) {
+            // 성공적으로 초안이 채워졌을 때만 완료 세리머니(저빈도, 자동 소멸)
+            celebrate();
           }
           return prev;
         });
@@ -392,6 +404,12 @@ export function DocumentWorkspace() {
             sug.reload();
           }}
         />
+      )}
+      {ceremony && (
+        <div className="ceremony" role="status" aria-live="polite">
+          <Choani pose="done" size={40} />
+          <span>초안이 준비됐어요. 마음에 드는 문장만 수락하세요.</span>
+        </div>
       )}
     </AppShell>
   );
