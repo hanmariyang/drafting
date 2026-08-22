@@ -121,6 +121,7 @@
     <div class="links">
       <a href="#grammar" data-i18n="nav.grammar">Suggestion mode</a>
       <a href="#chain" data-i18n="nav.chain">Document chain</a>
+      <a href="#handoff" data-i18n="nav.handoff">Handoff</a>
       <a href="#quickstart" data-i18n="nav.quickstart">Quickstart</a>
       <a href="#download" data-i18n="nav.download">Download</a>
       <a id="repoLink" href="https://github.com/hanmariyang/drafting">GitHub</a>
@@ -186,14 +187,28 @@
       <figcaption data-i18n="ch.cap2">First run: one idea line, and a sample plan with pending suggestions to practice on.</figcaption></figure>
   </section>
 
+  <section id="handoff">
+    <p class="sect-label" data-i18n="hf.label">Handoff</p>
+    <h2 data-i18n="hf.h2">The chain ends in something you can hand off.</h2>
+    <p class="lead" data-i18n="hf.lead">When the accepted chain passes its consistency checks, Drafting compiles a handoff — the spec, ready for an engineer or an AI coding agent to build from.</p>
+    <div class="feat">
+      <div class="fcard"><h3><span class="g">GATE</span><span data-i18n="hf.c1h">Consistency, checked</span></h3><p data-i18n="hf.c1p">Broken links, features tied to no requirement, screens no flow reaches — caught and resolved in the editor, never shipped silently.</p></div>
+      <div class="fcard"><h3><span class="g">PACK</span><span data-i18n="hf.c2h">An agent-ready prompt pack</span></h3><p data-i18n="hf.c2p">Hand the accepted spec to a coding agent: role, scope, and every feature with its acceptance criteria as checkboxes.</p></div>
+      <div class="fcard"><h3><span class="g">OUT</span><span data-i18n="hf.c3h">Export what you accepted</span></h3><p data-i18n="hf.c3p">Markdown, print-ready HTML and PDF, and a GitHub-style dev-ticket checklist. Accepted content only.</p></div>
+      <div class="fcard"><h3><span class="g">RUN</span><span data-i18n="hf.c4h">On your terms</span></h3><p data-i18n="hf.c4p">Your Claude subscription (no key), a BYOK key, or an OpenAI-compatible gateway like LiteLLM for teams.</p></div>
+    </div>
+  </section>
+
   <section id="quickstart">
     <p class="sect-label" data-i18n="qs.label">Quickstart</p>
     <h2 data-i18n="qs.h2">Self-hosted in a minute.</h2>
-    <p class="lead" data-i18n="qs.lead">Requirements: Docker (or Node 22+). Your documents live in a local SQLite file — no accounts, no cloud.</p>
-    <pre class="code"><span class="c"># run</span>
-<span class="p">$</span> git clone https://github.com/hanmariyang/drafting && cd drafting
-<span class="p">$</span> docker compose up -d
-<span class="c"># open http://localhost:8477 — docker uses BYOK keys; the desktop app needs none</span></pre>
+    <p class="lead" data-i18n="qs.lead">Your documents live in a local SQLite file — no accounts, no cloud. The desktop app needs no key; the server uses BYOK.</p>
+    <pre class="code"><span class="c"># fastest — prebuilt image, nothing to build</span>
+<span class="p">$</span> docker run -p 8477:8080 -v drafting:/data ghcr.io/hanmariyang/drafting:latest
+<span class="c"># open http://localhost:8477</span>
+
+<span class="c"># or from source</span>
+<span class="p">$</span> git clone https://github.com/hanmariyang/drafting && cd drafting && docker compose up -d</pre>
   </section>
 
   <section id="download">
@@ -205,7 +220,7 @@
       <a class="dcard" href="https://github.com/hanmariyang/drafting/releases/latest"><span class="os">Windows</span><span class="nm">Drafting Setup.exe</span><span class="fmt">x64</span></a>
       <a class="dcard" href="https://github.com/hanmariyang/drafting/releases/latest"><span class="os">Linux</span><span class="nm">Drafting.AppImage</span><span class="fmt">x64</span></a>
     </div>
-    <p class="dl-note" data-i18n="dl.note">Downloads land on the latest GitHub Release. Prefer a server? docker compose up and open it in any browser.</p>
+    <p class="dl-note" data-i18n="dl.note">Downloads land on the latest GitHub Release. Prefer a server? Run the prebuilt image and open it in any browser.</p>
   </section>
 
   <footer>
@@ -240,6 +255,7 @@
   var STR={
     'nav.grammar':{en:'Suggestion mode',ko:'제안 문법'},
     'nav.chain':{en:'Document chain',ko:'문서 체인'},
+    'nav.handoff':{en:'Handoff',ko:'핸드오프'},
     'nav.quickstart':{en:'Quickstart',ko:'시작하기'},
     'nav.download':{en:'Download',ko:'다운로드'},
     'hero.h1':{en:'AI writes <span class="g">proposals</span>.<br>You write the document.',ko:'AI는 <span class="g">제안</span>을 쓰고,<br>문서는 당신이 씁니다.'},
@@ -280,13 +296,24 @@
     'ch.c4p':{en:'The desktop app drives your local Claude Code login — no API key. Docker self-host falls back to BYOK keys (AES-256-GCM, plaintext never stored).',ko:'데스크톱 앱은 로컬 Claude Code 로그인으로 생성합니다 — API 키 불필요. docker 셀프호스트는 BYOK 키 폴백(AES-256-GCM, 평문 미저장).'},
     'ch.cap':{en:'The interview: one question at a time, with hints and examples.',ko:'인터뷰 — 한 번에 한 질문, 힌트와 예시 포함.'},
     'ch.cap2':{en:'First run: one idea line, and a sample plan with pending suggestions to practice on.',ko:'첫 실행 — 아이디어 한 줄, 그리고 수락·거절을 연습할 제안 대기 샘플 기획서.'},
+    'hf.label':{en:'Handoff',ko:'핸드오프'},
+    'hf.h2':{en:'The chain ends in something you can hand off.',ko:'체인의 끝은, 넘길 수 있는 것.'},
+    'hf.lead':{en:'When the accepted chain passes its consistency checks, Drafting compiles a handoff — the spec, ready for an engineer or an AI coding agent to build from.',ko:'수락된 체인이 정합성 검사를 통과하면, 그 명세가 개발자나 AI 코딩 에이전트에게 바로 넘길 핸드오프로 컴파일됩니다.'},
+    'hf.c1h':{en:'Consistency, checked',ko:'정합성, 검사됨'},
+    'hf.c1p':{en:'Broken links, features tied to no requirement, screens no flow reaches — caught and resolved in the editor, never shipped silently.',ko:'끊긴 링크, 어느 요구에도 안 걸린 기능, 어떤 플로우도 닿지 않는 화면 — 에디터에서 잡아 해소합니다. 조용히 출하되지 않습니다.'},
+    'hf.c2h':{en:'An agent-ready prompt pack',ko:'에이전트 실행형 프롬프트 팩'},
+    'hf.c2p':{en:'Hand the accepted spec to a coding agent: role, scope, and every feature with its acceptance criteria as checkboxes.',ko:'수락된 명세를 코딩 에이전트에 그대로 — 역할·범위, 기능별 수용 기준을 체크박스로.'},
+    'hf.c3h':{en:'Export what you accepted',ko:'수락한 것만 내보내기'},
+    'hf.c3p':{en:'Markdown, print-ready HTML and PDF, and a GitHub-style dev-ticket checklist. Accepted content only.',ko:'마크다운, 인쇄용 HTML·PDF, GitHub 스타일 개발 티켓 체크리스트. 수락한 내용만.'},
+    'hf.c4h':{en:'On your terms',ko:'내 방식대로'},
+    'hf.c4p':{en:'Your Claude subscription (no key), a BYOK key, or an OpenAI-compatible gateway like LiteLLM for teams.',ko:'Claude 구독(키 불필요), BYOK 키, 또는 팀용 OpenAI 호환 게이트웨이(LiteLLM 등).'},
     'qs.label':{en:'Quickstart',ko:'시작하기'},
     'qs.h2':{en:'Self-hosted in a minute.',ko:'1분이면 셀프호스트.'},
-    'qs.lead':{en:'Requirements: Docker (or Node 22+). Your documents live in a local SQLite file — no accounts, no cloud.',ko:'요구사항: Docker(또는 Node 22+). 문서는 로컬 SQLite 파일에 남습니다. 계정도, 클라우드도 없습니다.'},
+    'qs.lead':{en:'Your documents live in a local SQLite file — no accounts, no cloud. The desktop app needs no key; the server uses BYOK.',ko:'문서는 로컬 SQLite 파일에 남습니다 — 계정도, 클라우드도 없이. 데스크톱 앱은 키가 필요 없고, 서버는 BYOK 를 씁니다.'},
     'dl.label':{en:'Download',ko:'다운로드'},
     'dl.h2':{en:'Desktop app.',ko:'데스크톱 앱.'},
     'dl.lead':{en:'The document workspace as a native window — same self-hosted core inside.',ko:'문서 워크스페이스를 네이티브 창으로. 안에는 같은 셀프호스트 코어가 돕니다.'},
-    'dl.note':{en:'Downloads land on the latest GitHub Release. Prefer a server? docker compose up and open it in any browser.',ko:'다운로드는 최신 GitHub Release로 갑니다. 서버가 편하면 docker compose up 후 브라우저로.'},
+    'dl.note':{en:'Downloads land on the latest GitHub Release. Prefer a server? Run the prebuilt image and open it in any browser.',ko:'다운로드는 최신 GitHub Release로 갑니다. 서버가 편하면 docker compose up 후 브라우저로.'},
     'ft.line':{en:'Nothing you did not accept is in the document.',ko:'수락하지 않은 문장은 문서에 없습니다.'}
   };
   var REJECTED={en:'Rejected — it never entered the document.',ko:'거절됨. 그 문장은 문서에 들어온 적이 없습니다.'};
