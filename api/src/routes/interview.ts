@@ -75,23 +75,25 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/documents/:id/draft/stream', async (req, reply) => {
     const { id } = req.params as { id: string };
     if (!repo.getDocument(id)) throw new HttpError(404, 'document not found');
-    await pipeDraft(streamDocumentDraft(id), req, reply);
+    await pipeDraft((signal) => streamDocumentDraft(id, signal), req, reply);
   });
 
   // regenerate a single section (SPEC-07, SSE)
   app.get('/api/sections/:sid/regenerate/stream', async (req, reply) => {
     const { sid } = req.params as { sid: string };
     if (!repo.getSection(sid)) throw new HttpError(404, 'section not found');
-    await pipeDraft(streamSectionRegeneration(sid), req, reply);
+    await pipeDraft((signal) => streamSectionRegeneration(sid, signal), req, reply);
   });
 }
 
 async function pipeDraft(
-  gen: AsyncGenerator<DraftEvent>,
+  makeGen: (signal: AbortSignal) => AsyncGenerator<DraftEvent>,
   req: Parameters<typeof sseStream>[0],
   reply: Parameters<typeof sseStream>[1],
 ): Promise<void> {
   const sse = sseStream(req, reply);
+  // 클라이언트가 '중지'로 연결을 끊으면 signal 이 abort 되어 provider 호출까지 멈춘다(토큰 절약).
+  const gen = makeGen(sse.signal);
   try {
     for await (const evt of gen) {
       const { type, ...rest } = evt;

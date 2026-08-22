@@ -159,6 +159,16 @@ export function DocumentWorkspace() {
     });
   }
 
+  // 생성 중지 — SSE 를 닫고 현재까지 받은 섹션을 편집 가능 상태로 남긴다.
+  function stopGeneration() {
+    esRef.current?.close();
+    esRef.current = null;
+    setStreaming(false);
+    setSections((prev) => prev.map((s) => ({ ...s, streaming: false, editable: true })));
+    refreshDocMeta();
+    sug.reload();
+  }
+
   function regenerate(sectionId: string) {
     setError('');
     setStreaming(true);
@@ -366,6 +376,7 @@ export function DocumentWorkspace() {
         onSaveState={setSaveState}
         error={error}
         onBackToInterview={() => setMode('interview')}
+        onStop={stopGeneration}
       />
 
       {modal === 'versions' && (

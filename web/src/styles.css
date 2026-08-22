@@ -178,6 +178,10 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .sec-body code { font-family: var(--mono); font-size: 0.85em; background: var(--bg); padding: 0.1em 0.35em; border-radius: 4px; }
 .sec-body pre { background: var(--bg); padding: 10px 12px; border-radius: var(--r-card); overflow-x: auto; }
 .sec-body .muted { color: var(--sub); }
+/* 추론형 모델 '생각 중' 상태 — 본문 오기 전 깜빡이는 안내 */
+.sec-body.thinking { color: var(--sub); font-style: italic; animation: think-pulse 1.4s ease-in-out infinite; }
+@keyframes think-pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .sec-body.thinking { animation: none; } }
 
 /* proposed 섹션 = sug 하이라이트 (SYSTEM §3 인라인 제안 문법) */
 .sec.proposed .sec-body {
