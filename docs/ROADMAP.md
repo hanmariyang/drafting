@@ -33,8 +33,9 @@
 - 명령 팔레트 전 액션 커버 + 검색.
 
 ## v0.9 — 패키징 & 배포 (Distribution)
-- **자동 업데이트 실동작** — electron-updater 피드 + 서명·공증 빌드.
-- Homebrew cask / winget, 도커 이미지 GHCR 배포, 원클릭 셀프호스트 가이드.
+- ✅ **자동 업데이트** — electron-updater(실행 시 릴리스 확인→다운로드→종료 시 설치) + 서명·공증 빌드. (기구현)
+- ✅ **도커 이미지 GHCR 배포** — 태그 시 `ghcr.io/hanmariyang/drafting` push, 로컬 빌드 없이 `docker pull` (v0.9.0).
+- Homebrew cask / winget, 원클릭 셀프호스트 가이드.
 - 온보딩 마감 — 구독·BYOK·게이트웨이 3경로 통합 안내.
 
 ## v1.0.0 — 안정 릴리스
