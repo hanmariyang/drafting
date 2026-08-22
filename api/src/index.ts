@@ -26,7 +26,11 @@ export async function buildServer() {
   loadTemplates();
 
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
-  await app.register(cors, { origin: true });
+  // 보안: 기본은 same-origin(교차 오리진 차단) — 무인증 로컬 API 를 악성 페이지의
+  // CSRF·데이터 유출(/api/backup 등)로부터 보호. 리버스 프록시 구성은 env 로 허용 오리진 지정.
+  await app.register(cors, {
+    origin: config.allowOrigins.length ? config.allowOrigins : false,
+  });
 
   // Tolerate empty bodies on POST/PUT/DELETE that carry an application/json
   // content-type but no payload (browsers set the header even with no body).

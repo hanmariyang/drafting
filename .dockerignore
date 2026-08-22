@@ -1,0 +1,23 @@
+# 빌드 컨텍스트에서 제외 — 시크릿·로컬 데이터·산출물이 이미지 레이어에 구워지는 것 방지.
+.env
+.env.*
+!.env.example
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+node_modules
+**/node_modules
+.git
+.github
+desktop/dist
+desktop/node_modules
+web/dist
+api/dist
+dist
+*.log
+.DS_Store
+docs/
+design/
+*.md
+!README.md
