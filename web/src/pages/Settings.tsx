@@ -35,6 +35,7 @@ export function Settings() {
   const [gwHeaders, setGwHeaders] = useState('');
   const [gwMsg, setGwMsg] = useState('');
   const [gwModels, setGwModels] = useState<string[]>([]);
+  const [restoreMsg, setRestoreMsg] = useState('');
 
   async function loadKeys() {
     setKeys(await api.keys());
@@ -120,6 +121,24 @@ export function Settings() {
   }
 
   const isOk = (v: string) => v === '연결 성공';
+
+  async function onRestoreFile(file: File) {
+    if (!confirm('복원하면 현재 워크스페이스가 이 백업으로 완전히 교체됩니다. 계속할까요?')) return;
+    setRestoreMsg('복원 중…');
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+        r.onerror = () => reject(new Error('파일을 읽지 못했습니다'));
+        r.readAsDataURL(file);
+      });
+      await api.restore(base64);
+      setRestoreMsg('복원 완료 · 새로고침합니다…');
+      setTimeout(() => window.location.assign('/'), 900);
+    } catch (e) {
+      setRestoreMsg(`실패 · ${(e as Error).message}`);
+    }
+  }
 
   return (
     <AppShell
@@ -366,6 +385,39 @@ export function Settings() {
               모델 설정 저장
             </button>
             {savedMsg && <span className="ok" style={{ alignSelf: 'center' }}>{savedMsg}</span>}
+          </div>
+
+          <div className="divider" />
+
+          <h3>워크스페이스 백업 · 복원</h3>
+          <p className="subtle">
+            전체 데이터(프로젝트·문서·제안·설정)를 한 파일로 내려받고, 다른 기기로 옮기거나 위험한
+            작업 전에 대비하세요. <b>복원은 현재 워크스페이스를 통째로 교체</b>합니다.
+          </p>
+          <div className="rows">
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <a className="btn" href={api.backupHref} download>
+                백업 내려받기
+              </a>
+              <label className="btn" style={{ cursor: 'pointer' }}>
+                복원(파일 선택)
+                <input
+                  type="file"
+                  accept=".sqlite,application/octet-stream"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onRestoreFile(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              {restoreMsg && (
+                <span className={restoreMsg.startsWith('실패') ? 'err' : 'ok'} style={{ width: '100%' }}>
+                  {restoreMsg}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </main>
