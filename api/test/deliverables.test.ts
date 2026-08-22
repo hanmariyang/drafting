@@ -281,3 +281,21 @@ test('lint waive(단건) 은 키로 해당 위반만 무시한다 (비파괴적)
   const stillOpen = rep.violations.find((v) => v.key === key && !v.waived);
   assert.equal(stillOpen, undefined, '해당 위반은 더 이상 유효하지 않음');
 });
+
+test('link-feature 는 플로우의 links.features 에 추가해 W-NO-FLOW 를 해소한다', () => {
+  freshDb();
+  const project = repo.createProject('P');
+  const specDoc = repo.createDocument({ projectId: project.id, type: 'feature-spec', title: 'Spec' });
+  const flowDoc = repo.createDocument({ projectId: project.id, type: 'user-flow', title: 'Flow' });
+  const grp = repo.createItem({ documentId: specDoc.id, kind: 'feature-group', title: 'G', status: 'accepted' });
+  const feat = repo.createItem({ documentId: specDoc.id, kind: 'feature', title: '핵심기능', parentId: grp.id, meta: { priority: 'P0' } as never, status: 'accepted' });
+  const flow = repo.createItem({ documentId: flowDoc.id, kind: 'flow', title: '메인 플로우', meta: { links: { features: [] } } as never, status: 'accepted' });
+  // 처음엔 P0 기능이 어느 플로우에도 없어 W-NO-FLOW
+  let rep = lintReport(project.id);
+  assert.ok(rep.violations.some((v) => v.code === 'W-NO-FLOW' && v.refs.includes(feat.ref_id)));
+  // link-feature 동작 재현: 플로우 links.features 에 기능 ref 추가
+  const meta = repo.parsePlanItemMeta(flow);
+  repo.updateItem(flow.id, { meta: { ...meta, links: { ...(meta.links ?? {}), features: [feat.ref_id] } } as never });
+  rep = lintReport(project.id);
+  assert.ok(!rep.violations.some((v) => v.code === 'W-NO-FLOW' && v.refs.includes(feat.ref_id) && !v.waived), 'W-NO-FLOW 해소됨');
+});

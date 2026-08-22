@@ -396,6 +396,17 @@ export const api = {
   acceptItem: (id: string) => req<PlanItem>(`/api/items/${id}/accept`, { method: 'POST' }),
   rejectItem: (id: string) => req<PlanItem>(`/api/items/${id}/reject`, { method: 'POST' }),
   restoreItem: (id: string) => req<PlanItem>(`/api/items/${id}/restore`, { method: 'POST' }),
+  // 플로우 ↔ 기능 연결 (W-NO-FLOW 근본 해소)
+  linkFeatureToFlow: (flowId: string, featureRef: string) =>
+    req<PlanItem>(`/api/items/${flowId}/link-feature`, {
+      method: 'POST',
+      body: JSON.stringify({ featureRef }),
+    }),
+  unlinkFeatureFromFlow: (flowId: string, featureRef: string) =>
+    req<PlanItem>(`/api/items/${flowId}/unlink-feature`, {
+      method: 'POST',
+      body: JSON.stringify({ featureRef }),
+    }),
 
   // ── project deliverables ───────────────────────────────────────────────────
   lint: (pid: string) => req<LintReport>(`/api/projects/${pid}/lint`),
