@@ -351,6 +351,11 @@ export const api = {
     req(`/api/settings/models`, { method: 'PUT', body: JSON.stringify(models) }),
   completeOnboarding: () => req('/api/settings/onboarding/complete', { method: 'POST' }),
 
+  // 워크스페이스 백업/복원 (전체 DB)
+  backupHref: '/api/backup',
+  restore: (base64: string) =>
+    req<{ ok: boolean }>('/api/restore', { method: 'POST', body: JSON.stringify({ data: base64 }) }),
+
   // suggestions (신규 병렬 API — 계약 고정, 방어적 처리)
   suggestions: (docId: string, status = 'open') =>
     req<{ suggestions: Suggestion[] }>(

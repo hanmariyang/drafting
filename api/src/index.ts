@@ -17,6 +17,7 @@ import { deliverableRoutes } from './routes/deliverables.ts';
 import { keyRoutes } from './routes/keys.ts';
 import { settingsRoutes } from './routes/settings.ts';
 import { shareRoutes } from './routes/share.ts';
+import { backupRoutes } from './routes/backup.ts';
 
 export async function buildServer() {
   // fail fast on infra: db schema applied, master key resolvable, templates loaded
@@ -61,6 +62,7 @@ export async function buildServer() {
   await app.register(keyRoutes);
   await app.register(settingsRoutes);
   await app.register(shareRoutes);
+  await app.register(backupRoutes);
 
   app.get('/api/health', async () => ({ ok: true, version: config.version }));
 

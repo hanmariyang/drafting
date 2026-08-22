@@ -9,3 +9,5 @@ process.env.APP_ENCRYPTION_KEY = Buffer.from(
   'drafting--test-master-key-32byte',
 ).toString('base64');
 process.env.LOG_LEVEL = 'silent';
+// 백업/복원 테스트가 레포의 data/ 대신 임시 경로를 쓰게 한다(부작용 격리).
+process.env.DATABASE_PATH = `${process.env.TMPDIR ?? '/tmp'}/drafting-test-${process.pid}.sqlite`;
