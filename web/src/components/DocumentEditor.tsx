@@ -23,6 +23,7 @@ interface Props {
   onSaveState: (s: 'idle' | 'saving' | 'saved') => void;
   error: string;
   onBackToInterview: () => void;
+  onStop?: () => void;
 }
 
 export function DocumentEditor({
@@ -38,6 +39,7 @@ export function DocumentEditor({
   onSaveState,
   error,
   onBackToInterview,
+  onStop,
 }: Props) {
   const [title, setTitle] = useState(doc.title);
   const [editing, setEditing] = useState<string | null>(null);
@@ -107,7 +109,12 @@ export function DocumentEditor({
         {streaming && (
           <div className="ch-strip">
             <Choani pose="write" size={34} />
-            초안을 쓰는 중이에요. 다 쓰면 전부 제안으로 보여드릴게요.
+            <span>초안을 쓰는 중이에요. 다 쓰면 전부 제안으로 보여드릴게요.</span>
+            {onStop && (
+              <button className="btn sm" style={{ marginLeft: 'auto' }} onClick={onStop}>
+                중지
+              </button>
+            )}
           </div>
         )}
 
@@ -190,7 +197,7 @@ function SectionBlock({
         )}
         {section.streaming ? (
           <span className="pill" style={{ color: 'var(--sug)', borderColor: 'var(--sug-line)' }}>
-            스트리밍 중…
+            {section.body.trim() ? '스트리밍 중…' : '생각 중…'}
           </span>
         ) : (
           <div className="sec-tools">
@@ -224,6 +231,9 @@ function SectionBlock({
             placeholder="마크다운으로 편집…"
           />
         </div>
+      ) : section.streaming && !section.body.trim() ? (
+        // 추론형 모델은 본문 전에 오래 '생각'한다 — 빈칸 대신 상태를 보여준다
+        <div className="sec-body thinking">모델이 생각하고 있어요… (추론형 모델은 잠시 걸립니다)</div>
       ) : (
         <div
           className={`sec-body ${section.streaming ? 'cursor' : ''}`}
