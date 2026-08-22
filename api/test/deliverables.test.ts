@@ -332,3 +332,14 @@ test('generic link: 기능→REQ 로 W-ORPHAN-SPEC, 화면→기능 으로 W-EMP
 function lintReportOf(pid: string) {
   return lintReport(pid).violations.filter((v) => !v.waived);
 }
+
+test('hub nextAction: 위반이 있으면 lint 해소를 안내한다', () => {
+  const pid = seedDeliverables();
+  const hub = hubSnapshot(pid);
+  // 시드는 위반 2건 → nextAction 은 lint (또는 그 이전 단계가 없으면)
+  assert.ok(hub.nextAction, 'nextAction 존재');
+  assert.ok(['lint', 'review', 'stale', 'create'].includes(hub.nextAction.kind));
+  // perDoc 에 stale/openSuggestions 노출
+  assert.equal(typeof hub.perDoc.prd.stale, 'boolean');
+  assert.equal(typeof hub.perDoc['feature-spec'].openSuggestions, 'number');
+});

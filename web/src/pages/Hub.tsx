@@ -59,6 +59,13 @@ export function Hub() {
     }
   }
 
+  function goNext() {
+    const a = hub?.nextAction;
+    if (!a || !pid) return;
+    if (a.target === 'handoff') nav(`/projects/${pid}/handoff`);
+    else if (a.target === 'document' && a.documentId) nav(`/projects/${pid}/documents/${a.documentId}`);
+  }
+
   if (!project) {
     return (
       <AppShell crumb={<span>불러오는 중…</span>}>
@@ -97,6 +104,22 @@ export function Hub() {
         <h1 className="hub-h1">산출물 6종</h1>
         <div className="hub-sub">수락된 것만 문서 · 파생물은 수락분에서 자동 갱신</div>
 
+        {hub?.nextAction && (
+          <div className={`next-action na-${hub.nextAction.kind}`}>
+            <Choani pose={hub.nextAction.kind === 'done' ? 'done' : 'fetch'} size={40} />
+            <div className="na-body">
+              <div className="na-eyebrow">다음 할 일</div>
+              <b>{hub.nextAction.label}</b>
+              <span>{hub.nextAction.detail}</span>
+            </div>
+            {hub.nextAction.target !== 'none' && (
+              <button className="na-go" onClick={goNext}>
+                이어서 →
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="hubgrid">
           {CARD_META.map((c) => {
             const roll = hub?.perDoc[c.key];
@@ -109,6 +132,10 @@ export function Hub() {
                 <div className="ht">
                   <span className="tb">{c.badge}</span>
                   <b>{c.title}</b>
+                  {roll?.stale && <span className="hpill stale">재검토</span>}
+                  {roll && (roll.openSuggestions ?? 0) > 0 && (
+                    <span className="hpill sug">제안 {roll.openSuggestions}</span>
+                  )}
                 </div>
                 {roll ? <Bar roll={roll} /> : <div className="hbar" />}
                 <div className="hfoot">

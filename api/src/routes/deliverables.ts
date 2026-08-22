@@ -295,25 +295,47 @@ function rollupSections(documentId: string): DocRollup {
   };
 }
 
-/** 6-deliverable roll-up for the hub (§3). */
+const CHAIN = ['prd', 'feature-spec', 'ia', 'user-flow'] as const;
+const CHAIN_LABEL: Record<(typeof CHAIN)[number], string> = {
+  prd: 'PRD',
+  'feature-spec': '기능명세서',
+  ia: '정보 구조',
+  'user-flow': '유저 플로우',
+};
+
+/** 6-deliverable roll-up for the hub (§3) + per-doc stale/open + 다음 할 일. */
 export function hubSnapshot(projectId: string) {
   const docs = repo.listDocuments(projectId);
-  const perDoc: Record<string, DocRollup & { documentId: string | null }> = {};
-  for (const type of ['prd', 'feature-spec', 'ia', 'user-flow'] as const) {
+  const perDoc: Record<
+    string,
+    DocRollup & { documentId: string | null; stale: boolean; openSuggestions: number; status: string | null }
+  > = {};
+  for (const type of CHAIN) {
     const doc = docs.find((d) => d.type === type);
     if (!doc) {
-      perDoc[type] = { accepted: 0, proposed: 0, total: 0, documentId: null };
+      perDoc[type] = { accepted: 0, proposed: 0, total: 0, documentId: null, stale: false, openSuggestions: 0, status: null };
       continue;
     }
     const roll = type === 'prd' ? rollupSections(doc.id) : rollupItems(doc.id);
-    perDoc[type] = { ...roll, documentId: doc.id };
+    perDoc[type] = {
+      ...roll,
+      documentId: doc.id,
+      stale: doc.context_stale === 1,
+      openSuggestions: repo.countOpenSuggestions(doc.id),
+      status: doc.status,
+    };
   }
   const report = lintReport(projectId);
   const wireframes = deriveWireframes(projectId);
   const handoffDoc = getHandoffDoc(projectId);
+
+  // ── 다음 할 일: 체인 순서 + 위반/제안/stale 을 종합해 가장 중요한 한 걸음을 고른다 ──
+  const nextAction = computeNextAction(perDoc, report, !!handoffDoc);
+
   return {
     perDoc,
     lint: report,
+    nextAction,
     derived: {
       wireframes: { count: wireframes.length },
       handoff: {
@@ -323,6 +345,79 @@ export function hubSnapshot(projectId: string) {
         blocking: report.effectiveCount,
       },
     },
+  };
+}
+
+interface NextAction {
+  kind: 'create' | 'review' | 'stale' | 'lint' | 'handoff' | 'done';
+  label: string;
+  detail: string;
+  documentId: string | null;
+  target: 'document' | 'handoff' | 'none';
+}
+
+function computeNextAction(
+  perDoc: Record<string, { documentId: string | null; total: number; proposed: number; stale: boolean; openSuggestions: number }>,
+  report: ReturnType<typeof lintReport>,
+  handoffCompiled: boolean,
+): NextAction {
+  // 1) 아직 없는/빈 문서 — 체인 순서대로 첫 번째
+  for (const type of CHAIN) {
+    const d = perDoc[type];
+    if (!d.documentId || d.total === 0) {
+      return {
+        kind: 'create',
+        label: `${CHAIN_LABEL[type]} 생성`,
+        detail: `${CHAIN_LABEL[type]} 가 아직 없습니다. 여기서 체인을 이어가세요.`,
+        documentId: d.documentId,
+        target: d.documentId ? 'document' : 'none',
+      };
+    }
+  }
+  // 2) stale — 상위 변경으로 재검토 필요한 문서
+  for (const type of CHAIN) {
+    const d = perDoc[type];
+    if (d.stale) {
+      return {
+        kind: 'stale',
+        label: `${CHAIN_LABEL[type]} 재검토`,
+        detail: `상위 문서 변경으로 ${CHAIN_LABEL[type]} 가 재검토 대기 상태입니다.`,
+        documentId: d.documentId,
+        target: 'document',
+      };
+    }
+  }
+  // 3) 열린 제안 — 검토 대기
+  for (const type of CHAIN) {
+    const d = perDoc[type];
+    if (d.openSuggestions > 0) {
+      return {
+        kind: 'review',
+        label: `${CHAIN_LABEL[type]} 제안 ${d.openSuggestions}건 검토`,
+        detail: '수락·거절로 제안을 정리하면 문서가 확정됩니다.',
+        documentId: d.documentId,
+        target: 'document',
+      };
+    }
+  }
+  // 4) 정합성 위반
+  if (report.effectiveCount > 0) {
+    const specId = perDoc['feature-spec']?.documentId ?? null;
+    return {
+      kind: 'lint',
+      label: `정합성 위반 ${report.effectiveCount}건 해소`,
+      detail: '연결 편집·우선순위·무시로 위반을 정리하세요.',
+      documentId: specId,
+      target: specId ? 'document' : 'none',
+    };
+  }
+  // 5) 게이트 통과 — 개발 지시서
+  return {
+    kind: handoffCompiled ? 'done' : 'handoff',
+    label: handoffCompiled ? '완성 · 개발 지시서 내보내기' : '개발 지시서 생성',
+    detail: handoffCompiled ? '체인이 완성됐습니다. 지시서를 공유하거나 내보내세요.' : '정합성 검사를 통과했습니다. 지시서를 생성할 수 있어요.',
+    documentId: null,
+    target: 'handoff',
   };
 }
 
