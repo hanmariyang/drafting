@@ -112,6 +112,18 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return repo.updateItem(id, { meta: { ...meta, links: { ...links, [field]: next } } as never });
   });
 
+  // 스텝(:id)의 meta.page 를 지정/해제한다 — W-UNREACHED-PAGE 근본 해소.
+  // page 는 배열이 아니라 스칼라(스텝이 한 화면에 도달)이므로 /link 와 별도.
+  app.post('/api/items/:id/step-page', async (req) => {
+    const { id } = req.params as { id: string };
+    const step = repo.getItem(id);
+    if (!step) throw new HttpError(404, 'item not found');
+    if (step.kind !== 'step') throw new HttpError(400, 'page can only be set on a step');
+    const { page } = parse(z.object({ page: z.string().nullable() }), req.body);
+    const meta = repo.parsePlanItemMeta(step);
+    return repo.updateItem(id, { meta: { ...meta, page: page || null } as never });
+  });
+
   // 이 프로젝트의 유효 REQ id 목록 (PRD 수락 섹션에서 파생) — 기능→요구 연결 드롭다운용.
   app.get('/api/projects/:id/reqs', async (req) => {
     const { id } = req.params as { id: string };

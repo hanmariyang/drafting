@@ -407,6 +407,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ field, ref, op }),
     }),
+  // 스텝의 화면(page) 지정/해제 — W-UNREACHED-PAGE 근본 해소
+  setStepPage: (stepId: string, page: string | null) =>
+    req<PlanItem>(`/api/items/${stepId}/step-page`, {
+      method: 'POST',
+      body: JSON.stringify({ page }),
+    }),
   projectReqs: (pid: string) =>
     req<{ reqs: Array<{ id: string; heading: string; sectionId: string }> }>(`/api/projects/${pid}/reqs`),
   // 플로우 ↔ 기능 연결 (W-NO-FLOW 근본 해소)

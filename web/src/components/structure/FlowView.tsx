@@ -10,9 +10,12 @@ interface Props {
   generating: boolean;
   onRegenerate: () => void;
   onChanged?: () => void;
+  /** IA 문서의 화면들 (스텝→화면 지정, W-UNREACHED-PAGE 해소) */
+  pages?: PlanItem[];
+  onSetStepPage?: (stepId: string, page: string | null) => Promise<void>;
 }
 
-export function FlowView({ items, onAccept, onReject, onChanged }: Props) {
+export function FlowView({ items, onAccept, onReject, onChanged, pages = [], onSetStepPage }: Props) {
   const [editSteps, setEditSteps] = useState(false);
   const flows = items.filter((i) => i.kind === 'flow' && i.status !== 'rejected');
   const stepsOf = (fid: string) =>
@@ -98,7 +101,24 @@ export function FlowView({ items, onAccept, onReject, onChanged }: Props) {
                         }}
                       />
                       <span className="typechip">{sm.node ?? 'screen'}</span>
-                      {sm.page && <span className="pgchip">{sm.page}</span>}
+                      {/* 스텝→화면 지정 (W-UNREACHED-PAGE 해소) */}
+                      {onSetStepPage && pages.length > 0 ? (
+                        <select
+                          className="field"
+                          style={{ maxWidth: 150, fontSize: 11 }}
+                          value={sm.page ?? ''}
+                          onChange={(e) => onSetStepPage(s.id, e.target.value || null)}
+                        >
+                          <option value="">화면 없음</option>
+                          {pages.map((pg) => (
+                            <option key={pg.id} value={pg.ref_id}>
+                              {pg.ref_id} {pg.title}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        sm.page && <span className="pgchip">{sm.page}</span>
+                      )}
                       <span className="mini">
                         <button
                           className="no"
