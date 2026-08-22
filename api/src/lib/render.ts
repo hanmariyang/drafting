@@ -83,7 +83,7 @@ function sanitize(html: string): string {
     .replace(/javascript:/gi, '');
 }
 
-export function documentToHtml(documentId: string, opts?: { readOnly?: boolean }): string {
+export function documentToHtml(documentId: string, opts?: { readOnly?: boolean; print?: boolean }): string {
   const doc = repo.getDocument(documentId);
   if (!doc) throw new Error('document not found');
   // Only ACCEPTED sections are the document (SYSTEM.md §0.2).
@@ -128,6 +128,14 @@ export function documentToHtml(documentId: string, opts?: { readOnly?: boolean }
   .meta { color: #8a8a90; font-size: 0.85rem; margin-bottom: 2rem; }
   .excluded { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid rgba(128,128,128,0.25);
               color: #8a8a90; font-size: 0.8rem; }
+  /* PDF(인쇄) 최적화 — 흰 배경 고정, 섹션 페이지 넘김 존중, 공유 배지 숨김 */
+  @media print {
+    body { color: #17181c; background: #fff; max-width: none; padding: 0; font-size: 12pt; }
+    .ro { display: none; }
+    section { break-inside: avoid; }
+    h2 { break-after: avoid; }
+    @page { margin: 18mm 16mm; }
+  }
 </style>
 </head>
 <body>
@@ -136,6 +144,7 @@ ${badge}
 <div class="meta">${escapeHtml(doc.type)} · v${doc.version}</div>
 ${body}
 ${footnote}
+${opts?.print ? '<script>window.addEventListener("load", () => setTimeout(() => window.print(), 250));</script>' : ''}
 </body>
 </html>`;
 }

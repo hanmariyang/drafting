@@ -361,3 +361,12 @@ test('step-page: 스텝에 화면 지정으로 W-UNREACHED-PAGE 해소', () => {
   viols = lintReport(project.id).violations.filter((v) => !v.waived);
   assert.ok(!viols.some((v) => v.code === 'W-UNREACHED-PAGE' && v.refs.includes(page.ref_id)), '해소됨');
 });
+
+test('handoffTickets: 기능별 체크리스트(수용 기준=체크박스) 생성', async () => {
+  const { handoffTickets } = await import('../src/lib/handoff.ts');
+  const pid = seedDeliverables();
+  const md = handoffTickets(pid);
+  assert.match(md, /개발 티켓/);
+  assert.match(md, /- \[ \] /, '수용 기준이 체크박스로');
+  assert.match(md, /F-\d/, '기능 ref 포함');
+});

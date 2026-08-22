@@ -95,6 +95,51 @@ export function compileHandoffBody(projectId: string): Compiled {
 }
 
 /**
+ * 개발 티켓(GitHub-flavored 체크리스트) — 수락된 기능 하나 = 티켓, 수용 기준 = 체크박스.
+ * 게이트와 무관하게 언제든 내보낼 수 있다(현재 수락분의 실행 목록).
+ */
+export function handoffTickets(projectId: string): string {
+  const project = repo.getProject(projectId);
+  const items = repo.listProjectItems(projectId).filter((i) => i.status === 'accepted');
+  const groups = items.filter((i) => i.kind === 'feature-group');
+  const features = items.filter((i) => i.kind === 'feature');
+  const lines: string[] = [
+    `# ${project?.name ?? '프로젝트'} — 개발 티켓`,
+    '',
+    `> 수락된 기능 ${features.length}개. 각 기능 = 티켓, 수용 기준 = 체크리스트.`,
+    '',
+  ];
+
+  const ticketFor = (f: PlanItem) => {
+    const m = meta(f);
+    const pri = m.priority ?? 'P?';
+    const links = [...(m.links?.reqs ?? []), ...(m.links?.pages ?? []), ...(m.links?.flows ?? [])];
+    lines.push(`### ${f.ref_id} ${f.title}  \`${pri}\``);
+    if (links.length) lines.push(`연결: ${links.join(' · ')}`);
+    const crit = f.body.split('\n').map((l) => l.replace(/^[·\-*]\s*/, '').trim()).filter(Boolean);
+    if (crit.length) {
+      lines.push('', '수용 기준:');
+      for (const c of crit) lines.push(`- [ ] ${c}`);
+    }
+    lines.push('');
+  };
+
+  for (const g of groups) {
+    const feats = features.filter((f) => f.parent_id === g.id);
+    if (!feats.length) continue;
+    lines.push(`## ${g.ref_id} ${g.title}`, '');
+    for (const f of feats) ticketFor(f);
+  }
+  const orphans = features.filter((f) => !groups.some((g) => g.id === f.parent_id));
+  if (orphans.length) {
+    lines.push('## 기타 기능', '');
+    for (const f of orphans) ticketFor(f);
+  }
+  if (features.length === 0) lines.push('_(수락된 기능이 없습니다. 기능명세에서 수락 후 다시 내보내세요.)_', '');
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+}
+
+/**
  * Compile (or recompile) the handoff document for a project. Throws
  * HandoffGateError (→ 409) if the effective lint set is non-empty. The §1 개요
  * section is AI-generated and left 'proposed' with an 'add' suggestion; the rest

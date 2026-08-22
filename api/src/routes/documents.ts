@@ -164,8 +164,10 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/documents/:id/export.html', async (req, reply) => {
     const { id } = req.params as { id: string };
     if (!repo.getDocument(id)) throw new HttpError(404, 'document not found');
+    // ?print=1 → 로드 시 인쇄 대화상자 자동 실행(브라우저 'PDF로 저장'). 의존성 없는 PDF 경로.
+    const print = (req.query as { print?: string })?.print === '1';
     reply.header('Content-Type', 'text/html; charset=utf-8');
-    return documentToHtml(id);
+    return documentToHtml(id, { print });
   });
 
   // ── share links (SPEC-14) ───────────────────────────────────────────────────

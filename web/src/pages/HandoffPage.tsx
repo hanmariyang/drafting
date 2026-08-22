@@ -127,10 +127,28 @@ export function HandoffPage() {
       }
       tbarRight={
         <>
+          <a
+            className="btn"
+            href={`/api/projects/${pid}/handoff/tickets.md`}
+            title="수락된 기능을 GitHub 체크리스트(개발 티켓)로 내보내기"
+          >
+            개발 티켓
+          </a>
           {handoffId && (
-            <a className="btn pri" href={api.promptPackHref(pid!)}>
-              프롬프트 팩 내보내기
-            </a>
+            <>
+              <a
+                className="btn"
+                href={`/api/documents/${handoffId}/export.html?print=1`}
+                target="_blank"
+                rel="noreferrer"
+                title="브라우저 인쇄 대화상자에서 'PDF로 저장'"
+              >
+                PDF
+              </a>
+              <a className="btn pri" href={api.promptPackHref(pid!)}>
+                프롬프트 팩 내보내기
+              </a>
+            </>
           )}
           <span className="cmdk">⌘K</span>
         </>

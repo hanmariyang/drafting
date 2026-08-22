@@ -11,7 +11,7 @@ import {
 } from '../lib/items-gen.ts';
 import { lintReport, suggestLint } from '../lib/lint-service.ts';
 import { deriveWireframes } from '../lib/wireframes.ts';
-import { compileHandoff, promptPack, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
+import { compileHandoff, promptPack, handoffTickets, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
 import { PRD_SECTIONS, SPEC_FIXTURE, IA_FIXTURE, FLOW_FIXTURE } from '../lib/fixtures.ts';
 import type { PlanItemKind } from '../lib/types.ts';
 
@@ -248,6 +248,16 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
       .header('Content-Type', 'text/markdown; charset=utf-8')
       .header('Content-Disposition', `attachment; filename="handoff-${id}.md"`);
     return promptPack(id);
+  });
+
+  // 개발 티켓(체크리스트 MD) — 게이트 무관, 현재 수락분 실행 목록.
+  app.get('/api/projects/:id/handoff/tickets.md', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    reply
+      .header('Content-Type', 'text/markdown; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="tickets-${id}.md"`);
+    return handoffTickets(id);
   });
 
   app.get('/api/projects/:id/hub', async (req) => {
