@@ -11,11 +11,26 @@ interface Props {
   generating: boolean;
   onRegenerate: () => void;
   onChanged?: () => void;
+  /** 유저플로우 문서의 플로우들 (기능↔플로우 연결 편집용) */
+  flows?: PlanItem[];
+  onLinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
+  onUnlinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
 }
 
 const PRIORITY_CYCLE: Priority[] = ['P0', 'P1', 'P2'];
 
-export function SpecView({ projectId, items, selected, onSelect, onAccept, onReject, onChanged }: Props) {
+export function SpecView({
+  projectId,
+  items,
+  selected,
+  onSelect,
+  onAccept,
+  onReject,
+  onChanged,
+  flows = [],
+  onLinkFeature,
+  onUnlinkFeature,
+}: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
   const [effective, setEffective] = useState(0);
 
@@ -118,6 +133,9 @@ export function SpecView({ projectId, items, selected, onSelect, onAccept, onRej
                 onReject={() => onReject(f.id)}
                 onCyclePriority={() => cyclePriority(f)}
                 onWaive={waiveViolation}
+                flows={flows}
+                onLinkFeature={onLinkFeature}
+                onUnlinkFeature={onUnlinkFeature}
               />
             ))}
           </div>
@@ -136,6 +154,9 @@ function FeatureRow({
   onReject,
   onCyclePriority,
   onWaive,
+  flows,
+  onLinkFeature,
+  onUnlinkFeature,
 }: {
   feature: PlanItem;
   open: boolean;
@@ -145,9 +166,14 @@ function FeatureRow({
   onReject: () => void;
   onCyclePriority: () => void;
   onWaive: (v: LintViolation) => void;
+  flows: PlanItem[];
+  onLinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
+  onUnlinkFeature?: (flowId: string, featureRef: string) => Promise<void>;
 }) {
   const m = parseItemMeta(feature);
   const proposed = feature.status === 'proposed';
+  const linkedFlows = flows.filter((fl) => (parseItemMeta(fl).links?.features ?? []).includes(feature.ref_id));
+  const unlinkedFlows = flows.filter((fl) => !(parseItemMeta(fl).links?.features ?? []).includes(feature.ref_id));
   const critLines = feature.body.split('\n').map((l) => l.replace(/^[·\-*]\s*/, '').trim()).filter(Boolean);
 
   if (!open) {
@@ -233,6 +259,42 @@ function FeatureRow({
           </span>
         ))}
       </div>
+      {/* 기능↔플로우 연결 편집 — 이 기능이 담긴 플로우(=W-NO-FLOW 근본 해소) */}
+      {flows.length > 0 && (onLinkFeature || onUnlinkFeature) && (
+        <div className="flow-linker">
+          <span className="lb" style={{ width: 'auto', margin: '0 4px 0 0', display: 'inline' }}>
+            플로우
+          </span>
+          {linkedFlows.length === 0 && <span className="muted" style={{ fontSize: 11 }}>연결된 플로우 없음</span>}
+          {linkedFlows.map((fl) => (
+            <span key={fl.id} className="flowchip">
+              {fl.ref_id}
+              {onUnlinkFeature && (
+                <button title="연결 해제" onClick={() => onUnlinkFeature(fl.id, feature.ref_id)}>
+                  ×
+                </button>
+              )}
+            </span>
+          ))}
+          {onLinkFeature && unlinkedFlows.length > 0 && (
+            <select
+              className="field"
+              style={{ maxWidth: 220, fontSize: 12 }}
+              value=""
+              onChange={(e) => {
+                if (e.target.value) onLinkFeature(e.target.value, feature.ref_id);
+              }}
+            >
+              <option value="">+ 플로우에 추가…</option>
+              {unlinkedFlows.map((fl) => (
+                <option key={fl.id} value={fl.id}>
+                  {fl.ref_id} {fl.title}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
       {m.source && <div className="quote">근거 · {m.source}</div>}
     </div>
   );

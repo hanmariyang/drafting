@@ -90,6 +90,31 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return repo.getItem(id);
   });
 
+  // 플로우(:id)의 links.features 에 기능 ref 를 추가/제거한다 — W-NO-FLOW 등 근본 해소.
+  // 링크는 플로우 쪽 배열에 산다(lint 가 검사하는 곳). 기능은 다른 문서라 ref 로만 잇는다.
+  app.post('/api/items/:id/link-feature', async (req) => {
+    const { id } = req.params as { id: string };
+    const flow = repo.getItem(id);
+    if (!flow) throw new HttpError(404, 'item not found');
+    if (flow.kind !== 'flow') throw new HttpError(400, 'link target must be a flow');
+    const { featureRef } = parse(z.object({ featureRef: z.string().min(1) }), req.body);
+    const meta = repo.parsePlanItemMeta(flow);
+    const links = meta.links ?? {};
+    const features = Array.from(new Set([...(links.features ?? []), featureRef]));
+    return repo.updateItem(id, { meta: { ...meta, links: { ...links, features } } as never });
+  });
+
+  app.post('/api/items/:id/unlink-feature', async (req) => {
+    const { id } = req.params as { id: string };
+    const flow = repo.getItem(id);
+    if (!flow) throw new HttpError(404, 'item not found');
+    const { featureRef } = parse(z.object({ featureRef: z.string().min(1) }), req.body);
+    const meta = repo.parsePlanItemMeta(flow);
+    const links = meta.links ?? {};
+    const features = (links.features ?? []).filter((f) => f !== featureRef);
+    return repo.updateItem(id, { meta: { ...meta, links: { ...links, features } } as never });
+  });
+
   // 제외(rejected)된 항목을 되살린다 — 정합성 '모두 수락' 등으로 통째로 제외돼
   // 화면에서 사라진 항목을 재검토(proposed)로 복귀. 본문은 보존돼 있어 손실 없음.
   app.post('/api/items/:id/restore', async (req) => {

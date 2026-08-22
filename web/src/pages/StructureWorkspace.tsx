@@ -41,6 +41,20 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   const [error, setError] = useState('');
   const esRef = useRef<EventSource | null>(null);
 
+  // feature-spec 화면에서 기능↔플로우 연결 편집을 위해 유저플로우 문서의 플로우를 함께 로드
+  const [flows, setFlows] = useState<PlanItem[]>([]);
+
+  const loadFlows = useCallback(
+    async (docs: DocumentModel[]) => {
+      if (type !== 'feature-spec') return;
+      const flowDoc = docs.find((d) => d.type === 'user-flow');
+      if (!flowDoc) return setFlows([]);
+      const its = await api.items(flowDoc.id).then((r) => r.items).catch(() => []);
+      setFlows(its.filter((i) => i.kind === 'flow' && i.status !== 'rejected'));
+    },
+    [type],
+  );
+
   const reload = useCallback(async () => {
     const [it, sg] = await Promise.all([
       api.items(docId).then((r) => r.items),
@@ -53,8 +67,15 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
   const loadAll = useCallback(async () => {
     setDoc((await api.getDocument(docId)).document);
     await reload();
-    if (pid) api.getProject(pid).then(setProject).catch(() => {});
-  }, [docId, pid, reload]);
+    if (pid)
+      api
+        .getProject(pid)
+        .then((p) => {
+          setProject(p);
+          loadFlows(p.documents);
+        })
+        .catch(() => {});
+  }, [docId, pid, reload, loadFlows]);
 
   useEffect(() => {
     loadAll().catch((e) => setError((e as Error).message));
@@ -109,6 +130,16 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
     await api.lintWaiveAll(pid);
     await reload();
   }
+  async function linkFeature(flowId: string, featureRef: string) {
+    await api.linkFeatureToFlow(flowId, featureRef);
+    if (project) await loadFlows(project.documents);
+    await reload();
+  }
+  async function unlinkFeature(flowId: string, featureRef: string) {
+    await api.unlinkFeatureFromFlow(flowId, featureRef);
+    if (project) await loadFlows(project.documents);
+    await reload();
+  }
 
   const openCount = suggestions.length;
   const empty = items.length === 0 && !generating;
@@ -161,7 +192,16 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
       onRegenerate: generate,
       onChanged: reload,
     };
-    if (type === 'feature-spec') return <SpecView {...common} projectId={pid!} />;
+    if (type === 'feature-spec')
+      return (
+        <SpecView
+          {...common}
+          projectId={pid!}
+          flows={flows}
+          onLinkFeature={linkFeature}
+          onUnlinkFeature={unlinkFeature}
+        />
+      );
     if (type === 'ia') return <IaView {...common} projectId={pid!} onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)} />;
     return <FlowView {...common} />;
   })();

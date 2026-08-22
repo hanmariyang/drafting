@@ -330,6 +330,16 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .viol-bar .vmsg { flex: 1; min-width: 0; color: var(--sub); }
 .viol-bar .btn.sm { flex-shrink: 0; }
 
+/* 기능↔플로우 연결 편집기 (기능 펼침 안) */
+.flow-linker { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.flowchip {
+  display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10.5px;
+  border: 1px solid var(--sug-line); background: var(--paper); color: var(--sug);
+  border-radius: var(--r-pill); padding: 1px 4px 1px 8px;
+}
+.flowchip button { border: none; background: transparent; color: var(--sub); cursor: pointer; font-size: 12px; line-height: 1; padding: 0 2px; }
+.flowchip button:hover { color: var(--ink); }
+
 /* 제외된 항목 복구 바 (구조 문서 하단) */
 .rejected-bar { margin: 16px 12px 0; border-top: 1px solid var(--hair); padding-top: 10px; }
 .rejected-head {
