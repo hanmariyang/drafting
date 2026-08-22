@@ -4,6 +4,8 @@ import * as repo from '../db/repos.ts';
 import { HttpError, parse } from './helpers.ts';
 import { resolveProvider } from '../providers/index.ts';
 import { getModelConfig } from '../lib/ai.ts';
+import { probeGateway } from '../lib/gateway.ts';
+import { config } from '../lib/config.ts';
 import type { ProviderId } from '../lib/types.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
@@ -50,9 +52,22 @@ export async function keyRoutes(app: FastifyInstance): Promise<void> {
     } catch (e) {
       throw new HttpError(400, (e as Error).message);
     }
-    const model = body.model ?? getModelConfig('prd').model;
+    // 테스트 모델 선정: 명시값 > (openai 게이트웨이면) 게이트웨이가 실제 제공하는 모델 > 설정 기본값.
+    // 게이트웨이는 gpt-4o-mini 등 기본 모델 권한이 없어 401 이 나므로, 실 모델로 테스트한다.
+    let model = body.model;
+    if (!model && (provider === 'openai' || provider === 'openrouter')) {
+      const base = repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '';
+      if (base) {
+        const key = repo.getDecryptedKey(provider);
+        const headers = repo.getSetting<Record<string, string>>('openai_headers') ?? {};
+        const probe = key ? await probeGateway(base, key, headers) : null;
+        const configured = getModelConfig('prd').model;
+        model = probe?.models?.includes(configured) ? configured : probe?.models?.[0];
+      }
+    }
+    model = model ?? getModelConfig('prd').model;
     const result = await ai.testConnection(model);
-    return { provider, ...result };
+    return { provider, model, ...result };
   });
 }
 

@@ -91,10 +91,12 @@ function normalizeBase(base?: string): string | null {
 }
 
 export class OpenRouterProvider extends OpenAICompatProvider {
-  constructor(apiKey: string) {
-    super('openrouter', apiKey, 'https://openrouter.ai/api/v1', {
+  // base 를 넘기면 OpenAI 호환 게이트웨이(LiteLLM 등)로 라우팅. 안 넘기면 openrouter.ai.
+  constructor(apiKey: string, base?: string, extraHeaders: Record<string, string> = {}) {
+    super('openrouter', apiKey, normalizeBase(base) ?? 'https://openrouter.ai/api/v1', {
       'HTTP-Referer': 'https://github.com/hanmariyang/drafting',
       'X-Title': 'Drafting',
+      ...extraHeaders,
     });
   }
 }

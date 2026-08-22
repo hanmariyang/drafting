@@ -319,12 +319,15 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ mode }),
     }),
-  // OpenAI 호환 게이트웨이(LiteLLM 등) 엔드포인트 설정
+  // OpenAI 호환 게이트웨이(LiteLLM 등) 엔드포인트 설정 — /v1 자동 감지 + 모델 목록 회신
   saveOpenaiEndpoint: (baseUrl: string, headers?: Record<string, string>) =>
-    req<{ baseUrl: string; headers: Record<string, string> }>('/api/settings/openai-endpoint', {
+    req<{ baseUrl: string; models: string[]; detected: string }>('/api/settings/openai-endpoint', {
       method: 'PUT',
       body: JSON.stringify({ baseUrl, headers }),
     }),
+  // 저장된 게이트웨이에서 모델 목록 재조회 (드롭다운)
+  openaiModels: () =>
+    req<{ models: string[]; baseUrl: string }>('/api/settings/openai-models'),
   testCli: () =>
     req<{ ok: boolean; blocked?: boolean; detail?: string }>('/api/settings/cli/test', {
       method: 'POST',

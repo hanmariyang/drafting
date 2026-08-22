@@ -51,8 +51,13 @@ export function resolveProvider(providerId: ProviderId, opts?: { forceByok?: boo
       const headers = getSetting<Record<string, string>>('openai_headers') || undefined;
       return new OpenAIProvider(key, base, headers);
     }
-    case 'openrouter':
-      return new OpenRouterProvider(key);
+    case 'openrouter': {
+      // 게이트웨이 base 를 설정하면 openrouter 슬롯도 그 게이트웨이로 라우팅(키를 여기 넣은 경우).
+      // 안 하면 표준 openrouter.ai.
+      const base = getSetting<string>('openai_base_url') || config.openaiBaseUrl || undefined;
+      const headers = getSetting<Record<string, string>>('openai_headers') || undefined;
+      return new OpenRouterProvider(key, base, headers);
+    }
     default:
       throw new Error(`Unknown provider: ${providerId as string}`);
   }

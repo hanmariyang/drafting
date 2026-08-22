@@ -34,6 +34,7 @@ export function Settings() {
   const [gwUrl, setGwUrl] = useState('');
   const [gwHeaders, setGwHeaders] = useState('');
   const [gwMsg, setGwMsg] = useState('');
+  const [gwModels, setGwModels] = useState<string[]>([]);
 
   async function loadKeys() {
     setKeys(await api.keys());
@@ -44,6 +45,9 @@ export function Settings() {
   }, []);
   useEffect(() => {
     setGwUrl(meta?.openaiBaseUrl ?? '');
+    if (meta?.openaiBaseUrl) {
+      api.openaiModels().then((r) => setGwModels(r.models ?? [])).catch(() => {});
+    }
   }, [meta?.openaiBaseUrl]);
 
   // "Name: value" 한 줄씩 → 헤더 객체
@@ -59,16 +63,23 @@ export function Settings() {
     return out;
   }
   async function saveGateway() {
-    setGwMsg('저장 중…');
+    setGwMsg('저장·감지 중…');
     try {
       const headers = parseHeaders(gwHeaders);
-      await api.saveOpenaiEndpoint(gwUrl.trim(), headers);
+      const res = await api.saveOpenaiEndpoint(gwUrl.trim(), headers);
       await reload();
-      setGwMsg('저장됨 · openai 키로 이 게이트웨이를 사용합니다');
+      if (res.baseUrl) setGwUrl(res.baseUrl); // /v1 자동 감지 결과 반영
+      setGwModels(res.models ?? []);
+      if (!gwUrl.trim()) setGwMsg('게이트웨이 해제됨 · 표준 OpenAI 사용');
+      else if (res.detected === 'no-key')
+        setGwMsg('저장됨 · openai 키를 먼저 등록하면 경로 자동 감지·모델 목록을 불러옵니다');
+      else if (res.models?.length)
+        setGwMsg(`저장됨 · 경로 자동 감지(${res.detected}) · 모델 ${res.models.length}개 불러옴`);
+      else setGwMsg('저장됨 · 모델 목록을 못 불러왔습니다(키·주소 확인)');
     } catch (e) {
       setGwMsg(`실패 · ${(e as Error).message}`);
     }
-    setTimeout(() => setGwMsg(''), 3000);
+    setTimeout(() => setGwMsg(''), 4000);
   }
 
   async function saveKey(p: ProviderId) {
@@ -287,7 +298,22 @@ export function Settings() {
                 onChange={(e) => setGwHeaders(e.target.value)}
               />
             </div>
+            {gwModels.length > 0 && (
+              <div className="row">
+                <span className="muted" style={{ fontSize: 12 }}>
+                  이 게이트웨이 모델 {gwModels.length}개: {gwModels.join(', ')} · 아래 모델 칸에서
+                  드롭다운으로 고르세요.
+                </span>
+              </div>
+            )}
           </div>
+          {gwModels.length > 0 && (
+            <datalist id="gw-models">
+              {gwModels.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          )}
 
           <div className="divider" />
 
@@ -314,7 +340,12 @@ export function Settings() {
                   </select>
                   <input
                     className="field grow"
-                    placeholder="모델 id (예: anthropic/claude-sonnet-4.6)"
+                    list={gwModels.length ? 'gw-models' : undefined}
+                    placeholder={
+                      gwModels.length
+                        ? '게이트웨이 모델에서 선택'
+                        : '모델 id (예: anthropic/claude-sonnet-4.6)'
+                    }
                     value={(entry.model as string) ?? ''}
                     onChange={(e) => setModel(dt, 'model', e.target.value)}
                   />
