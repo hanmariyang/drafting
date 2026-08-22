@@ -65,6 +65,39 @@ export function DocumentEditor({
     onStructuralChange();
   }
 
+  // 섹션 순서 이동(↑/↓) — 로컬 재배열 후 서버에 새 순서 저장. 실패 시 되돌린다.
+  async function moveSection(id: string, dir: -1 | 1) {
+    let reordered: typeof sections | null = null;
+    setSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      const to = idx + dir;
+      if (idx < 0 || to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[to]] = [next[to], next[idx]];
+      reordered = next;
+      return next;
+    });
+    if (!reordered) return;
+    onSaveState('saving');
+    try {
+      await api.reorderSections(doc.id, (reordered as typeof sections).map((s) => s.id));
+      onSaveState('saved');
+      onStructuralChange();
+      setTimeout(() => onSaveState('idle'), 1200);
+    } catch {
+      // 실패 시 원위치
+      setSections((prev) => {
+        const idx = prev.findIndex((s) => s.id === id);
+        const back = idx - dir;
+        if (idx < 0 || back < 0 || back >= prev.length) return prev;
+        const next = [...prev];
+        [next[idx], next[back]] = [next[back], next[idx]];
+        return next;
+      });
+      onSaveState('idle');
+    }
+  }
+
   async function removeSection(id: string) {
     await api.deleteSection(id);
     setSections((prev) => prev.filter((s) => s.id !== id));
@@ -126,13 +159,16 @@ export function DocumentEditor({
           </div>
         )}
 
-        {sections.map((s) => (
+        {sections.map((s, i) => (
           <SectionBlock
             key={s.id}
             section={s}
             focused={focusSection === s.id}
             streaming={streaming}
             editing={editing === s.id}
+            canMoveUp={i > 0}
+            canMoveDown={i < sections.length - 1}
+            onMove={(dir) => moveSection(s.id, dir)}
             onEnter={() => s.status === 'proposed' && onFocusSection(s.id)}
             onLeave={() => onFocusSection(null)}
             onToggleEdit={() =>
@@ -159,6 +195,9 @@ function SectionBlock({
   focused,
   streaming,
   editing,
+  canMoveUp,
+  canMoveDown,
+  onMove,
   onEnter,
   onLeave,
   onToggleEdit,
@@ -170,6 +209,9 @@ function SectionBlock({
   focused: boolean;
   streaming: boolean;
   editing: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (dir: -1 | 1) => void;
   onEnter: () => void;
   onLeave: () => void;
   onToggleEdit: () => void;
@@ -201,6 +243,24 @@ function SectionBlock({
           </span>
         ) : (
           <div className="sec-tools">
+            <button
+              className="btn icon"
+              disabled={streaming || !canMoveUp}
+              onClick={() => onMove(-1)}
+              title="위로"
+              aria-label="섹션 위로"
+            >
+              ↑
+            </button>
+            <button
+              className="btn icon"
+              disabled={streaming || !canMoveDown}
+              onClick={() => onMove(1)}
+              title="아래로"
+              aria-label="섹션 아래로"
+            >
+              ↓
+            </button>
             {!proposed && (
               <button className="btn" onClick={onToggleEdit} title="편집 토글">
                 {editing ? '완료' : '편집'}

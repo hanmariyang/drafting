@@ -103,3 +103,17 @@ test('stripLeadingHeading leaves normal bodies untouched', async () => {
   // 다른 섹션 제목은 건드리지 않는다
   assert.equal(stripLeadingHeading('## 목표\n본문', '문제 정의'), '## 목표\n본문');
 });
+
+test('reorderSections 는 순서를 바꾸고 position 을 재부여한다', () => {
+  freshDb();
+  const project = repo.createProject('P');
+  const doc = repo.createDocument({ projectId: project.id, type: 'prd', title: 'PRD' });
+  const a = repo.createSection(doc.id, 'A', 'a', undefined, 'accepted');
+  const b = repo.createSection(doc.id, 'B', 'b', undefined, 'accepted');
+  const c = repo.createSection(doc.id, 'C', 'c', undefined, 'accepted');
+  // C, A, B 순으로 재정렬
+  const out = repo.reorderSections(doc.id, [c.id, a.id, b.id]);
+  assert.deepEqual(out.map((s) => s.heading), ['C', 'A', 'B']);
+  // 저장 확인
+  assert.deepEqual(repo.listSections(doc.id).map((s) => s.heading), ['C', 'A', 'B']);
+});

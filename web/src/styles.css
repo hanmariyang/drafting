@@ -167,6 +167,8 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .sec .sec-tools { display: flex; gap: 6px; opacity: 0; transition: opacity 0.12s; }
 .sec:hover .sec-tools { opacity: 1; }
 .sec-tools .btn { padding: 3px 8px; font-size: 10.5px; }
+.sec-tools .btn.icon { padding: 3px 7px; font-size: 12px; line-height: 1; font-weight: 700; }
+.sec-tools .btn.icon:disabled { opacity: 0.35; cursor: default; }
 
 /* 확정(accepted) 본문 = ink */
 .sec-body { font-size: 14.5px; line-height: 1.95; color: var(--ink); max-width: 640px; }
