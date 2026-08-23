@@ -31,6 +31,8 @@ export function Settings() {
   const [savedMsg, setSavedMsg] = useState('');
   const [openMode, setOpenModeState] = useState<OpenMode>(getOpenMode());
   const [cliStatus, setCliStatus] = useState('');
+  const [binPath, setBinPath] = useState('');
+  const [binMsg, setBinMsg] = useState('');
   const [gwUrl, setGwUrl] = useState('');
   const [gwHeaders, setGwHeaders] = useState('');
   const [gwMsg, setGwMsg] = useState('');
@@ -44,6 +46,9 @@ export function Settings() {
     loadKeys().catch(() => {});
     api.settings().then((s) => setModels(s.providerModels ?? {})).catch(() => {});
   }, []);
+  useEffect(() => {
+    setBinPath(meta?.agentBinPath ?? '');
+  }, [meta?.agentBinPath]);
   useEffect(() => {
     setGwUrl(meta?.openaiBaseUrl ?? '');
     if (meta?.openaiBaseUrl) {
@@ -216,6 +221,45 @@ export function Settings() {
                 CLI 테스트
               </button>
               {cliStatus && <span className="muted" style={{ fontSize: 12 }}>{cliStatus}</span>}
+            </div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+              <span className="muted" style={{ fontSize: 12, width: '100%' }}>
+                {meta?.cliBin
+                  ? `감지된 CLI: ${meta.cliBin}`
+                  : 'CLI 미감지 · nvm/fnm 등 비표준 경로면 아래에 claude 전체 경로를 직접 지정하세요'}
+              </span>
+              <input
+                className="input"
+                style={{ flex: 1, minWidth: 260, fontFamily: 'var(--mono, monospace)', fontSize: 12 }}
+                placeholder="예: /Users/you/.nvm/versions/node/v22.14.0/bin/claude"
+                value={binPath}
+                onChange={(e) => setBinPath(e.target.value)}
+              />
+              <button
+                className="btn"
+                onClick={async () => {
+                  setBinMsg('저장 중…');
+                  const r = await api.setAgentBin(binPath.trim());
+                  await reload();
+                  setBinMsg(r.cliAvailable ? `적용됨 · ${r.cliBin ?? ''}` : '경로에서 claude 를 찾지 못했습니다');
+                }}
+              >
+                경로 적용
+              </button>
+              {binPath && (
+                <button
+                  className="btn ghost"
+                  onClick={async () => {
+                    setBinPath('');
+                    await api.setAgentBin('');
+                    await reload();
+                    setBinMsg('해제됨 · 자동 탐색으로 복귀');
+                  }}
+                >
+                  해제
+                </button>
+              )}
+              {binMsg && <span className="muted" style={{ fontSize: 12, width: '100%' }}>{binMsg}</span>}
             </div>
           </div>
 

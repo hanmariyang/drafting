@@ -29,6 +29,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       aiMode: aiMode(),
       cliAvailable: cliAvailable(),
       cliBin: resolveCliBin(),
+      agentBinPath: repo.getSetting<string>('agent_bin_path') ?? '',
       openaiBaseUrl: repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '',
       // In v1 there is no update server; the client shows the running version.
       // A real deployment can point this at a release feed.
@@ -119,6 +120,14 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.post('/api/settings/cli/test', async () => {
     resetCliBinCache();
     return verifyCliAccess();
+  });
+
+  // CLI 바이너리 경로 수동 지정(자동 탐색이 실패하는 비표준 설치용). 빈 문자열이면 해제.
+  app.put('/api/settings/agent-bin', async (req) => {
+    const body = parse(z.object({ path: z.string() }), req.body);
+    repo.setSetting('agent_bin_path', body.path.trim());
+    resetCliBinCache();
+    return { cliBin: resolveCliBin(), cliAvailable: cliAvailable() };
   });
 
   app.post('/api/settings/onboarding/complete', async () => {
