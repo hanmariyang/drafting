@@ -101,38 +101,28 @@
   figcaption{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
   .shot{display:block;width:100%;border:1px solid var(--hair);border-radius:14px;background:var(--paper)}
 
-  /* 자동 재생 애니메이션 — 문서 체인이 왼→오로 제안(초록)→수락(잉크) 채워지는 루프 */
-  .chain-anim{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 26px;
-    padding:16px;border:1px solid var(--hair);border-radius:12px;background:var(--paper)}
-  .chain-anim .node{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--sub);
-    border:1px solid var(--hair);background:var(--paper);border-radius:99px;padding:5px 12px;
-    animation:node-settle 6s ease-in-out infinite}
-  .chain-anim .edge{flex:0 0 auto;width:16px;height:2px;background:var(--hair);border-radius:2px;
-    animation:edge-fill 6s ease-in-out infinite}
-  .chain-anim > *:nth-child(1){animation-delay:0s}
-  .chain-anim > *:nth-child(2){animation-delay:.28s}
-  .chain-anim > *:nth-child(3){animation-delay:.56s}
-  .chain-anim > *:nth-child(4){animation-delay:.84s}
-  .chain-anim > *:nth-child(5){animation-delay:1.12s}
-  .chain-anim > *:nth-child(6){animation-delay:1.4s}
-  .chain-anim > *:nth-child(7){animation-delay:1.68s}
-  .chain-anim > *:nth-child(8){animation-delay:1.96s}
-  .chain-anim > *:nth-child(9){animation-delay:2.24s}
-  .chain-anim > *:nth-child(10){animation-delay:2.52s}
-  .chain-anim > *:nth-child(11){animation-delay:2.8s}
-  @keyframes node-settle{
-    0%{background:var(--paper);color:var(--sub);border-color:var(--hair)}
-    6%{background:var(--sug-bg);color:var(--sug-ink);border-color:var(--sug-line)}
-    16%,90%{background:var(--paper);color:var(--ink);border-color:var(--hair)}
-    100%{background:var(--paper);color:var(--sub);border-color:var(--hair)}
-  }
-  @keyframes edge-fill{
-    0%,100%{background:var(--hair)}
-    6%,90%{background:var(--sug-line)}
-  }
+  /* PRD 스트리밍 화면 — AI가 PRD 를 한 글자씩 써 내려가고(제안=초록) → 잉크로 마르는 자동 재생 */
+  .cast{margin:6px 0 26px;border:1px solid var(--hair);border-radius:14px;overflow:hidden;
+    background:var(--paper);box-shadow:0 16px 48px rgba(27,28,30,.08)}
+  .cast-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--hair);background:var(--bg)}
+  .cast-bar i{width:10px;height:10px;border-radius:50%;background:var(--hair);display:inline-block}
+  .cast-bar .t{font-family:var(--mono);font-size:11px;color:var(--faint);margin-left:8px}
+  .cast-bar .live{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);font-weight:700}
+  .cast-bar .live.on{color:var(--sug)}
+  .cast-bar .live.on::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--sug);margin-right:6px;vertical-align:middle;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .cast-body{padding:22px 26px;min-height:210px}
+  .cast-sec{border-left:2px solid transparent;padding-left:13px;margin-bottom:16px;
+    transition:border-color .5s,background .5s}
+  .cast-sec.proposal{border-left-color:var(--sug);background:linear-gradient(90deg,var(--sug-bg),transparent 55%)}
+  .cast-sec h4{font-size:15px;font-weight:800;margin:0 0 6px;color:var(--ink)}
+  .cast-sec p{font-size:14px;line-height:1.85;color:var(--ink);margin:0;min-height:1.2em}
+  .cast-cursor{display:inline-block;width:2px;height:1.05em;background:var(--sug);
+    vertical-align:text-bottom;margin-left:1px;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
   @media (prefers-reduced-motion:reduce){
-    .chain-anim .node,.chain-anim .edge{animation:none}
-    .chain-anim .node{color:var(--ink)}
+    .cast-bar .live.on::before,.cast-cursor{animation:none}
   }
 
   pre.code{background:var(--ink);color:#E8E9EA;border-radius:12px;padding:20px 22px;
@@ -217,13 +207,9 @@
     <p class="sect-label" data-i18n="ch.label">Document chain</p>
     <h2 data-i18n="ch.h2">One idea line in. A document chain out.</h2>
     <p class="lead" data-i18n="ch.lead">Drafting opens with a single question — "What are we building?" A short interview follows, and your answers become the evidence behind every PRD, feature-spec and IA proposal downstream.</p>
-    <div class="chain-anim" aria-hidden="true">
-      <span class="node">INT</span><span class="edge"></span>
-      <span class="node">PRD</span><span class="edge"></span>
-      <span class="node">SPEC</span><span class="edge"></span>
-      <span class="node">IA</span><span class="edge"></span>
-      <span class="node">FLOW</span><span class="edge"></span>
-      <span class="node out">HANDOFF</span>
+    <div class="cast" aria-hidden="true">
+      <div class="cast-bar"><i></i><i></i><i></i><span class="t">PRD · Drafting</span><span class="live" id="castLive">streaming</span></div>
+      <div class="cast-body" id="castBody"></div>
     </div>
     <div class="feat">
       <div class="fcard"><h3><span class="g">INT</span><span data-i18n="ch.c1h">The interview is a document</span></h3><p data-i18n="ch.c1p">Your answers are saved as document zero — re-readable, and cited as the source of later proposals.</p></div>
@@ -301,6 +287,59 @@
     });
   })();
 
+  // ── PRD 스트리밍 화면 (signature) ──────────────────────────────
+  var CAST={
+    en:[
+      {h:'Overview',p:'A self-hosted planning tool. One idea line opens an interview, and those answers become the evidence behind every proposal downstream.'},
+      {h:'Problem',p:'Planners rewrite the same PRD from a blank page every time — half a day, every time.'}
+    ],
+    ko:[
+      {h:'개요',p:'셀프호스트 기획 도구. 아이디어 한 줄이 인터뷰를 열고, 그 답이 이후 모든 제안의 근거가 됩니다.'},
+      {h:'문제 정의',p:'기획자는 매번 백지에서 같은 PRD 를 다시 씁니다. 매번 반나절씩.'}
+    ]
+  };
+  (function(){
+    var body=document.getElementById('castBody'), live=document.getElementById('castLive');
+    if(!body) return;
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var timers=[], token=0;
+    function T(fn,ms){var id=setTimeout(fn,ms);timers.push(id);return id;}
+    function clearAll(){timers.forEach(clearTimeout);timers=[];body.innerHTML='';}
+    function newSec(s){
+      var sec=document.createElement('div');sec.className='cast-sec proposal';
+      var h=document.createElement('h4');var p=document.createElement('p');
+      sec.appendChild(h);sec.appendChild(p);body.appendChild(sec);
+      return {sec:sec,h:h,p:p};
+    }
+    function staticRender(secs){clearAll();secs.forEach(function(s){var e=newSec(s);e.h.textContent=s.h;e.p.textContent=s.p;});if(live)live.classList.remove('on');}
+    function run(lang){
+      var my=++token; var secs=CAST[lang]||CAST.en; clearAll();
+      if(reduce){staticRender(secs);return;}
+      if(live)live.classList.add('on');
+      var si=0;
+      function nextSec(){
+        if(my!==token)return;
+        if(si>=secs.length){
+          T(function(){if(my!==token)return;var els=body.querySelectorAll('.cast-sec');for(var i=0;i<els.length;i++)els[i].classList.remove('proposal');if(live)live.classList.remove('on');},1000);
+          T(function(){if(my!==token)return;run(lang);},3400);
+          return;
+        }
+        var s=secs[si++]; var e=newSec(s); e.h.textContent=s.h;
+        var cur=document.createElement('span');cur.className='cast-cursor';e.p.appendChild(cur);
+        var words=s.p.split(' '), wi=0;
+        (function typeWord(){
+          if(my!==token)return;
+          if(wi<words.length){
+            var t=document.createTextNode((wi?' ':'')+words[wi]); e.p.insertBefore(t,cur); wi++;
+            T(typeWord, 55+Math.floor(Math.random()*45));
+          } else { if(cur.parentNode)cur.parentNode.removeChild(cur); T(nextSec,650); }
+        })();
+      }
+      nextSec();
+    }
+    window.__castRun=run;
+  })();
+
   // ── i18n (coxpit-oss 랜딩 패턴) ─────────────────────────────────
   var STR={
     'nav.grammar':{en:'Suggestion mode',ko:'제안 문법'},
@@ -376,6 +415,7 @@
     document.getElementById('demoDone').setAttribute('data-rejected',REJECTED[l]);
     document.getElementById('langEn').classList.toggle('on',l==='en');
     document.getElementById('langKo').classList.toggle('on',l==='ko');
+    try{if(window.__castRun)window.__castRun(l)}catch(e){}
     try{localStorage.setItem('drafting.lang',l)}catch(e){}
   }
   document.getElementById('langEn').addEventListener('click',function(){setLang('en')});
