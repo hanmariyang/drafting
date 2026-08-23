@@ -72,7 +72,8 @@ function buildItemsMessages(doc: { id: string; type: StructureType }): ChatMessa
 const SHAPE_HINT: Record<StructureType, string> = {
   'feature-spec':
     '형태: {"groups":[{"title":str,"features":[{"title":str,"body":str,"priority":"P0|P1|P2","source":str,"links":{"reqs":[str],"pages":[str],"flows":[str]}}]}]}',
-  ia: '형태: {"pages":[{"title":str,"page_type":"LIST|DETAIL|FORM|DASH|SETTINGS|GENERIC","links":{"features":[str]}}]}',
+  ia: '형태: {"pages":[{"title":str,"section":str,"page_type":"LIST|DETAIL|FORM|DASH|SETTINGS|GENERIC","links":{"features":[str]}}]}. ' +
+    'section 은 사이트맵 계층 그룹(예: "예약","내 정보","관리자") — 관련 화면끼리 같은 section 으로 묶어라.',
   'user-flow':
     '형태: {"flows":[{"title":str,"source":str,"links":{"features":[str]},"steps":[{"title":str,"page":str|null,"node":"start|screen|decision|end","branch":{"label":str,"from_step":str}|null,"note":str}]}]}',
 };
@@ -121,7 +122,7 @@ export function materializeIa(documentId: string, data: IaData, opts: Materializ
       documentId,
       kind: 'page',
       title: p.title,
-      meta: { page_type: p.page_type, source: p.source, links: p.links },
+      meta: { page_type: p.page_type, section: p.section, source: p.source, links: p.links },
       status,
     });
     opts.onItem?.(page);

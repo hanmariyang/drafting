@@ -23,6 +23,8 @@ export interface PlanItemLinks {
 export interface PlanItemMeta {
   priority?: Priority;
   page_type?: PageType;
+  /** page-only: 사이트맵 계층 그룹(섹션). 없으면 최상위. */
+  section?: string;
   source?: string;
   links?: PlanItemLinks;
   // step-only

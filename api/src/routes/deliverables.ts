@@ -124,6 +124,17 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return repo.updateItem(id, { meta: { ...meta, page: page || null } as never });
   });
 
+  // 페이지(:id)의 meta.section 을 지정/해제한다 — 사이트맵 계층(섹션>페이지) 편집.
+  app.post('/api/items/:id/section', async (req) => {
+    const { id } = req.params as { id: string };
+    const page = repo.getItem(id);
+    if (!page) throw new HttpError(404, 'item not found');
+    if (page.kind !== 'page') throw new HttpError(400, 'section can only be set on a page');
+    const { section } = parse(z.object({ section: z.string() }), req.body);
+    const meta = repo.parsePlanItemMeta(page);
+    return repo.updateItem(id, { meta: { ...meta, section: section.trim() || undefined } as never });
+  });
+
   // 이 프로젝트의 유효 REQ id 목록 (PRD 수락 섹션에서 파생) — 기능→요구 연결 드롭다운용.
   app.get('/api/projects/:id/reqs', async (req) => {
     const { id } = req.params as { id: string };

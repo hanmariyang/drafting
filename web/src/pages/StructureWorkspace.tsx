@@ -171,6 +171,11 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
     if (project) await loadCrossRefs(project.documents);
     await reload();
   }
+  // 페이지 섹션(사이트맵 계층) 지정/해제
+  async function setSection(pageId: string, section: string) {
+    await api.setSection(pageId, section);
+    await reload();
+  }
 
   const openCount = suggestions.length;
   const empty = items.length === 0 && !generating;
@@ -267,6 +272,7 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
           features={features}
           flowItems={flowItems}
           onEditLink={editLink}
+          onSetSection={setSection}
           onNavPage={(pgRef) => nav(`/projects/${pid}/wireframes?focus=${pgRef}`)}
         />
       );
