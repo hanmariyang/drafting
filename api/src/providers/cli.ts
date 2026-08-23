@@ -126,7 +126,11 @@ export function cliSpawnEnv(bin: string, baseEnv: NodeJS.ProcessEnv = process.en
   const existing = baseEnv.PATH ? baseEnv.PATH.split(path.delimiter) : [];
   const seen = new Set<string>();
   const merged = [...prepend, ...existing].filter((d) => d && !seen.has(d) && seen.add(d));
-  return { ...baseEnv, PATH: merged.join(path.delimiter) };
+  const env: NodeJS.ProcessEnv = { ...baseEnv, PATH: merged.join(path.delimiter) };
+  // 헤드리스 한 방(one-shot) 생성에서 확장 사고(extended thinking)가 스톨/토큰 소진으로
+  // 빈 결과·is_error 를 내는 것을 막는다(회고 교훈). 사용자가 명시 설정하면 존중.
+  if (env.MAX_THINKING_TOKENS === undefined) env.MAX_THINKING_TOKENS = '0';
+  return env;
 }
 
 /** API 모델 id → CLI 별칭. CLI 는 풀 id 도 받지만 별칭이 구독 기본값과 정합. */
@@ -359,7 +363,12 @@ export class CliProvider implements AIProvider {
     }
 
     if (spawnError) throw new Error(`agent CLI 실행 실패: ${(spawnError as Error).message}`);
-    if (resultError) throw new Error(actionableCliError(resultError));
+    if (resultError) {
+      // 일반 메시지("agent CLI returned an error")만으로는 원인을 알 수 없다 → stderr 꼬리를 덧붙여 노출.
+      const tail = stderrTail.trim();
+      const detail = tail ? `${resultError} · ${tail.slice(-300)}` : resultError;
+      throw new Error(actionableCliError(detail));
+    }
     if (!sawDelta && fallbackText) yield fallbackText;
     if (!sawDelta && !fallbackText && child.exitCode !== 0) {
       throw new Error(
