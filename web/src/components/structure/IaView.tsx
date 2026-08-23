@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, parseItemMeta, type PlanItem, type LintViolation } from '../../lib/api.ts';
 
 interface Props {
@@ -18,6 +18,83 @@ interface Props {
   onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }
 
+type Mode = 'map' | 'matrix' | 'list';
+type PageType = 'LIST' | 'DETAIL' | 'FORM' | 'DASH' | 'SETTINGS' | 'GENERIC';
+
+const TYPE_SHORT: Record<PageType, string> = {
+  LIST: 'LIST',
+  DETAIL: 'DETAIL',
+  FORM: 'FORM',
+  DASH: 'DASH',
+  SETTINGS: 'SET',
+  GENERIC: 'PAGE',
+};
+
+function pageType(p: PlanItem): PageType {
+  const t = (parseItemMeta(p).page_type ?? 'GENERIC') as PageType;
+  return t in TYPE_SHORT ? t : 'GENERIC';
+}
+
+/** page_type 을 실제 미니 레이아웃으로 그린다 (가짜 스켈레톤 대신 성격을 드러냄). */
+function PageGlyph({ type }: { type: PageType }) {
+  if (type === 'DASH')
+    return (
+      <div className="iav-glyph dash">
+        <span className="g" />
+        <span className="g" />
+        <span className="g" />
+        <span className="g" />
+      </div>
+    );
+  if (type === 'FORM')
+    return (
+      <div className="iav-glyph form">
+        <span className="f">
+          <b />
+          <i />
+        </span>
+        <span className="f">
+          <b />
+          <i />
+        </span>
+      </div>
+    );
+  if (type === 'SETTINGS')
+    return (
+      <div className="iav-glyph settings">
+        <span className="r on">
+          <b />
+          <i />
+        </span>
+        <span className="r">
+          <b />
+          <i />
+        </span>
+        <span className="r on">
+          <b />
+          <i />
+        </span>
+      </div>
+    );
+  if (type === 'DETAIL')
+    return (
+      <div className="iav-glyph detail">
+        <span className="g" />
+        <span className="g" />
+        <span className="g" />
+      </div>
+    );
+  // LIST / GENERIC
+  return (
+    <div className="iav-glyph list">
+      <span className="g" />
+      <span className="g" />
+      <span className="g" />
+      <span className="g" style={{ width: '58%' }} />
+    </div>
+  );
+}
+
 export function IaView({
   projectId,
   items,
@@ -25,12 +102,14 @@ export function IaView({
   onSelect,
   onAccept,
   onReject,
+  generating,
+  onRegenerate,
   features = [],
   flowItems = [],
   onEditLink,
 }: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
-  const [listMode, setListMode] = useState(false);
+  const [mode, setMode] = useState<Mode>('map');
 
   useEffect(() => {
     api
@@ -43,9 +122,13 @@ export function IaView({
       .catch(() => {});
   }, [projectId, items]);
 
-  const pages = items.filter((i) => i.kind === 'page' && i.status !== 'rejected');
-  // 스텝·플로우는 유저플로우 문서에 있으므로 flowItems 로 판정한다(IA 문서의 items 엔 없음).
-  const steps = flowItems.filter((i) => i.kind === 'step');
+  const pages = useMemo(
+    () => items.filter((i) => i.kind === 'page' && i.status !== 'rejected'),
+    [items],
+  );
+  const steps = useMemo(() => flowItems.filter((i) => i.kind === 'step'), [flowItems]);
+  const hasFlowDoc = flowItems.some((i) => i.kind === 'flow');
+
   const flowsForPage = (ref: string) => {
     const set = new Set<string>();
     for (const st of steps) {
@@ -56,29 +139,92 @@ export function IaView({
     }
     return [...set];
   };
+  const featuresOf = (p: PlanItem): string[] => parseItemMeta(p).links?.features ?? [];
+
+  // ── completeness (summary before detail) ──────────────────────────────────
+  const health = useMemo(() => {
+    const violCount = pages.filter((p) => violByRef.has(p.ref_id)).length;
+    const unreachable = hasFlowDoc
+      ? pages.filter((p) => flowsForPage(p.ref_id).length === 0).length
+      : 0;
+    const usedFeat = new Set(pages.flatMap((p) => featuresOf(p)));
+    const unlinked = features.filter((f) => !usedFeat.has(f.ref_id));
+    return { violCount, unreachable, unlinked, placed: features.length - unlinked.length };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, violByRef, features, flowItems, hasFlowDoc]);
+
   const sel = pages.find((p) => p.id === selected) ?? null;
 
   return (
     <div className="editor-inner">
       <div className="eyebrow">IA · Information Architecture</div>
       <h1 className="struct-h1">정보 구조</h1>
-      <div className="dmeta">
-        사이트맵 = 정본 · 와이어프레임이 이 구조를 그대로 렌더
-        <button className="btn sm" style={{ marginLeft: 10 }} onClick={() => setListMode((v) => !v)}>
-          {listMode ? '사이트맵' : '리스트 편집'}
+      <div className="dmeta">사이트맵 = 정본 · 와이어프레임이 이 구조를 그대로 렌더</div>
+
+      {/* 완결성 헤더 — 전체 건강을 세부보다 먼저 */}
+      {pages.length > 0 && (
+        <div className="iav-health">
+          <span className="iav-stat total">
+            <span className="num">{pages.length}</span> 화면
+          </span>
+          {health.violCount > 0 && (
+            <span className="iav-stat warn">
+              <span className="dot" />
+              <span className="num">{health.violCount}</span> 검사 위반
+            </span>
+          )}
+          {hasFlowDoc && health.unreachable > 0 && (
+            <span className="iav-stat warn">
+              <span className="dot" />
+              <span className="num">{health.unreachable}</span> 도달 플로우 없음
+            </span>
+          )}
+          {features.length > 0 && health.unlinked.length > 0 && (
+            <span className="iav-stat warn">
+              <span className="dot" />
+              <span className="num">{health.unlinked.length}</span> 미연결 기능
+            </span>
+          )}
+          {features.length > 0 && (
+            <span className="iav-stat">
+              <span className="num">
+                {health.placed} / {features.length}
+              </span>{' '}
+              기능 배치됨
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="iav-tabs" role="tablist">
+        <button className={`iav-tab ${mode === 'map' ? 'on' : ''}`} role="tab" aria-selected={mode === 'map'} onClick={() => setMode('map')}>
+          사이트맵
+        </button>
+        <button className={`iav-tab ${mode === 'matrix' ? 'on' : ''}`} role="tab" aria-selected={mode === 'matrix'} onClick={() => setMode('matrix')}>
+          커버리지
+        </button>
+        <button className={`iav-tab ${mode === 'list' ? 'on' : ''}`} role="tab" aria-selected={mode === 'list'} onClick={() => setMode('list')}>
+          리스트 편집
+        </button>
+        <button className="btn sm" style={{ marginLeft: 'auto' }} disabled={generating} onClick={onRegenerate}>
+          {generating ? '생성 중…' : '다시 생성'}
         </button>
       </div>
 
-      {listMode ? (
+      {pages.length === 0 ? (
+        <div className="iav-empty">
+          아직 화면이 없어요. <b>다시 생성</b>으로 기능명세에서 화면을 제안받으세요.
+        </div>
+      ) : mode === 'list' ? (
         <div className="ia-list">
           {pages.map((p) => {
-            const m = parseItemMeta(p);
+            const t = pageType(p);
             const v = violByRef.get(p.ref_id);
             return (
               <div key={p.id} className={`row ${p.status === 'proposed' ? 'sug' : ''}`}>
                 <span className="rid">{p.ref_id}</span>
                 <span className="rt">{p.title}</span>
-                <span className="typechip">{m.page_type ?? 'GENERIC'}</span>
+                <span className="typechip">{t}</span>
                 {v && <span className="dpill amber">검사 위반</span>}
                 {p.status === 'proposed' && (
                   <span className="mini">
@@ -92,148 +238,231 @@ export function IaView({
             );
           })}
         </div>
+      ) : mode === 'matrix' ? (
+        <CoverageMatrix pages={pages} features={features} onPick={(id) => { onSelect(id); setMode('map'); }} />
       ) : (
-        <div className="map">
-          <div className="mnode rootn">
-            <span className="mid">APP</span>
-            <b>{pages.length ? '사이트맵' : '화면 없음'}</b>
-          </div>
-          <div className="vline" />
-          <div className="hbus" />
-          <div className="mrow">
+        <div className="iav-stage">
+          <div className="iav-grid">
             {pages.map((p) => {
-              const m = parseItemMeta(p);
+              const t = pageType(p);
               const v = violByRef.get(p.ref_id);
+              const noFeat = featuresOf(p).length === 0;
+              const unreachable = hasFlowDoc && flowsForPage(p.ref_id).length === 0;
               const cls =
-                p.status === 'proposed' ? 'prop' : v ? 'viol' : selected === p.id ? 'sel' : '';
+                p.status === 'proposed' ? 'prop' : v || noFeat || unreachable ? 'viol' : selected === p.id ? 'sel' : '';
+              const flag = noFeat ? '근거 기능 없음' : unreachable ? '도달 플로우 없음' : v ? '검사 위반' : '';
               return (
-                <div className="mcol" key={p.id}>
-                  <div className="vline" />
-                  <button className={`mnode ${cls}`} onClick={() => onSelect(p.id)}>
-                    <span className="mid">{p.ref_id}</span>
-                    <b>{p.title}</b>
-                    <br />
-                    <span className="typechip">{m.page_type ?? 'GENERIC'}</span>
-                  </button>
-                </div>
+                <button key={p.id} className={`iav-card ${cls}`} onClick={() => onSelect(p.id)} aria-pressed={selected === p.id}>
+                  <PageGlyph type={t} />
+                  <span className="cap">
+                    <span className="rid">{p.ref_id}</span>
+                    <span className="ttl">{p.title}</span>
+                    <span className="iav-chip">{TYPE_SHORT[t]}</span>
+                  </span>
+                  {p.status === 'proposed' ? (
+                    <span className="flag prop">＋ 제안됨 — 수락하면 확정</span>
+                  ) : (
+                    flag && <span className="flag warn">△ {flag}</span>
+                  )}
+                </button>
               );
             })}
           </div>
-        </div>
-      )}
 
-      {sel && !listMode && (
-        <IaDetail
-          page={sel}
-          flows={flowsForPage(sel.ref_id)}
-          violation={violByRef.get(sel.ref_id) ?? null}
-          onAccept={() => onAccept(sel.id)}
-          onReject={() => onReject(sel.id)}
-          features={features}
-          onEditLink={onEditLink}
-        />
+          {sel ? (
+            <IaInspector
+              page={sel}
+              type={pageType(sel)}
+              flows={flowsForPage(sel.ref_id)}
+              hasFlowDoc={hasFlowDoc}
+              violation={violByRef.get(sel.ref_id) ?? null}
+              features={features}
+              onAccept={() => onAccept(sel.id)}
+              onReject={() => onReject(sel.id)}
+              onEditLink={onEditLink}
+            />
+          ) : (
+            <aside className="iav-insp empty">화면을 선택하면 근거 기능·진입 플로우·상태를 봅니다.</aside>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function IaDetail({
+function IaInspector({
   page,
+  type,
   flows,
+  hasFlowDoc,
   violation,
+  features,
   onAccept,
   onReject,
-  features,
   onEditLink,
 }: {
   page: PlanItem;
+  type: PageType;
   flows: string[];
+  hasFlowDoc: boolean;
   violation: LintViolation | null;
+  features: PlanItem[];
   onAccept: () => void;
   onReject: () => void;
-  features: PlanItem[];
   onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
 }) {
-  const m = parseItemMeta(page);
-  const myFeatures = m.links?.features ?? [];
-  const availFeatures = features.filter((f) => !myFeatures.includes(f.ref_id));
+  const myFeatures = parseItemMeta(page).links?.features ?? [];
+  const avail = features.filter((f) => !myFeatures.includes(f.ref_id));
+  const featTitle = (ref: string) => features.find((f) => f.ref_id === ref)?.title ?? '';
   return (
-    <div className="iadetail">
-      <div className="iathumb">
-        <div className="th">{page.ref_id} 미리보기</div>
-        <div className="tb2">
-          <span className="sk bar" />
-          <span className="sk block" />
-          <span className="sk btnk" />
+    <aside className="iav-insp">
+      <div className="ihd">
+        <div className="big">
+          <PageGlyph type={type} />
+        </div>
+        <div className="ht">
+          <h4>{page.title}</h4>
+          <div className="sub">
+            {page.ref_id} · {type}
+          </div>
         </div>
       </div>
-      <div className="iameta">
-        <h4>
-          {page.ref_id} · {page.title} <span className="typechip">{m.page_type ?? 'GENERIC'}</span>
-        </h4>
-        <div className="mrowline">
-          <span className="k">근거 기능</span>
-          {myFeatures.map((f) =>
-            onEditLink ? (
-              <span key={f} className="flowchip">
-                {f}
-                <button title="연결 해제" onClick={() => onEditLink(page.id, 'features', f, 'remove')}>
-                  ×
-                </button>
-              </span>
-            ) : (
-              <span key={f} className="pgchip">
-                {f}
-              </span>
-            ),
-          )}
-          {myFeatures.length === 0 && <span>연결 없음</span>}
-          {onEditLink && availFeatures.length > 0 && (
-            <select
-              className="field"
-              style={{ maxWidth: 240, fontSize: 12 }}
-              value=""
-              onChange={(e) => e.target.value && onEditLink(page.id, 'features', e.target.value, 'add')}
-            >
-              <option value="">+ 기능 연결…</option>
-              {availFeatures.map((f) => (
-                <option key={f.id} value={f.ref_id}>
-                  {f.ref_id} {f.title}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="mrowline">
-          <span className="k">진입 플로우</span>
-          {flows.length ? (
-            flows.map((f) => (
-              <span key={f} className="pgchip">
-                {f}
-              </span>
-            ))
+
+      <div className="ibody">
+      <div className="iav-krow">
+        <span className="iav-k">근거 기능</span>
+        {myFeatures.map((f) =>
+          onEditLink ? (
+            <button key={f} className="iav-lchip rm" title={featTitle(f)} onClick={() => onEditLink(page.id, 'features', f, 'remove')}>
+              {f} <span aria-hidden>×</span>
+            </button>
           ) : (
-            <span style={{ color: 'var(--warn)' }}>도달 플로우 없음</span>
-          )}
-        </div>
-        <div className="mrowline">
-          <span className="k">상태</span>
-          <span>
-            {page.status === 'proposed' ? '제안됨' : '수락됨'}
-            {violation ? ` · ${violation.code}` : ' · 와이어프레임 최신'}
-          </span>
-        </div>
-        {page.status === 'proposed' && (
-          <div className="scard-acts" style={{ marginTop: 10 }}>
-            <button className="a" onClick={onAccept}>
-              수락
-            </button>
-            <button className="r" onClick={onReject}>
-              거절
-            </button>
-          </div>
+            <span key={f} className="iav-lchip" title={featTitle(f)}>
+              {f}
+            </span>
+          ),
+        )}
+        {myFeatures.length === 0 && <span className="iav-none">근거 기능 없음</span>}
+        {onEditLink && avail.length > 0 && (
+          <select
+            className="iav-addsel"
+            value=""
+            onChange={(e) => e.target.value && onEditLink(page.id, 'features', e.target.value, 'add')}
+          >
+            <option value="">＋ 기능 연결…</option>
+            {avail.map((f) => (
+              <option key={f.id} value={f.ref_id}>
+                {f.ref_id} {f.title}
+              </option>
+            ))}
+          </select>
         )}
       </div>
+
+      <div className="iav-krow">
+        <span className="iav-k">진입 플로우</span>
+        {flows.length ? (
+          flows.map((f) => (
+            <span key={f} className="iav-lchip">
+              {f}
+            </span>
+          ))
+        ) : hasFlowDoc ? (
+          <span className="iav-none warn">도달 플로우 없음</span>
+        ) : (
+          <span className="iav-none">유저플로우 미작성</span>
+        )}
+      </div>
+
+      <div className="iav-krow">
+        <span className="iav-k">상태</span>
+        <span className="iav-status">
+          {page.status === 'proposed' ? '제안됨' : '수락됨'}
+          {violation ? ` · ${violation.code}` : ' · 와이어프레임 최신'}
+        </span>
+      </div>
+
+      {page.status === 'proposed' && (
+        <div className="iav-iacts">
+          <button className="btn ok" onClick={onAccept}>
+            수락
+          </button>
+          <button className="btn" onClick={onReject}>
+            거절
+          </button>
+        </div>
+      )}
+      </div>
+    </aside>
+  );
+}
+
+function CoverageMatrix({
+  pages,
+  features,
+  onPick,
+}: {
+  pages: PlanItem[];
+  features: PlanItem[];
+  onPick: (pageId: string) => void;
+}) {
+  if (features.length === 0) {
+    return <div className="iav-empty">기능명세가 아직 없어요. 기능이 있어야 화면과의 커버리지를 볼 수 있습니다.</div>;
+  }
+  const has = (page: PlanItem, featRef: string) =>
+    (parseItemMeta(page).links?.features ?? []).includes(featRef);
+  const colCount = (page: PlanItem) => features.filter((f) => has(page, f.ref_id)).length;
+  const rowCount = (featRef: string) => pages.filter((p) => has(p, featRef)).length;
+
+  return (
+    <div className="iav-mtxwrap">
+      <table className="iav-mtx">
+        <thead>
+          <tr>
+            <th className="corner">기능 ＼ 화면</th>
+            {pages.map((p) => (
+              <th key={p.id}>
+                <button className="colh" onClick={() => onPick(p.id)} title={p.title}>
+                  <span className="rid">{p.ref_id}</span>
+                  <span className="ct">{p.title}</span>
+                </button>
+              </th>
+            ))}
+            <th className="sumh">배치</th>
+          </tr>
+        </thead>
+        <tbody>
+          {features.map((f) => {
+            const n = rowCount(f.ref_id);
+            return (
+              <tr key={f.id}>
+                <th className="rowh">
+                  <span className="rid">{f.ref_id}</span>
+                  {f.title}
+                </th>
+                {pages.map((p) => (
+                  <td key={p.id} className="cell">
+                    {has(p, f.ref_id) ? <span className="on-c" aria-label="연결됨">●</span> : <span className="off-c" aria-hidden>·</span>}
+                  </td>
+                ))}
+                <td className="cell">{n > 0 ? <span className="num">{n}</span> : <span className="gaptag">⚠ 화면 없음</span>}</td>
+              </tr>
+            );
+          })}
+          <tr className="footr">
+            <th className="rowh muted">담는 기능</th>
+            {pages.map((p) => {
+              const n = colCount(p);
+              return (
+                <td key={p.id} className={`cell ${n === 0 ? 'gapcol' : ''}`}>
+                  {n === 0 ? <span className="gaptag">⚠ 0</span> : <span className="num">{n}</span>}
+                </td>
+              );
+            })}
+            <td />
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
