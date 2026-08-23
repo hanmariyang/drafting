@@ -250,17 +250,23 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
   transition: max-height 0.18s ease-out, opacity 0.18s ease-out, transform 0.18s ease-out,
     padding 0.18s ease-out, margin 0.18s ease-out;
 }
-.sug-card .who { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+/* 제목(아이콘+텍스트)은 첫 줄 전폭을 쓰고, 근거 라벨은 아래 자기 줄로 내려간다.
+   가로 경쟁을 없애 제목이 한 글자 폭으로 눌려 세로로 깨지는 일을 구조적으로 차단. */
+.sug-card .who { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 6px; }
+.sug-card .who > :first-child { flex-shrink: 0; }
 .sug-card .who .av {
   width: 18px; height: 18px; border-radius: var(--r-pill); background: var(--sug); color: var(--paper);
   display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; flex-shrink: 0;
 }
-/* 제목이 근거 라벨에 밀려 min-content(한 글자 폭)로 세로 줄바꿈되는 것 방지:
-   제목이 남는 폭을 차지하고, 긴 근거 라벨은 45% 상한에서 말줄임 처리 */
-.sug-card .who b { font-size: 11.5px; flex: 1; min-width: 0; }
+/* 제목: 남는 폭 차지 + 단어 단위(한글은 어절)로만 줄바꿈, 긴 토큰만 예외적으로 분해 */
+.sug-card .who b {
+  font-size: 11.5px; flex: 1 1 auto; min-width: 0;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+/* 근거: 전폭 자기 줄에서 자연스럽게 줄바꿈(가로 상한·말줄임 없음) */
 .sug-card .who .why {
-  font-size: 10px; color: var(--sub); margin-left: auto; font-family: var(--mono); flex-shrink: 0;
-  max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; color: var(--sub); font-family: var(--mono);
+  flex: 0 0 100%; margin-left: 0; word-break: keep-all; overflow-wrap: anywhere;
 }
 .sug-card .quote { color: var(--sub); border-top: 1px dashed var(--hair); margin-top: 7px; padding-top: 7px; font-size: 11.5px; }
 .sug-card .quote .arrow { color: var(--sug); font-weight: 700; }
