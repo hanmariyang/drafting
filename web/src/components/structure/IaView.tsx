@@ -16,6 +16,8 @@ interface Props {
   /** 유저플로우 문서의 스텝·플로우 (도달 플로우 판정 — IA 문서엔 스텝이 없다) */
   flowItems?: PlanItem[];
   onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
+  /** 페이지 섹션(사이트맵 계층) 지정/해제 */
+  onSetSection?: (pageId: string, section: string) => Promise<void>;
 }
 
 type Mode = 'map' | 'matrix' | 'list';
@@ -107,6 +109,7 @@ export function IaView({
   features = [],
   flowItems = [],
   onEditLink,
+  onSetSection,
 }: Props) {
   const [violByRef, setViolByRef] = useState<Map<string, LintViolation>>(new Map());
   const [mode, setMode] = useState<Mode>('map');
@@ -154,6 +157,50 @@ export function IaView({
   }, [pages, violByRef, features, flowItems, hasFlowDoc]);
 
   const sel = pages.find((p) => p.id === selected) ?? null;
+
+  // ── 섹션 계층(사이트맵 트리) — 등장 순서 보존, 미분류는 맨 뒤 ──────────────
+  const sectionOf = (p: PlanItem) => (parseItemMeta(p).section ?? '').trim();
+  const grouped = useMemo(() => {
+    const order: string[] = [];
+    const map = new Map<string, PlanItem[]>();
+    for (const p of pages) {
+      const key = sectionOf(p) || '__none';
+      if (!map.has(key)) {
+        map.set(key, []);
+        order.push(key);
+      }
+      map.get(key)!.push(p);
+    }
+    // 미분류(__none)는 항상 맨 뒤로
+    order.sort((a, b) => (a === '__none' ? 1 : 0) - (b === '__none' ? 1 : 0));
+    const named = order.filter((k) => k !== '__none');
+    return { order, map, hasSections: named.length > 0, names: named };
+  }, [pages]);
+
+  const renderCard = (p: PlanItem) => {
+    const t = pageType(p);
+    const v = violByRef.get(p.ref_id);
+    const noFeat = featuresOf(p).length === 0;
+    const unreachable = hasFlowDoc && flowsForPage(p.ref_id).length === 0;
+    const cls =
+      p.status === 'proposed' ? 'prop' : v || noFeat || unreachable ? 'viol' : selected === p.id ? 'sel' : '';
+    const flag = noFeat ? '근거 기능 없음' : unreachable ? '도달 플로우 없음' : v ? '검사 위반' : '';
+    return (
+      <button key={p.id} className={`iav-card ${cls}`} onClick={() => onSelect(p.id)} aria-pressed={selected === p.id}>
+        <PageGlyph type={t} />
+        <span className="cap">
+          <span className="rid">{p.ref_id}</span>
+          <span className="ttl">{p.title}</span>
+          <span className="iav-chip">{TYPE_SHORT[t]}</span>
+        </span>
+        {p.status === 'proposed' ? (
+          <span className="flag prop">＋ 제안됨 — 수락하면 확정</span>
+        ) : (
+          flag && <span className="flag warn">△ {flag}</span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="editor-inner">
@@ -242,32 +289,25 @@ export function IaView({
         <CoverageMatrix pages={pages} features={features} onPick={(id) => { onSelect(id); setMode('map'); }} />
       ) : (
         <div className="iav-stage">
-          <div className="iav-grid">
-            {pages.map((p) => {
-              const t = pageType(p);
-              const v = violByRef.get(p.ref_id);
-              const noFeat = featuresOf(p).length === 0;
-              const unreachable = hasFlowDoc && flowsForPage(p.ref_id).length === 0;
-              const cls =
-                p.status === 'proposed' ? 'prop' : v || noFeat || unreachable ? 'viol' : selected === p.id ? 'sel' : '';
-              const flag = noFeat ? '근거 기능 없음' : unreachable ? '도달 플로우 없음' : v ? '검사 위반' : '';
-              return (
-                <button key={p.id} className={`iav-card ${cls}`} onClick={() => onSelect(p.id)} aria-pressed={selected === p.id}>
-                  <PageGlyph type={t} />
-                  <span className="cap">
-                    <span className="rid">{p.ref_id}</span>
-                    <span className="ttl">{p.title}</span>
-                    <span className="iav-chip">{TYPE_SHORT[t]}</span>
-                  </span>
-                  {p.status === 'proposed' ? (
-                    <span className="flag prop">＋ 제안됨 — 수락하면 확정</span>
-                  ) : (
-                    flag && <span className="flag warn">△ {flag}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          {grouped.hasSections ? (
+            <div className="iav-tree">
+              <div className="iav-approot">
+                <span className="mid">APP</span> 사이트맵
+              </div>
+              {grouped.order.map((key) => (
+                <section className="iav-sec" key={key}>
+                  <div className="iav-sechd">
+                    <span className="branch" aria-hidden />
+                    <span className="nm">{key === '__none' ? '미분류' : key}</span>
+                    <span className="cnt">{grouped.map.get(key)!.length}</span>
+                  </div>
+                  <div className="iav-grid">{grouped.map.get(key)!.map(renderCard)}</div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="iav-grid">{pages.map(renderCard)}</div>
+          )}
 
           {sel ? (
             <IaInspector
@@ -277,9 +317,12 @@ export function IaView({
               hasFlowDoc={hasFlowDoc}
               violation={violByRef.get(sel.ref_id) ?? null}
               features={features}
+              sections={grouped.names}
+              currentSection={sectionOf(sel)}
               onAccept={() => onAccept(sel.id)}
               onReject={() => onReject(sel.id)}
               onEditLink={onEditLink}
+              onSetSection={onSetSection}
             />
           ) : (
             <aside className="iav-insp empty">화면을 선택하면 근거 기능·진입 플로우·상태를 봅니다.</aside>
@@ -297,9 +340,12 @@ function IaInspector({
   hasFlowDoc,
   violation,
   features,
+  sections,
+  currentSection,
   onAccept,
   onReject,
   onEditLink,
+  onSetSection,
 }: {
   page: PlanItem;
   type: PageType;
@@ -307,9 +353,12 @@ function IaInspector({
   hasFlowDoc: boolean;
   violation: LintViolation | null;
   features: PlanItem[];
+  sections: string[];
+  currentSection: string;
   onAccept: () => void;
   onReject: () => void;
   onEditLink?: (itemId: string, field: 'reqs' | 'features', ref: string, op: 'add' | 'remove') => Promise<void>;
+  onSetSection?: (pageId: string, section: string) => Promise<void>;
 }) {
   const myFeatures = parseItemMeta(page).links?.features ?? [];
   const avail = features.filter((f) => !myFeatures.includes(f.ref_id));
@@ -329,6 +378,38 @@ function IaInspector({
       </div>
 
       <div className="ibody">
+      <div className="iav-krow">
+        <span className="iav-k">섹션</span>
+        {onSetSection ? (
+          <>
+            <select
+              className="iav-addsel"
+              value={sections.includes(currentSection) ? currentSection : ''}
+              onChange={(e) => onSetSection(page.id, e.target.value)}
+            >
+              <option value="">(최상위)</option>
+              {sections.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <input
+              className="iav-secnew"
+              placeholder="＋ 새 섹션"
+              onKeyDown={(e) => {
+                const val = e.currentTarget.value.trim();
+                if (e.key === 'Enter' && val) {
+                  onSetSection(page.id, val);
+                  e.currentTarget.value = '';
+                }
+              }}
+            />
+          </>
+        ) : (
+          <span className="iav-lchip">{currentSection || '최상위'}</span>
+        )}
+      </div>
       <div className="iav-krow">
         <span className="iav-k">근거 기능</span>
         {myFeatures.map((f) =>

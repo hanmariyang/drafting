@@ -17,6 +17,8 @@ export interface PlanItemLinks {
 export interface PlanItemMeta {
   priority?: Priority;
   page_type?: PageType;
+  /** page-only: 사이트맵 계층 그룹(섹션) */
+  section?: string;
   source?: string;
   links?: PlanItemLinks;
   page?: string | null;
@@ -430,6 +432,12 @@ export const api = {
     req<PlanItem>(`/api/items/${stepId}/step-page`, {
       method: 'POST',
       body: JSON.stringify({ page }),
+    }),
+  // 페이지의 섹션(사이트맵 계층) 지정/해제 — 빈 문자열이면 최상위로
+  setSection: (pageId: string, section: string) =>
+    req<PlanItem>(`/api/items/${pageId}/section`, {
+      method: 'POST',
+      body: JSON.stringify({ section }),
     }),
   projectReqs: (pid: string) =>
     req<{ reqs: Array<{ id: string; heading: string; sectionId: string }> }>(`/api/projects/${pid}/reqs`),

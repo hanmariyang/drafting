@@ -19,6 +19,8 @@ export interface GenGroup {
 export interface GenPage {
   title: string;
   page_type: PageType;
+  /** 사이트맵 계층 그룹(섹션). 없으면 최상위(미분류). */
+  section?: string;
   source?: string;
   links: PlanItemLinks;
 }
@@ -131,13 +133,13 @@ export const SPEC_FIXTURE: SpecData = {
 
 export const IA_FIXTURE: IaData = {
   pages: [
-    { title: '예약 홈', page_type: 'LIST', links: { features: ['F-01-1'] } },
-    { title: '회의실 상세', page_type: 'DETAIL', links: { features: ['F-01-1', 'F-01-2'] } },
-    { title: '예약 확인', page_type: 'FORM', links: { features: ['F-01-1'] } },
-    { title: '내 예약', page_type: 'LIST', links: { features: ['F-01-3', 'F-02-1', 'F-02-2'] } },
+    { title: '예약 홈', page_type: 'LIST', section: '예약', links: { features: ['F-01-1'] } },
+    { title: '회의실 상세', page_type: 'DETAIL', section: '예약', links: { features: ['F-01-1', 'F-01-2'] } },
+    { title: '예약 확인', page_type: 'FORM', section: '예약', links: { features: ['F-01-1'] } },
+    { title: '내 예약', page_type: 'LIST', section: '내 정보', links: { features: ['F-01-3', 'F-02-1', 'F-02-2'] } },
+    { title: '알림 설정', page_type: 'SETTINGS', section: '내 정보', links: { features: ['F-01-3'] } },
     // Reached by no flow step → seeds a W-UNREACHED-PAGE in the demo.
-    { title: '관리자 통계', page_type: 'DASH', links: { features: ['F-03-1'] } },
-    { title: '알림 설정', page_type: 'SETTINGS', links: { features: ['F-01-3'] } },
+    { title: '관리자 통계', page_type: 'DASH', section: '관리자', links: { features: ['F-03-1'] } },
   ],
 };
 

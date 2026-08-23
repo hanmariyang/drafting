@@ -819,6 +819,22 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
    (에디터 문서 폭이 좁고 앱에 이미 우측 제안 레일이 있어, 옆이 아니라 아래로 둔다) */
 .iav-stage { margin-top: 16px; }
 .iav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; align-content: start; }
+
+/* 계층 사이트맵 트리: APP 루트 > 섹션 밴드 > 페이지 카드 */
+.iav-tree { position: relative; }
+.iav-approot { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600;
+  background: var(--ink); color: var(--paper); border-radius: var(--r-btn); padding: 5px 12px; margin-bottom: 4px; }
+.iav-approot .mid { font-family: var(--mono); font-size: 9px; font-weight: 800; opacity: 0.7; letter-spacing: 0.06em; }
+.iav-sec { position: relative; margin-left: 12px; padding-left: 16px; border-left: 1.5px solid var(--hair); padding-top: 12px; }
+.iav-sec:last-child { border-left-color: transparent; }
+.iav-sechd { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.iav-sechd .branch { position: absolute; left: -1.5px; top: 22px; width: 15px; height: 1.5px; background: var(--hair); }
+.iav-sechd .nm { font-size: 13px; font-weight: 700; }
+.iav-sechd .cnt { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--sub);
+  background: var(--bg); border: 1px solid var(--hair); border-radius: var(--r-pill); padding: 0 7px; }
+.iav-secnew { font-size: 11px; border: 1px solid var(--hair); border-radius: var(--r-pill); padding: 2px 9px;
+  background: var(--paper); font-family: inherit; width: 92px; }
+.iav-secnew:focus { outline: none; border-color: var(--sug-line); }
 .iav-card { border: 1.5px solid var(--ink); border-radius: var(--r-card); background: var(--paper); padding: 10px;
   text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 8px; min-width: 0;
   transition: box-shadow 0.12s, border-color 0.12s, transform 0.12s; font-family: inherit; color: var(--ink); }
