@@ -29,9 +29,12 @@ export class StubProvider implements AIProvider {
     lines.push('> (스텁 프로바이더 출력 · 실제 AI 키를 등록하면 대체됩니다.)');
 
     const text = lines.join('\n');
-    // stream word/token-ish chunks so the SSE section boundaries exercise
+    // stream word/token-ish chunks so the SSE section boundaries exercise.
+    // STUB_STREAM_DELAY_MS(>0) 로 청크 사이 지연 — 데모 녹화에서 스트리밍이 보이게(기본 0).
+    const delay = Number(process.env.STUB_STREAM_DELAY_MS) || 0;
     for (const chunk of text.match(/\S+\s*|\n/g) ?? [text]) {
       yield chunk;
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay));
     }
   }
 

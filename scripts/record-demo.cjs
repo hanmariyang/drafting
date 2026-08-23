@@ -47,15 +47,17 @@ const W = 1200, H = 740, DELAY = 170, COLORS = 64;
   for (let i = 0; i < 4; i++) { await shoot(); await page.waitForTimeout(160); }
   await page.click('button:has-text("AI 초안 생성")');
   const t0 = Date.now();
-  let mid = false;
-  while (Date.now() - t0 < 7000) {
+  let early = false, mid = false;
+  while (Date.now() - t0 < 10000) {
     await shoot();
-    if (!mid && Date.now() - t0 > 3500) { mid = true; try { await page.screenshot({ path: '/tmp/demo_mid.png' }); } catch (e) {} }
+    const el = Date.now() - t0;
+    if (!early && el > 1500) { early = true; try { await page.screenshot({ path: '/tmp/demo_early.png' }); } catch (e) {} }
+    if (!mid && el > 5000) { mid = true; try { await page.screenshot({ path: '/tmp/demo_mid.png' }); } catch (e) {} }
     await page.waitForTimeout(DELAY);
   }
   // 첫 제안 수락(잉크로 마름) 몇 프레임 더
   try { const acc = page.locator('button:has-text("수락")').first(); if (await acc.count()) await acc.click({ timeout: 2000 }); } catch (e) {}
-  for (let i = 0; i < 9; i++) { await shoot(); await page.waitForTimeout(DELAY); }
+  for (let i = 0; i < 5; i++) { await shoot(); await page.waitForTimeout(DELAY); }
 
   await browser.close();
   console.log('captured frames:', frames.length);
