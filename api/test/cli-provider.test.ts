@@ -85,3 +85,10 @@ test('cliSpawnEnv 는 바이너리 dir 을 PATH 맨 앞에 얹는다(node 래퍼
   // 중복 없음
   assert.equal(new Set(parts).size, parts.length, 'PATH 중복 제거');
 });
+
+test('cliSpawnEnv 는 확장 사고를 기본 비활성(MAX_THINKING_TOKENS=0)하되 명시 설정은 존중', () => {
+  const off = cliSpawnEnv('/x/bin/claude', { PATH: '/usr/bin' });
+  assert.equal(off.MAX_THINKING_TOKENS, '0', '미설정이면 0 으로 스톨 방지');
+  const explicit = cliSpawnEnv('/x/bin/claude', { PATH: '/usr/bin', MAX_THINKING_TOKENS: '4096' });
+  assert.equal(explicit.MAX_THINKING_TOKENS, '4096', '사용자 설정 보존');
+});
