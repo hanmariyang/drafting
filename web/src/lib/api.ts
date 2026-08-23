@@ -174,6 +174,7 @@ export interface Meta {
   aiMode: 'cli' | 'byok';
   cliAvailable: boolean;
   cliBin: string | null;
+  agentBinPath?: string;
   openaiBaseUrl?: string;
 }
 
@@ -342,6 +343,12 @@ export const api = {
   testCli: () =>
     req<{ ok: boolean; blocked?: boolean; detail?: string }>('/api/settings/cli/test', {
       method: 'POST',
+    }),
+  // CLI 경로 수동 지정(자동 탐색 실패 시). 빈 문자열이면 해제 → 자동 탐색 복귀.
+  setAgentBin: (path: string) =>
+    req<{ cliBin: string | null; cliAvailable: boolean }>('/api/settings/agent-bin', {
+      method: 'PUT',
+      body: JSON.stringify({ path }),
     }),
 
   // keys (SPEC-18)

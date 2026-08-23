@@ -13,31 +13,90 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { config } from '../lib/config.ts';
+import { getSetting } from '../db/repos.ts';
 import type { AIProvider, StreamParams, TestResult } from './types.ts';
 
-const BIN_CANDIDATES = [
-  process.env.DRAFTING_AGENT_BIN ?? '',
-  'claude',
+const HOME = os.homedir();
+
+/** 설치 관리자와 무관한 표준 위치들(존재하면 바로 사용). */
+const FIXED_CANDIDATES = [
   '/opt/homebrew/bin/claude',
   '/usr/local/bin/claude',
-  path.join(os.homedir(), '.local', 'bin', 'claude'),
-  path.join(os.homedir(), '.claude', 'local', 'claude'),
-].filter(Boolean);
+  path.join(HOME, '.local', 'bin', 'claude'),
+  path.join(HOME, '.claude', 'local', 'claude'),
+  path.join(HOME, '.volta', 'bin', 'claude'),
+  path.join(HOME, '.asdf', 'shims', 'claude'),
+];
+
+function safeExists(p: string): boolean {
+  try { return !!p && fs.existsSync(p); } catch { return false; }
+}
+
+/** semver-ish 문자열 내림차순 비교 (최신 노드 버전 우선). */
+function cmpVersionDesc(a: string, b: string): number {
+  const pa = a.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/**
+ * nvm·fnm·asdf·n 처럼 노드 버전 디렉터리 안에 claude 를 심는 매니저를 글롭한다.
+ * GUI 앱은 이 경로들을 PATH 로 못 보므로 직접 훑는다. 버전이 여럿이면 최신을 앞에.
+ * 순수하게 테스트하도록 home 을 주입 가능.
+ */
+export function nodeManagerBins(home = HOME): string[] {
+  const roots: { dir: string; suffix: string[] }[] = [
+    { dir: path.join(home, '.nvm', 'versions', 'node'), suffix: ['bin', 'claude'] },
+    { dir: path.join(home, '.fnm', 'node-versions'), suffix: ['installation', 'bin', 'claude'] },
+    { dir: path.join(home, 'Library', 'Application Support', 'fnm', 'node-versions'), suffix: ['installation', 'bin', 'claude'] },
+    { dir: path.join(home, '.asdf', 'installs', 'nodejs'), suffix: ['bin', 'claude'] },
+    { dir: path.join(home, 'n', 'versions', 'node'), suffix: ['bin', 'claude'] },
+  ];
+  const out: string[] = [];
+  for (const { dir, suffix } of roots) {
+    let versions: string[];
+    try { versions = fs.readdirSync(dir); } catch { continue; }
+    versions.sort(cmpVersionDesc);
+    for (const v of versions) {
+      const p = path.join(dir, v, ...suffix);
+      if (safeExists(p)) out.push(p);
+    }
+  }
+  return out;
+}
+
+/** 설정에 저장된 수동 경로(최우선). DB 미초기화(테스트)면 조용히 무시. */
+function settingBin(): string {
+  try {
+    const v = getSetting<string>('agent_bin_path');
+    return typeof v === 'string' ? v.trim() : '';
+  } catch { return ''; }
+}
 
 let cachedBin: string | null | undefined;
 
-/** GUI 앱은 셸 PATH 를 물려받지 못한다 — 알려진 경로를 직접 탐색한다. */
+/**
+ * claude 바이너리를 찾는다. 우선순위:
+ *   1) 설정 수동 경로 → 2) DRAFTING_AGENT_BIN → 3) PATH(which) →
+ *   4) 표준 위치 → 5) 노드 버전 매니저(nvm/fnm/asdf/n) 글롭
+ * GUI 앱은 셸 PATH 를 못 물려받으므로 4·5 의 직접 탐색이 핵심이다.
+ */
 export function resolveCliBin(): string | null {
   if (cachedBin !== undefined) return cachedBin;
-  for (const cand of BIN_CANDIDATES) {
-    if (cand.includes(path.sep)) {
-      if (fs.existsSync(cand)) return (cachedBin = cand);
-    } else {
-      const r = spawnSync('which', [cand], { encoding: 'utf8' });
-      const found = r.status === 0 ? r.stdout.trim() : '';
-      if (found) return (cachedBin = found);
-    }
+  for (const cand of [settingBin(), (process.env.DRAFTING_AGENT_BIN ?? '').trim()]) {
+    if (safeExists(cand)) return (cachedBin = cand);
   }
+  const onPath = spawnSync('which', ['claude'], { encoding: 'utf8' });
+  if (onPath.status === 0 && onPath.stdout.trim()) return (cachedBin = onPath.stdout.trim());
+  for (const cand of FIXED_CANDIDATES) {
+    if (safeExists(cand)) return (cachedBin = cand);
+  }
+  const managed = nodeManagerBins();
+  if (managed.length) return (cachedBin = managed[0]);
   return (cachedBin = null);
 }
 
@@ -48,6 +107,26 @@ export function cliAvailable(): boolean {
 /** 세션 캐시 무효화 (설정에서 경로를 바꾼 직후 등) */
 export function resetCliBinCache(): void {
   cachedBin = undefined;
+}
+
+/**
+ * CLI 스폰용 env. GUI 앱의 빈약한 PATH 로는 nvm/fnm 의 claude 셔뱅
+ * (`#!/usr/bin/env node`)이 node 를 못 찾아 실패한다 → 바이너리와 같은 dir
+ * (그 안에 node 가 함께 있다) + 표준 위치를 PATH 앞에 얹는다. 테스트 가능하도록 분리.
+ */
+export function cliSpawnEnv(bin: string, baseEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const prepend = [
+    path.dirname(bin),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+    path.join(HOME, '.local', 'bin'),
+    '/usr/bin',
+    '/bin',
+  ];
+  const existing = baseEnv.PATH ? baseEnv.PATH.split(path.delimiter) : [];
+  const seen = new Set<string>();
+  const merged = [...prepend, ...existing].filter((d) => d && !seen.has(d) && seen.add(d));
+  return { ...baseEnv, PATH: merged.join(path.delimiter) };
 }
 
 /** API 모델 id → CLI 별칭. CLI 는 풀 id 도 받지만 별칭이 구독 기본값과 정합. */
@@ -154,7 +233,7 @@ export async function verifyCliAccess(binOverride?: string): Promise<CliAccess> 
     const child = spawn(
       bin,
       ['-p', '응답으로 OK 한 단어만 출력', '--output-format', 'json', '--max-turns', '1', '--model', 'haiku', '--setting-sources', ''],
-      { cwd: agentCwd(), env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] },
+      { cwd: agentCwd(), env: cliSpawnEnv(bin), stdio: ['ignore', 'pipe', 'pipe'] },
     );
     let out = '';
     let err = '';
@@ -227,7 +306,7 @@ export class CliProvider implements AIProvider {
 
     const child = spawn(this.bin, args, {
       cwd: agentCwd(),
-      env: { ...process.env },
+      env: cliSpawnEnv(this.bin),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     if (params.signal) {
@@ -291,7 +370,7 @@ export class CliProvider implements AIProvider {
 
   async testConnection(_model: string): Promise<TestResult> {
     return new Promise((resolve) => {
-      const child = spawn(this.bin, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(this.bin, ['--version'], { env: cliSpawnEnv(this.bin), stdio: ['ignore', 'pipe', 'pipe'] });
       let out = '';
       const timer = setTimeout(() => {
         try { child.kill(); } catch { /* gone */ }
