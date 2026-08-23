@@ -16,6 +16,7 @@
     --sans:Pretendard,-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
   }
   *{box-sizing:border-box}
+  html,body{overflow-x:hidden}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;
     -webkit-font-smoothing:antialiased}
   a{color:var(--sug-ink)}
@@ -37,7 +38,14 @@
   .lang{display:inline-flex;border:1px solid var(--hair);border-radius:7px;overflow:hidden;font-family:var(--mono);background:var(--paper)}
   .lang button{background:transparent;border:none;color:var(--sub);font-size:12px;padding:5px 9px;cursor:pointer}
   .lang button.on{background:var(--ink);color:#fff;font-weight:700}
-  @media (max-width:520px){nav{gap:10px}nav .links{gap:12px}nav .links a{font-size:13px}}
+  /* 모바일: 섹션 점프 링크는 숨겨 헤더 줄바꿈 방지(브랜드 + GitHub + 언어만) */
+  @media (max-width:700px){
+    nav{gap:10px;padding:14px 0}
+    nav .mark{font-size:14px}
+    nav .links{gap:12px}
+    nav .links a[href^="#"]{display:none}
+    nav .links a{font-size:13px}
+  }
 
   /* hero */
   .hero{padding:64px 0 24px;text-align:center}
@@ -92,6 +100,40 @@
   figure{margin:22px 0 0}
   figcaption{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
   .shot{display:block;width:100%;border:1px solid var(--hair);border-radius:14px;background:var(--paper)}
+
+  /* 자동 재생 애니메이션 — 문서 체인이 왼→오로 제안(초록)→수락(잉크) 채워지는 루프 */
+  .chain-anim{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 26px;
+    padding:16px;border:1px solid var(--hair);border-radius:12px;background:var(--paper)}
+  .chain-anim .node{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--sub);
+    border:1px solid var(--hair);background:var(--paper);border-radius:99px;padding:5px 12px;
+    animation:node-settle 6s ease-in-out infinite}
+  .chain-anim .edge{flex:0 0 auto;width:16px;height:2px;background:var(--hair);border-radius:2px;
+    animation:edge-fill 6s ease-in-out infinite}
+  .chain-anim > *:nth-child(1){animation-delay:0s}
+  .chain-anim > *:nth-child(2){animation-delay:.28s}
+  .chain-anim > *:nth-child(3){animation-delay:.56s}
+  .chain-anim > *:nth-child(4){animation-delay:.84s}
+  .chain-anim > *:nth-child(5){animation-delay:1.12s}
+  .chain-anim > *:nth-child(6){animation-delay:1.4s}
+  .chain-anim > *:nth-child(7){animation-delay:1.68s}
+  .chain-anim > *:nth-child(8){animation-delay:1.96s}
+  .chain-anim > *:nth-child(9){animation-delay:2.24s}
+  .chain-anim > *:nth-child(10){animation-delay:2.52s}
+  .chain-anim > *:nth-child(11){animation-delay:2.8s}
+  @keyframes node-settle{
+    0%{background:var(--paper);color:var(--sub);border-color:var(--hair)}
+    6%{background:var(--sug-bg);color:var(--sug-ink);border-color:var(--sug-line)}
+    16%,90%{background:var(--paper);color:var(--ink);border-color:var(--hair)}
+    100%{background:var(--paper);color:var(--sub);border-color:var(--hair)}
+  }
+  @keyframes edge-fill{
+    0%,100%{background:var(--hair)}
+    6%,90%{background:var(--sug-line)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .chain-anim .node,.chain-anim .edge{animation:none}
+    .chain-anim .node{color:var(--ink)}
+  }
 
   pre.code{background:var(--ink);color:#E8E9EA;border-radius:12px;padding:20px 22px;
     font-size:13.5px;line-height:1.75;overflow-x:auto;margin:0}
@@ -175,6 +217,14 @@
     <p class="sect-label" data-i18n="ch.label">Document chain</p>
     <h2 data-i18n="ch.h2">One idea line in. A document chain out.</h2>
     <p class="lead" data-i18n="ch.lead">Drafting opens with a single question — "What are we building?" A short interview follows, and your answers become the evidence behind every PRD, feature-spec and IA proposal downstream.</p>
+    <div class="chain-anim" aria-hidden="true">
+      <span class="node">INT</span><span class="edge"></span>
+      <span class="node">PRD</span><span class="edge"></span>
+      <span class="node">SPEC</span><span class="edge"></span>
+      <span class="node">IA</span><span class="edge"></span>
+      <span class="node">FLOW</span><span class="edge"></span>
+      <span class="node out">HANDOFF</span>
+    </div>
     <div class="feat">
       <div class="fcard"><h3><span class="g">INT</span><span data-i18n="ch.c1h">The interview is a document</span></h3><p data-i18n="ch.c1p">Your answers are saved as document zero — re-readable, and cited as the source of later proposals.</p></div>
       <div class="fcard"><h3><span class="g">PRD</span><span data-i18n="ch.c2h">Context flows down the chain</span></h3><p data-i18n="ch.c2p">Feature specs inherit the PRD; IA inherits both. Each document knows which version of its parent it was written against.</p></div>
