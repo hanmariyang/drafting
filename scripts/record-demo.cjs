@@ -10,7 +10,8 @@ const { GIFEncoder, quantize, applyPalette } = require('gifenc');
 const fs = require('fs');
 
 const URL = process.env.DEMO_URL || 'http://127.0.0.1:8477/';
-const W = 1080, H = 660, DELAY = 130;
+// 1100px 초과라야 3-컬럼(좌 네비 + 에디터 + 우 제안 패널)이 유지됨(그 이하는 오버레이로 접힘)
+const W = 1200, H = 740, DELAY = 170, COLORS = 64;
 
 (async () => {
   const browser = await chromium.launch();
@@ -25,20 +26,31 @@ const W = 1080, H = 660, DELAY = 130;
   await page.fill('.idea-input', '회의실 예약이 매번 겹쳐서 정리하는 도구가 필요해요');
   await page.click('.idea-go');
   await page.waitForSelector('textarea.field', { timeout: 20000 });
-  await page.fill('textarea.field', '팀이 회의실을 겹쳐 예약해 매번 조율에 시간을 씁니다.');
-  await page.waitForTimeout(500);
+  // 인터뷰 마지막 질문까지 채운다(종료 직전 상태로) — 여러 질문에 답
+  var answers = [
+    '팀이 회의실을 겹쳐 예약해 매번 조율에 시간을 씁니다.',
+    '1차 사용자는 팀 매니저, 2차는 예약하는 팀원 전체입니다.',
+    '예약 충돌 없이 회의실을 잡고, 노쇼는 자동 반납합니다.',
+  ];
+  for (var ai = 0; ai < answers.length; ai++) {
+    await page.fill('textarea.field', answers[ai]);
+    await page.waitForTimeout(350);
+    var nextBtn = page.locator('button:has-text("다음")');
+    if (await nextBtn.count()) { await nextBtn.first().click().catch(() => {}); await page.waitForTimeout(300); }
+  }
 
   const frames = [];
   const clip = { x: 0, y: 0, width: W, height: H };
   const shoot = async () => { try { frames.push(await page.screenshot({ clip })); } catch (e) {} };
 
-  // 생성 클릭 → 스트리밍 캡처(~9s)
+  // 인터뷰가 끝난 화면을 몇 프레임(전환 직전) → 생성 클릭 → 전환 + PRD 스트리밍 캡처
+  for (let i = 0; i < 4; i++) { await shoot(); await page.waitForTimeout(160); }
   await page.click('button:has-text("AI 초안 생성")');
   const t0 = Date.now();
   let mid = false;
-  while (Date.now() - t0 < 9000) {
+  while (Date.now() - t0 < 7000) {
     await shoot();
-    if (!mid && Date.now() - t0 > 3000) { mid = true; try { await page.screenshot({ path: '/tmp/demo_mid.png' }); } catch (e) {} }
+    if (!mid && Date.now() - t0 > 3500) { mid = true; try { await page.screenshot({ path: '/tmp/demo_mid.png' }); } catch (e) {} }
     await page.waitForTimeout(DELAY);
   }
   // 첫 제안 수락(잉크로 마름) 몇 프레임 더
@@ -56,7 +68,7 @@ const W = 1080, H = 660, DELAY = 130;
     const png = PNG.sync.read(buf);
     w = png.width; h = png.height;
     const rgba = new Uint8Array(png.data);
-    const palette = quantize(rgba, 256);
+    const palette = quantize(rgba, COLORS);
     const index = applyPalette(rgba, palette);
     enc.writeFrame(index, w, h, { palette, delay: DELAY });
   }
