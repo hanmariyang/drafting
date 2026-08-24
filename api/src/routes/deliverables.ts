@@ -13,7 +13,7 @@ import { lintReport, suggestLint } from '../lib/lint-service.ts';
 import { deriveWireframes } from '../lib/wireframes.ts';
 import { getStyleGuide, saveStyleGuide, guideRender, PRESETS } from '../lib/style-guide.ts';
 import { generateMockupHtml } from '../lib/mockup-gen.ts';
-import { generateDesignSystem, acceptDesignSystem, getDesignSystem } from '../lib/design-system-gen.ts';
+import { generateDesignSystem, acceptDesignSystem, getDesignSystem, exploreDesignSystems, selectDesignSystemCandidate } from '../lib/design-system-gen.ts';
 import { compileHandoff, promptPack, handoffTickets, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
 import { PRD_SECTIONS, SPEC_FIXTURE, IA_FIXTURE, FLOW_FIXTURE } from '../lib/fixtures.ts';
 import type { PlanItemKind } from '../lib/types.ts';
@@ -269,6 +269,20 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     if (!doc) throw new HttpError(404, 'document not found');
     if (doc.type !== 'design-system') throw new HttpError(400, 'not a design-system document');
     return { record: await generateDesignSystem(id) };
+  });
+  app.post('/api/documents/:id/design-system/explore', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'design-system') throw new HttpError(400, 'not a design-system document');
+    return { candidates: exploreDesignSystems(id) };
+  });
+  app.post('/api/documents/:id/design-system/select', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    const { index } = parse(z.object({ index: z.number().int().min(0) }), req.body);
+    return { record: selectDesignSystemCandidate(id, index) };
   });
   app.post('/api/documents/:id/design-system/accept', async (req) => {
     const { id } = req.params as { id: string };

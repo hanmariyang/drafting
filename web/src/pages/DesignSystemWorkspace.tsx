@@ -19,7 +19,8 @@ export function DesignSystemWorkspace({ doc }: { doc: DocumentModel }) {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [template, setTemplate] = useState<InterviewTemplate | null>(null);
   const [record, setRecord] = useState<DesignSystemRecord | null>(null);
-  const [mode, setMode] = useState<'interview' | 'result'>('interview');
+  const [candidates, setCandidates] = useState<DesignSystemRecord[] | null>(null);
+  const [mode, setMode] = useState<'interview' | 'explore' | 'result'>('interview');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -59,6 +60,26 @@ export function DesignSystemWorkspace({ doc }: { doc: DocumentModel }) {
   async function accept() {
     const r = await api.acceptDesignSystem(doc.id);
     setRecord(r.record);
+  }
+  async function explore() {
+    if (!session) return;
+    setBusy(true);
+    setErr('');
+    try {
+      await api.completeInterview(session.id).catch(() => {});
+      const r = await api.exploreDesignSystems(doc.id);
+      setCandidates(r.candidates);
+      setMode('explore');
+    } catch (e) {
+      setErr((e as Error).message || '방향 탐색에 실패했어요');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function selectCandidate(i: number) {
+    const r = await api.selectDesignSystem(doc.id, i);
+    setRecord(r.record);
+    setMode('result');
   }
 
   const g = record?.guide;
@@ -102,6 +123,36 @@ export function DesignSystemWorkspace({ doc }: { doc: DocumentModel }) {
                 <Choani pose="think" size={56} /> 불러오는 중…
               </div>
             )}
+            <div className="ds-explore-cta">
+              <button className="btn ghost sm" disabled={busy} onClick={explore}>
+                {busy ? '탐색 중…' : '또는 3가지 방향으로 탐색'}
+              </button>
+            </div>
+          </div>
+        </main>
+      ) : mode === 'explore' ? (
+        <main className="ed wfwrap">
+          <div className="eyebrow">디자인 시스템 · 방향 탐색</div>
+          <h1 className="struct-h1">3가지 방향</h1>
+          <div className="dmeta">강조색은 유지하고 성격만 다르게. 하나를 고르면 제안으로 확정됩니다.</div>
+          {err && <div className="genwarn">{err}</div>}
+          <div className="ds-cands">
+            {(candidates ?? []).map((c, i) => (
+              <div className="ds-cand" key={i}>
+                <div className="ds-cand-tile">
+                  <iframe srcDoc={c.styleTileHtml} sandbox="" title={`방향 ${i + 1}`} scrolling="no" />
+                </div>
+                <p className="ds-cand-r">{c.rationale}</p>
+                <button className="btn ok" onClick={() => selectCandidate(i)}>
+                  이 방향 선택
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="ds-explore-cta">
+            <button className="btn ghost sm" onClick={() => setMode('interview')}>
+              인터뷰로 돌아가기
+            </button>
           </div>
         </main>
       ) : (
@@ -146,6 +197,9 @@ export function DesignSystemWorkspace({ doc }: { doc: DocumentModel }) {
                 )}
                 <button className="btn" disabled={busy} onClick={generate}>
                   {busy ? '생성 중…' : '재생성'}
+                </button>
+                <button className="btn" disabled={busy} onClick={explore}>
+                  다른 방향 보기 (3안)
                 </button>
                 <button className="btn ghost" onClick={() => setMode('interview')}>
                   인터뷰 다시

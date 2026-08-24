@@ -136,6 +136,47 @@ export async function generateDesignSystem(documentId: string): Promise<DesignSy
   return rec;
 }
 
+// ── P2: 방향 탐색 — 답변에서 파생한 3개 방향안(디자인 탐색) ───────────────────
+const candKey = (pid: string) => `design_system_candidates:${pid}`;
+
+export function exploreDesignSystems(documentId: string): DesignSystemRecord[] {
+  const doc = repo.getDocument(documentId);
+  if (!doc) throw new Error('document not found');
+  const ans = answersOf(documentId);
+  const { guide: primary } = guideFromAnswers(ans);
+
+  // 답변에서 뽑은 accent·mode 는 3안 공통 유지, 성격(프리셋·밀도·라운드)만 다르게.
+  const variant = (baseKey: string, label: string, over: Partial<StyleGuide>): DesignSystemRecord => {
+    const base = PRESETS[baseKey] ?? DEFAULT_GUIDE;
+    const guide: StyleGuide = { ...base, accent: primary.accent, mode: primary.mode, preset: 'custom', ...over };
+    if (primary.mode === 'dark') Object.assign(guide, PRESETS.dark, { accent: primary.accent, preset: 'custom', ...over });
+    return {
+      guide,
+      rationale: `${label} — 강조색 ${guide.accent} 는 유지하고, ${label === '균형' ? '중립적인 균형' : label === '부드러움' ? '여유·둥근 모서리·따뜻한 표면' : '촘촘·각진·고대비'}으로 성격을 달리한 방향입니다.`,
+      styleTileHtml: styleTileHtml(guide),
+      status: 'proposed',
+    };
+  };
+  const recs = [
+    variant(primary.preset, '균형', { font: primary.font, density: primary.density, radius: primary.radius }),
+    variant('warm', '부드러움', { density: 'spacious', radius: Math.max(primary.radius, 14) }),
+    variant('mono', '선명함', { density: 'compact', radius: Math.min(primary.radius, 4) }),
+  ];
+  repo.setSetting(candKey(doc.project_id), recs);
+  return recs;
+}
+
+export function selectDesignSystemCandidate(documentId: string, index: number): DesignSystemRecord {
+  const doc = repo.getDocument(documentId);
+  if (!doc) throw new Error('document not found');
+  const recs = repo.getSetting<DesignSystemRecord[]>(candKey(doc.project_id)) ?? [];
+  const rec = recs[index];
+  if (!rec) throw new Error('candidate not found');
+  const chosen: DesignSystemRecord = { ...rec, status: 'proposed' };
+  repo.setSetting(key(doc.project_id), chosen);
+  return chosen;
+}
+
 export function acceptDesignSystem(documentId: string): DesignSystemRecord {
   const doc = repo.getDocument(documentId);
   if (!doc) throw new Error('document not found');
