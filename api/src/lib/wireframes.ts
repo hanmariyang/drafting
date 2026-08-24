@@ -26,6 +26,7 @@ export interface WfSeed {
 }
 export interface Wireframe {
   ref: string;
+  itemId: string;
   title: string;
   pageType: PageType;
   status: 'accepted' | 'proposed';
@@ -103,6 +104,7 @@ export function deriveWireframes(projectId: string): Wireframe[] {
     const hotspot: WfHotspot | null = toPage ? { toPage, label: `→ ${toPage}` } : null;
     return {
       ref: page.ref_id,
+      itemId: page.id,
       title: page.title,
       pageType: (m.page_type ?? 'GENERIC') as PageType,
       status: page.status === 'accepted' ? 'accepted' : 'proposed',

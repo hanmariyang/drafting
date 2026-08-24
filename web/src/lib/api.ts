@@ -471,6 +471,27 @@ export const api = {
       body: JSON.stringify({ key }),
     }),
   wireframes: (pid: string) => req<{ wireframes: Wireframe[] }>(`/api/projects/${pid}/wireframes`),
+  // StyleGuide(테마) — 와이어프레임/시안 공용 스타일
+  styleGuide: (pid: string) =>
+    req<{ guide: StyleGuide; render: { fontStack: string; gap: number }; presets: string[] }>(
+      `/api/projects/${pid}/style-guide`,
+    ),
+  saveStyleGuide: (pid: string, patch: Partial<StyleGuide>) =>
+    req<{ guide: StyleGuide; render: { fontStack: string; gap: number } }>(`/api/projects/${pid}/style-guide`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    }),
+  // AI 시안(mockup) — 페이지당 자기완결 HTML, 제안 문법
+  mockups: (pid: string) =>
+    req<{ mockups: Array<{ pageRef: string; status: 'proposed' | 'accepted'; styleKey: string | null }> }>(
+      `/api/projects/${pid}/mockups`,
+    ),
+  mockup: (pid: string, ref: string) =>
+    req<MockupData>(`/api/projects/${pid}/mockups/${ref}`),
+  generateMockup: (itemId: string) => req<MockupData>(`/api/items/${itemId}/mockup`, { method: 'POST' }),
+  acceptMockup: (itemId: string) =>
+    req<{ pageRef: string; status: string }>(`/api/items/${itemId}/mockup/accept`, { method: 'POST' }),
+  rejectMockup: (itemId: string) => req<{ ok: boolean }>(`/api/items/${itemId}/mockup/reject`, { method: 'POST' }),
   compileHandoff: (pid: string) =>
     req<{ documentId: string; report: LintReport }>(`/api/projects/${pid}/handoff`, {
       method: 'POST',
@@ -565,6 +586,7 @@ export interface WfSeed {
 }
 export interface Wireframe {
   ref: string;
+  itemId: string;
   title: string;
   pageType: PageType;
   status: 'accepted' | 'proposed';
@@ -573,6 +595,25 @@ export interface Wireframe {
   hotspot: { toPage: string; label: string } | null;
   lintWarning: string | null;
   seed: WfSeed;
+}
+export interface StyleGuide {
+  preset: string;
+  accent: string;
+  bg: string;
+  surface: string;
+  ink: string;
+  sub: string;
+  line: string;
+  radius: number;
+  density: 'compact' | 'cozy' | 'spacious';
+  font: 'sans' | 'serif' | 'rounded' | 'mono';
+  mode: 'light' | 'dark';
+}
+export interface MockupData {
+  pageRef: string;
+  status: 'proposed' | 'accepted';
+  styleKey: string | null;
+  html: string;
 }
 export interface DocRollup {
   accepted: number;

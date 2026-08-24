@@ -836,6 +836,58 @@ export function revokeShareLink(id: string): void {
 
 // ─── Settings (SPEC-19, onboarding) ──────────────────────────────────────────
 
+// ── mockups (AI 고해상도 시안, 페이지당 1개) ─────────────────────────────────
+export interface Mockup {
+  id: string;
+  project_id: string;
+  page_ref: string;
+  html: string;
+  status: 'proposed' | 'accepted';
+  style_key: string | null;
+  created_at: string;
+}
+
+export function getMockup(projectId: string, pageRef: string): Mockup | null {
+  return (
+    (db()
+      .prepare('SELECT * FROM mockups WHERE project_id = ? AND page_ref = ?')
+      .get(projectId, pageRef) as Mockup | undefined) ?? null
+  );
+}
+
+export function listMockups(projectId: string): Mockup[] {
+  return db()
+    .prepare('SELECT * FROM mockups WHERE project_id = ?')
+    .all(projectId) as unknown as Mockup[];
+}
+
+export function upsertMockup(projectId: string, pageRef: string, html: string, styleKey: string | null): Mockup {
+  const existing = getMockup(projectId, pageRef);
+  const ts = nowIso();
+  if (existing) {
+    db()
+      .prepare(`UPDATE mockups SET html = ?, status = 'proposed', style_key = ?, created_at = ? WHERE id = ?`)
+      .run(html, styleKey, ts, existing.id);
+    return getMockup(projectId, pageRef)!;
+  }
+  db()
+    .prepare(
+      `INSERT INTO mockups (id, project_id, page_ref, html, status, style_key, created_at)
+       VALUES (?, ?, ?, ?, 'proposed', ?, ?)`,
+    )
+    .run(nanoid(), projectId, pageRef, html, styleKey, ts);
+  return getMockup(projectId, pageRef)!;
+}
+
+export function setMockupStatus(projectId: string, pageRef: string, status: 'proposed' | 'accepted'): Mockup | null {
+  db().prepare('UPDATE mockups SET status = ? WHERE project_id = ? AND page_ref = ?').run(status, projectId, pageRef);
+  return getMockup(projectId, pageRef);
+}
+
+export function deleteMockup(projectId: string, pageRef: string): void {
+  db().prepare('DELETE FROM mockups WHERE project_id = ? AND page_ref = ?').run(projectId, pageRef);
+}
+
 export function getSetting<T = unknown>(key: string): T | null {
   const row = db().prepare('SELECT value FROM settings WHERE key = ?').get(key) as
     | { value: string }

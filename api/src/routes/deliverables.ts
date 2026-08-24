@@ -11,6 +11,8 @@ import {
 } from '../lib/items-gen.ts';
 import { lintReport, suggestLint } from '../lib/lint-service.ts';
 import { deriveWireframes } from '../lib/wireframes.ts';
+import { getStyleGuide, saveStyleGuide, guideRender, PRESETS } from '../lib/style-guide.ts';
+import { generateMockupHtml } from '../lib/mockup-gen.ts';
 import { compileHandoff, promptPack, handoffTickets, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
 import { PRD_SECTIONS, SPEC_FIXTURE, IA_FIXTURE, FLOW_FIXTURE } from '../lib/fixtures.ts';
 import type { PlanItemKind } from '../lib/types.ts';
@@ -235,6 +237,78 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
     return { wireframes: deriveWireframes(id) };
+  });
+
+  // ── StyleGuide(테마) — C: 와이어프레임/시안 공용 스타일 ────────────────────
+  app.get('/api/projects/:id/style-guide', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    const guide = getStyleGuide(id);
+    return { guide, render: guideRender(guide), presets: Object.keys(PRESETS) };
+  });
+  app.put('/api/projects/:id/style-guide', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    const patch = parse(
+      z.object({
+        preset: z.string().optional(),
+        accent: z.string().optional(),
+        density: z.enum(['compact', 'cozy', 'spacious']).optional(),
+        font: z.enum(['sans', 'serif', 'rounded', 'mono']).optional(),
+        mode: z.enum(['light', 'dark']).optional(),
+      }),
+      req.body,
+    );
+    const guide = saveStyleGuide(id, patch);
+    return { guide, render: guideRender(guide) };
+  });
+
+  // ── AI 시안(mockup) — A: 페이지당 자기완결 HTML, 제안 문법 ─────────────────
+  app.get('/api/projects/:id/mockups', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    // 목록엔 상태만(html 제외로 가볍게)
+    return {
+      mockups: repo.listMockups(id).map((m) => ({ pageRef: m.page_ref, status: m.status, styleKey: m.style_key })),
+    };
+  });
+  app.get('/api/projects/:id/mockups/:ref', async (req) => {
+    const { id, ref } = req.params as { id: string; ref: string };
+    const m = repo.getMockup(id, ref);
+    if (!m) throw new HttpError(404, 'mockup not found');
+    return { pageRef: m.page_ref, status: m.status, styleKey: m.style_key, html: m.html };
+  });
+  // 생성/재생성 — item(:id)=IA 페이지. 결과는 proposed.
+  app.post('/api/items/:id/mockup', async (req) => {
+    const { id } = req.params as { id: string };
+    const page = repo.getItem(id);
+    if (!page) throw new HttpError(404, 'item not found');
+    if (page.kind !== 'page') throw new HttpError(400, 'mockup can only be generated for a page');
+    const doc = repo.getDocument(page.document_id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    const html = await generateMockupHtml(doc.project_id, page);
+    const guide = getStyleGuide(doc.project_id);
+    const saved = repo.upsertMockup(doc.project_id, page.ref_id, html, guide.preset);
+    return { pageRef: saved.page_ref, status: saved.status, styleKey: saved.style_key, html: saved.html };
+  });
+  app.post('/api/items/:id/mockup/accept', async (req) => {
+    const { id } = req.params as { id: string };
+    const page = repo.getItem(id);
+    if (!page) throw new HttpError(404, 'item not found');
+    const doc = repo.getDocument(page.document_id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    const m = repo.setMockupStatus(doc.project_id, page.ref_id, 'accepted');
+    if (!m) throw new HttpError(404, 'mockup not found');
+    return { pageRef: m.page_ref, status: m.status };
+  });
+  app.post('/api/items/:id/mockup/reject', async (req) => {
+    const { id } = req.params as { id: string };
+    const page = repo.getItem(id);
+    if (!page) throw new HttpError(404, 'item not found');
+    const doc = repo.getDocument(page.document_id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    repo.deleteMockup(doc.project_id, page.ref_id);
+    return { ok: true };
   });
 
   app.post('/api/projects/:id/handoff', async (req, reply) => {
