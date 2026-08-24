@@ -240,6 +240,23 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return { wireframes: deriveWireframes(id) };
   });
 
+  // ── 프로젝트 내보내기·가져오기 (전체 상태 스냅샷, 기기 간 이동) ──────────────
+  app.get('/api/projects/:id/export', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const bundle = repo.exportProjectBundle(id);
+    if (!bundle) throw new HttpError(404, 'project not found');
+    // 헤더는 ASCII 만 허용 → filename 은 ASCII 로, 한글 원본은 RFC5987 filename* 로.
+    const ascii = (bundle.project.name as string).replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'project';
+    const utf8 = encodeURIComponent(`${bundle.project.name}.drafting`);
+    reply.header('content-disposition', `attachment; filename="${ascii}.drafting"; filename*=UTF-8''${utf8}`);
+    return bundle;
+  });
+  app.post('/api/projects/import', async (req) => {
+    const bundle = req.body as repo.ProjectBundle;
+    const pid = repo.importProjectBundle(bundle);
+    return { projectId: pid };
+  });
+
   // ── 디자인 시스템 — 인터뷰 답변 → StyleGuide + 근거 + 스타일 타일(제안→수락) ──
   app.get('/api/projects/:id/design-system', async (req) => {
     const { id } = req.params as { id: string };
