@@ -22,9 +22,14 @@ function bodyLines(i: PlanItem): string[] {
 /** ```html 펜스·잡텍스트 제거 후 <html…>/<!doctype…>~</html> 만 뽑는다. */
 export function extractHtml(text: string): string {
   let t = text.trim().replace(/^```[a-zA-Z]*\s*/, '').replace(/\s*```$/, '').trim();
-  const lower = t.toLowerCase();
-  const start = Math.max(lower.indexOf('<!doctype'), lower.indexOf('<html'));
-  if (start > 0) t = t.slice(start);
+  let lower = t.toLowerCase();
+  // 서두 텍스트 제거 — doctype/html 중 '가장 이른' 마커부터. (max 아님: doctype 를 버리면 안 됨)
+  const starts = [lower.indexOf('<!doctype'), lower.indexOf('<html')].filter((i) => i >= 0);
+  const start = starts.length ? Math.min(...starts) : -1;
+  if (start > 0) {
+    t = t.slice(start);
+    lower = t.toLowerCase(); // slice 후 인덱스 재계산 (스테일 방지)
+  }
   const end = lower.lastIndexOf('</html>');
   if (end >= 0) t = t.slice(0, end + 7);
   return t;
@@ -61,20 +66,28 @@ export async function generateMockupHtml(projectId: string, page: PlanItem): Pro
 
   const cfg = getModelConfig('ia');
   const provider = resolveProvider(cfg.provider);
-  let text = '';
-  for await (const delta of provider.streamChat({
-    model: cfg.model,
-    maxTokens: Math.max(cfg.maxTokens, 6000),
-    messages: buildMessages(page, features, g),
-  })) {
-    text += delta;
-  }
-  const html = extractHtml(text);
+  const messages = buildMessages(page, features, g);
+  // 무거운 화면(기능 많음)은 시안 HTML 이 길다 → 넉넉한 토큰(잘림 방지).
+  const maxTokens = Math.max(cfg.maxTokens, 16000);
+  const run = async (): Promise<string> => {
+    let text = '';
+    for await (const delta of provider.streamChat({ model: cfg.model, maxTokens, messages })) text += delta;
+    return extractHtml(text);
+  };
+  let html = await run();
+  // 미완성(닫는 </html> 없음·너무 짧음) = 토큰 소진/스톨로 잘린 것 → 1회 재시도.
+  if (!isCompleteHtml(html)) html = await run();
   if (!html.toLowerCase().includes('<html') && !html.toLowerCase().includes('<!doctype')) {
     // 모델이 조각만 줬으면 최소 래핑
     return `<!doctype html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
   }
   return html;
+}
+
+/** 시안 HTML 이 온전한가 — 닫는 </html> 가 있고 최소 길이 이상. */
+export function isCompleteHtml(html: string): boolean {
+  const lc = html.toLowerCase();
+  return lc.includes('</html>') && html.trim().length > 400;
 }
 
 /** 결정적 테마 시안 — stub/offline. 실제 시안의 느낌을 토큰으로 재현. */
