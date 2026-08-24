@@ -1139,3 +1139,10 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .panel-empty .ch { display: block; margin: 0 auto 10px; }
 .app-name .logo-ch { vertical-align: -5px; margin-right: 6px; }
 .start-ch { margin-bottom: 6px; }
+
+/* 프로젝트 내보내기·가져오기 */
+.hub-head { display: flex; align-items: center; gap: 12px; }
+.hub-head .hub-h1 { margin: 0; }
+.hub-head a.btn { margin-left: auto; text-decoration: none; }
+.start-import { margin-top: 6px; }
+.start-import .btn { cursor: pointer; }

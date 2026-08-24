@@ -481,6 +481,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(patch),
     }),
+  // 프로젝트 내보내기·가져오기 (전체 상태 스냅샷)
+  exportProjectUrl: (pid: string) => `/api/projects/${pid}/export`,
+  importProject: (bundle: unknown) =>
+    req<{ projectId: string }>('/api/projects/import', { method: 'POST', body: JSON.stringify(bundle) }),
   // 디자인 시스템 — 인터뷰 → StyleGuide + 근거 + 스타일 타일(제안→수락)
   designSystem: (pid: string) =>
     req<{ record: DesignSystemRecord | null }>(`/api/projects/${pid}/design-system`),

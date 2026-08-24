@@ -836,6 +836,125 @@ export function revokeShareLink(id: string): void {
 
 // ─── Settings (SPEC-19, onboarding) ──────────────────────────────────────────
 
+// ── 프로젝트 내보내기·가져오기 (전체 상태 스냅샷, 기기 간 이동) ──────────────
+// BYOK 키·공유링크 토큰은 제외(시크릿 유출 방지). created_at 순 삽입으로 FK(부모) 순서 보장.
+type Row = Record<string, unknown>;
+export interface ProjectBundle {
+  format: 'drafting-project';
+  version: number;
+  project: Row;
+  documents: Row[];
+  sections: Row[];
+  planItems: Row[];
+  sessions: Row[];
+  suggestions: Row[];
+  versions: Row[];
+  mockups: Row[];
+  styleGuide: unknown;
+  designSystem: unknown;
+}
+
+export function exportProjectBundle(projectId: string): ProjectBundle | null {
+  const d = db();
+  const project = d.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as Row | undefined;
+  if (!project) return null;
+  const docs = d.prepare('SELECT * FROM documents WHERE project_id = ?').all(projectId) as Row[];
+  const docIds = docs.map((x) => x.id as string);
+  const inq = docIds.map(() => '?').join(',');
+  const byDocs = (t: string): Row[] =>
+    docIds.length ? (d.prepare(`SELECT * FROM ${t} WHERE document_id IN (${inq})`).all(...docIds) as Row[]) : [];
+  return {
+    format: 'drafting-project',
+    version: 1,
+    project,
+    documents: docs,
+    sections: byDocs('sections'),
+    planItems: byDocs('plan_items'),
+    sessions: byDocs('interview_sessions'),
+    suggestions: byDocs('suggestions'),
+    versions: byDocs('document_versions'),
+    mockups: d.prepare('SELECT * FROM mockups WHERE project_id = ?').all(projectId) as Row[],
+    styleGuide: getSetting(`style_guide:${projectId}`),
+    designSystem: getSetting(`design_system:${projectId}`),
+  };
+}
+
+const byCreated = (a: Row, b: Row) => String(a.created_at ?? '').localeCompare(String(b.created_at ?? ''));
+
+export function importProjectBundle(bundle: ProjectBundle): string {
+  if (bundle?.format !== 'drafting-project') throw new Error('유효한 Drafting 프로젝트 번들이 아닙니다');
+  const d = db();
+  const ts = nowIso();
+  const newPid = nanoid();
+  const docMap = new Map<string, string>();
+  const secMap = new Map<string, string>();
+  const itemMap = new Map<string, string>();
+  const sessMap = new Map<string, string>();
+  for (const x of bundle.documents ?? []) docMap.set(x.id as string, nanoid());
+  for (const x of bundle.sections ?? []) secMap.set(x.id as string, nanoid());
+  for (const x of bundle.planItems ?? []) itemMap.set(x.id as string, nanoid());
+  for (const x of bundle.sessions ?? []) sessMap.set(x.id as string, nanoid());
+  const rid = <T extends string | null | undefined>(m: Map<string, string>, v: T): string | null =>
+    v ? m.get(v) ?? null : null;
+
+  const run = (sql: string, ...args: unknown[]) => d.prepare(sql).run(...(args as never[]));
+
+  run(
+    'INSERT INTO projects (id,name,description,created_at,updated_at) VALUES (?,?,?,?,?)',
+    newPid, `${bundle.project.name} (가져옴)`, bundle.project.description ?? '', ts, ts,
+  );
+  for (const x of [...(bundle.documents ?? [])].sort(byCreated)) {
+    run(
+      `INSERT INTO documents (id,project_id,type,title,status,parent_document_id,version,context_stale,context_source_version,context_pending_version,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      docMap.get(x.id as string), newPid, x.type, x.title, x.status, rid(docMap, x.parent_document_id as string),
+      x.version ?? 0, x.context_stale ?? 0, x.context_source_version ?? null, x.context_pending_version ?? null,
+      x.created_at ?? ts, x.updated_at ?? ts,
+    );
+  }
+  for (const x of bundle.sections ?? []) {
+    run(
+      'INSERT INTO sections (id,document_id,position,heading,body,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      secMap.get(x.id as string), docMap.get(x.document_id as string), x.position, x.heading, x.body, x.status, x.created_at ?? ts, x.updated_at ?? ts,
+    );
+  }
+  for (const x of [...(bundle.planItems ?? [])].sort(byCreated)) {
+    run(
+      'INSERT INTO plan_items (id,document_id,parent_id,kind,ref_id,position,title,body,meta,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      itemMap.get(x.id as string), docMap.get(x.document_id as string), rid(itemMap, x.parent_id as string),
+      x.kind, x.ref_id, x.position, x.title, x.body ?? '', x.meta ?? '{}', x.status, x.created_at ?? ts, x.updated_at ?? ts,
+    );
+  }
+  for (const x of bundle.sessions ?? []) {
+    run(
+      'INSERT INTO interview_sessions (id,document_id,template_id,status,current_index,answers,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      sessMap.get(x.id as string), docMap.get(x.document_id as string), x.template_id, x.status, x.current_index ?? 0, x.answers ?? '[]', x.created_at ?? ts, x.updated_at ?? ts,
+    );
+  }
+  for (const x of bundle.suggestions ?? []) {
+    run(
+      'INSERT INTO suggestions (id,document_id,section_id,target_item_id,kind,title,body,quote_before,quote_after,source,status,created_at,resolved_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      nanoid(), docMap.get(x.document_id as string), rid(secMap, x.section_id as string), rid(itemMap, x.target_item_id as string),
+      x.kind, x.title ?? '', x.body ?? '', x.quote_before ?? '', x.quote_after ?? '', x.source ?? '', x.status ?? 'open', x.created_at ?? ts, x.resolved_at ?? null,
+    );
+  }
+  for (const x of bundle.versions ?? []) {
+    run(
+      'INSERT INTO document_versions (id,document_id,version,event_type,snapshot,meta,note,created_at) VALUES (?,?,?,?,?,?,?,?)',
+      nanoid(), docMap.get(x.document_id as string), x.version, x.event_type, x.snapshot, x.meta ?? '{}', x.note ?? '', x.created_at ?? ts,
+    );
+  }
+  for (const x of bundle.mockups ?? []) {
+    run(
+      'INSERT INTO mockups (id,project_id,page_ref,html,status,style_key,created_at) VALUES (?,?,?,?,?,?,?)',
+      nanoid(), newPid, x.page_ref, x.html, x.status ?? 'proposed', x.style_key ?? null, x.created_at ?? ts,
+    );
+  }
+  if (bundle.styleGuide) setSetting(`style_guide:${newPid}`, bundle.styleGuide);
+  if (bundle.designSystem) setSetting(`design_system:${newPid}`, bundle.designSystem);
+  return newPid;
+}
+
 // ── mockups (AI 고해상도 시안, 페이지당 1개) ─────────────────────────────────
 export interface Mockup {
   id: string;

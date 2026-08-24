@@ -101,7 +101,14 @@ export function Hub() {
     >
       <main className="hub-main">
         <div className="eyebrow">Deliverables</div>
-        <h1 className="hub-h1">산출물 6종</h1>
+        <div className="hub-head">
+          <h1 className="hub-h1">산출물 6종</h1>
+          {pid && (
+            <a className="btn ghost sm" href={api.exportProjectUrl(pid)} title="전체 상태를 .drafting 파일로 — 다른 기기로 이동">
+              내보내기
+            </a>
+          )}
+        </div>
         <div className="hub-sub">수락된 것만 문서 · 파생물은 수락분에서 자동 갱신</div>
 
         {hub?.nextAction && (

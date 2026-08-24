@@ -114,6 +114,28 @@ export function StartScreen() {
           </div>
           {error && <div className="form-error">{error}</div>}
 
+          <div className="start-import">
+            <label className="btn ghost sm">
+              프로젝트 가져오기 (.drafting)
+              <input
+                type="file"
+                accept=".drafting,application/json"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  try {
+                    const bundle = JSON.parse(await f.text());
+                    const { projectId } = await api.importProject(bundle);
+                    nav(`/projects/${projectId}`);
+                  } catch (err) {
+                    setError('가져오기 실패 · 올바른 .drafting 파일인지 확인하세요');
+                  }
+                }}
+              />
+            </label>
+          </div>
+
           {last && (
             <button
               className="start-card resume"
