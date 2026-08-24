@@ -140,3 +140,15 @@ CREATE TABLE IF NOT EXISTS settings (
   value      TEXT NOT NULL,           -- JSON
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS mockups (
+  id          TEXT PRIMARY KEY,
+  project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  page_ref    TEXT NOT NULL,          -- IA 페이지 ref_id (PG-nn)
+  html        TEXT NOT NULL,          -- 자기완결 HTML 시안
+  status      TEXT NOT NULL DEFAULT 'proposed',  -- proposed | accepted
+  style_key   TEXT,                   -- 생성 시 StyleGuide preset (재생성 판단용)
+  created_at  TEXT NOT NULL,
+  UNIQUE(project_id, page_ref)
+);
+CREATE INDEX IF NOT EXISTS idx_mockups_project ON mockups(project_id);

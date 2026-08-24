@@ -1000,6 +1000,57 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .pstate { font-family: var(--mono); font-size: 8.5px; color: var(--sub); padding: 5px 13px; border-top: 1px dashed var(--hair); }
 .pstate.warn { color: var(--warn); }
 
+/* ── WF→시안: 테마 바(C) ── */
+.wf-theme { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding: 9px 12px;
+  border: 1px solid var(--hair); border-radius: var(--r-card); background: var(--paper); }
+.wf-theme .tk { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sub); }
+.wf-theme .tpresets { display: flex; gap: 4px; }
+.wf-theme .tchip { font-size: 11.5px; padding: 4px 11px; border: 1px solid var(--hair); border-radius: var(--r-pill);
+  background: var(--paper); color: var(--sub); cursor: pointer; }
+.wf-theme .tchip:hover { color: var(--ink); }
+.wf-theme .tchip.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.wf-theme .tacc input { width: 26px; height: 26px; border: 1px solid var(--hair); border-radius: 7px; padding: 0; background: none; cursor: pointer; }
+.wf-theme .tseg { display: inline-flex; border: 1px solid var(--hair); border-radius: 7px; overflow: hidden; }
+.wf-theme .tseg button { font-size: 11px; padding: 4px 10px; background: var(--paper); border: 0; border-right: 1px solid var(--hair); color: var(--sub); cursor: pointer; }
+.wf-theme .tseg button:last-child { border-right: 0; }
+.wf-theme .tseg button.on { background: var(--hover); color: var(--ink); font-weight: 600; }
+
+/* phead 와이어↔시안 토글 */
+.wf-toggle { display: inline-flex; border: 1px solid var(--hair); border-radius: 6px; overflow: hidden; }
+.wf-toggle button { font-family: var(--sans); font-size: 10px; padding: 3px 9px; background: var(--paper); border: 0; border-right: 1px solid var(--hair); color: var(--sub); cursor: pointer; }
+.wf-toggle button:last-child { border-right: 0; }
+.wf-toggle button.on { background: var(--ink); color: var(--paper); font-weight: 600; }
+
+/* ── WF 결정적 템플릿 테마화(B) — .papp.themed 가 --wf-* 토큰을 소비 ── */
+.papp.themed { background: var(--wf-surface, var(--paper)); font-family: var(--wf-font, var(--sans)); color: var(--wf-ink, var(--ink)); }
+.papp.themed .pnav { border-bottom-color: var(--wf-line, var(--hair)); color: var(--wf-ink, var(--ink)); }
+.papp.themed .pbody { gap: var(--wf-gap, 8px); }
+.papp.themed .pinput { border-color: var(--wf-line, var(--hair)); border-radius: var(--wf-radius, 7px);
+  background: color-mix(in srgb, var(--wf-bg, var(--bg)) 70%, var(--wf-surface, var(--paper))); color: var(--wf-sub, var(--sub)); }
+.papp.themed .plist, .papp.themed .stat, .papp.themed .chart, .papp.themed .tgl { border-color: var(--wf-line, var(--hair)); border-radius: var(--wf-radius, 8px); }
+.papp.themed .plirow { border-bottom-color: var(--wf-line, var(--hair)); }
+.papp.themed .plirow b, .papp.themed .pnav { color: var(--wf-ink, var(--ink)); }
+.papp.themed .plirow .m, .papp.themed .stat .sl, .papp.themed .pnav .navr, .papp.themed .pnav .back { color: var(--wf-sub, var(--sub)); }
+.papp.themed .pbtn { background: var(--wf-accent, var(--ink)); border-radius: var(--wf-radius, 7px); color: #fff; }
+.papp.themed .slot { border-color: var(--wf-line, var(--hair)); border-radius: calc(var(--wf-radius, 5px) * 0.6); }
+.papp.themed .slot.on { background: var(--wf-accent, var(--ink)); border-color: var(--wf-accent, var(--ink)); color: #fff; }
+.papp.themed .chart i { background: var(--wf-accent, var(--ink)); }
+.papp.themed .stat .sv { color: var(--wf-accent, var(--ink)); }
+.papp.themed .sw { background: var(--wf-accent, var(--ink)); }
+.papp.themed .sw.off { background: var(--wf-line, var(--hair)); }
+
+/* ── WF 시안(A): iframe 프레임 + 컨트롤 ── */
+.mockwrap { display: flex; flex-direction: column; background: var(--wf-bg, var(--bg)); }
+.mockframe { width: 100%; height: 520px; border: 0; display: block; background: var(--wf-bg, var(--bg)); }
+.mockacts { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--hair); background: var(--paper); }
+.mockacts .btn.sm { padding: 4px 10px; font-size: 11px; }
+.mstat { font-family: var(--mono); font-size: 9px; color: var(--sub); border: 1px solid var(--hair); border-radius: var(--r-pill); padding: 2px 8px; }
+.mstat.ok { color: var(--sug-ink); background: var(--sug-bg); border-color: var(--sug-line); }
+.mockgen { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 30px 18px; min-height: 240px; justify-content: center; }
+.mockgen p { font-size: 12.5px; color: var(--sub); margin: 0; }
+.mockgen p b { color: var(--ink); }
+.mockgen .mnote { font-size: 10px; color: var(--sub); }
+
 /* ── DEV (시안 6) ── */
 .check { display: flex; align-items: center; gap: 9px; padding: 7px 10px; font-size: 12.5px; border-bottom: 1px solid var(--hair); }
 .check .cid { font-family: var(--mono); font-size: 9px; color: var(--sub); width: 130px; flex: none; }
