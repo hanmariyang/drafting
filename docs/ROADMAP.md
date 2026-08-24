@@ -66,7 +66,10 @@
 ### 📦 배포·패키징
 
 - **DMG 인스톨러 브랜딩** — ✅ `build.dmg` 블록 추가(창 크기·아이콘 좌표, 다음 릴리스 적용). 남은 것: 브랜딩 배경 이미지(오너 자산) → `build.dmg.background`.
-- **Homebrew cask / winget** — ✅ 스캐폴드 추가(`packaging/`: cask `.rb` + winget yaml + 오너 가이드). 남은 것: 오너 tap repo·PR(계정 필요).
+- **Homebrew cask / winget 등록 — 보류(선택·후순위)** — 스캐폴드는 `packaging/`에 준비됨. 다만 **필수 아님**:
+  이미 서명·공증 인스톨러 + 자동 업데이트(electron-updater) + GHCR 이미지가 있어 설치·갱신이 다 된다.
+  Homebrew/winget 은 CLI 원클릭 설치·일괄 업데이트라는 **개발자 편의·도달성 레이어**일 뿐(업데이트 이점은 자동
+  업데이터와 상당 부분 중복). **사용자 요청이 생기거나 배포를 넓힐 때** 진행. (자동화 후보: 릴리스 시 cask·winget 갱신 Action)
 
 ---
 
