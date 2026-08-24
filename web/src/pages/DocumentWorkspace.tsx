@@ -28,6 +28,7 @@ const TYPE_LABEL: Record<DocumentType, string> = {
   'feature-spec': '기능명세',
   ia: 'IA',
   'user-flow': '유저플로우',
+  'design-system': '디자인 시스템',
   handoff: '개발 지시서',
 };
 

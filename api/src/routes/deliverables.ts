@@ -13,6 +13,7 @@ import { lintReport, suggestLint } from '../lib/lint-service.ts';
 import { deriveWireframes } from '../lib/wireframes.ts';
 import { getStyleGuide, saveStyleGuide, guideRender, PRESETS } from '../lib/style-guide.ts';
 import { generateMockupHtml } from '../lib/mockup-gen.ts';
+import { generateDesignSystem, acceptDesignSystem, getDesignSystem } from '../lib/design-system-gen.ts';
 import { compileHandoff, promptPack, handoffTickets, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
 import { PRD_SECTIONS, SPEC_FIXTURE, IA_FIXTURE, FLOW_FIXTURE } from '../lib/fixtures.ts';
 import type { PlanItemKind } from '../lib/types.ts';
@@ -239,6 +240,26 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     return { wireframes: deriveWireframes(id) };
   });
 
+  // ── 디자인 시스템 — 인터뷰 답변 → StyleGuide + 근거 + 스타일 타일(제안→수락) ──
+  app.get('/api/projects/:id/design-system', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getProject(id)) throw new HttpError(404, 'project not found');
+    return { record: getDesignSystem(id) };
+  });
+  app.post('/api/documents/:id/design-system/generate', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'design-system') throw new HttpError(400, 'not a design-system document');
+    return { record: await generateDesignSystem(id) };
+  });
+  app.post('/api/documents/:id/design-system/accept', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    return { record: acceptDesignSystem(id) };
+  });
+
   // ── StyleGuide(테마) — C: 와이어프레임/시안 공용 스타일 ────────────────────
   app.get('/api/projects/:id/style-guide', async (req) => {
     const { id } = req.params as { id: string };
@@ -402,12 +423,13 @@ function rollupSections(documentId: string): DocRollup {
   };
 }
 
-const CHAIN = ['prd', 'feature-spec', 'ia', 'user-flow'] as const;
+const CHAIN = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system'] as const;
 const CHAIN_LABEL: Record<(typeof CHAIN)[number], string> = {
   prd: 'PRD',
   'feature-spec': '기능명세서',
   ia: '정보 구조',
   'user-flow': '유저 플로우',
+  'design-system': '디자인 시스템',
 };
 
 /** 6-deliverable roll-up for the hub (§3) + per-doc stale/open + 다음 할 일. */

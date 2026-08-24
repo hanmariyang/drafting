@@ -5,7 +5,7 @@ import { HttpError, parse } from './helpers.ts';
 import { documentToMarkdown, documentToHtml } from '../lib/render.ts';
 import { nowIso } from '../db/index.ts';
 
-const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow'] as const;
+const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system'] as const;
 
 export async function documentRoutes(app: FastifyInstance): Promise<void> {
   // create a document under a project

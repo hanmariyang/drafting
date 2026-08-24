@@ -8,6 +8,7 @@ const TYPE_BADGE: Record<DocumentType, string> = {
   'feature-spec': 'SPEC',
   ia: 'IA',
   'user-flow': 'FLOW',
+  'design-system': 'DS',
   handoff: 'DEV',
 };
 

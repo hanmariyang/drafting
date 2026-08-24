@@ -1,4 +1,4 @@
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'handoff';
+export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'design-system' | 'handoff';
 export type DocumentStatus = 'draft' | 'streaming' | 'ready';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
 export type VersionEvent = 'save' | 'context_inherit' | 'restore';
