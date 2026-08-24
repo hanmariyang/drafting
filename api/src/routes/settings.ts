@@ -79,6 +79,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     const raw = (body.baseUrl ?? '').trim();
     if (!raw) {
       repo.setSetting('openai_base_url', '');
+      repo.setSetting('openai_models', []);
       return { baseUrl: '', models: [], detected: 'cleared' as const };
     }
     // /v1 자동 감지 + 모델 목록 조회 (키가 있으면). 사용자는 호스트만 붙이면 된다.
@@ -96,6 +97,8 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       }
     }
     repo.setSetting('openai_base_url', stored);
+    // 게이트웨이 모델 목록 저장 — 모델 미지정 시 첫 모델을 기본값으로 쓴다(claude 기본값 거부 방지).
+    repo.setSetting('openai_models', models);
     return { baseUrl: stored, models, detected };
   });
 
@@ -106,6 +109,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     if (!base || !key) return { models: [], baseUrl: base };
     const headers = repo.getSetting<Record<string, string>>('openai_headers') ?? {};
     const probe = await probeGateway(base, key, headers);
+    if (probe?.models?.length) repo.setSetting('openai_models', probe.models);
     return { models: probe?.models ?? [], baseUrl: probe?.chatBase ?? base };
   });
 

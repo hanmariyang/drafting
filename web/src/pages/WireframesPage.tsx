@@ -188,6 +188,7 @@ function WfProto({
   const [view, setView] = useState<'wire' | 'mock'>(mockStatus ? 'mock' : 'wire');
   const [html, setHtml] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (view === 'mock' && mockStatus && html === null) {
@@ -197,11 +198,14 @@ function WfProto({
 
   async function generate() {
     setBusy(true);
+    setErr(null);
+    setView('mock');
     try {
       const m = await api.generateMockup(wf.itemId);
       setHtml(m.html);
       onStatus(wf.ref, 'proposed');
-      setView('mock');
+    } catch (e) {
+      setErr((e as Error).message || '시안 생성에 실패했어요');
     } finally {
       setBusy(false);
     }
@@ -254,6 +258,23 @@ function WfProto({
               : `근거 ${wf.featureRefs.join('·') || '—'}${wf.flowRefs.length ? ' · 진입 ' + wf.flowRefs.join('·') : ''}`}
           </div>
         </div>
+      ) : busy ? (
+        <div className="mockgen">
+          <Choani pose="fetch" size={44} />
+          <p>
+            <b>시안 생성 중…</b>
+          </p>
+          <span className="mnote">AI 가 이 화면을 테마에 맞춰 디자인합니다 · 최대 1분 정도 걸릴 수 있어요</span>
+        </div>
+      ) : err ? (
+        <div className="mockgen">
+          <p className="mockerr">시안 생성에 실패했어요</p>
+          <span className="mnote">{err}</span>
+          <button className="btn ok" onClick={generate}>
+            다시 시도
+          </button>
+          <span className="mnote">설정(⌘,)의 AI 엔진에서 CLI 로그인 또는 API 키 상태를 확인하세요</span>
+        </div>
       ) : html ? (
         <div className="mockwrap">
           <iframe className="mockframe" srcDoc={html} sandbox="" title={`${wf.ref} 시안`} loading="lazy" />
@@ -268,7 +289,7 @@ function WfProto({
               </button>
             )}
             <button className="btn sm" disabled={busy} onClick={generate}>
-              {busy ? '생성 중…' : '재생성'}
+              재생성
             </button>
             <button className="btn sm" disabled={busy} onClick={reject}>
               삭제
@@ -278,9 +299,11 @@ function WfProto({
       ) : (
         <div className="mockgen">
           <Choani pose="fetch" size={40} animate={false} />
-          <p>이 화면의 <b>고해상도 시안</b>을 테마에 맞춰 생성합니다.</p>
-          <button className="btn ok" disabled={busy} onClick={generate}>
-            {busy ? '생성 중…' : '시안 생성'}
+          <p>
+            이 화면의 <b>고해상도 시안</b>을 테마에 맞춰 생성합니다.
+          </p>
+          <button className="btn ok" onClick={generate}>
+            시안 생성
           </button>
           <span className="mnote">AI 사용 · 구조는 와이어프레임 탭에서 무료로 확인</span>
         </div>
