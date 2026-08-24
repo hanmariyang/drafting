@@ -492,6 +492,13 @@ export const api = {
     req<{ record: DesignSystemRecord }>(`/api/documents/${docId}/design-system/generate`, { method: 'POST' }),
   acceptDesignSystem: (docId: string) =>
     req<{ record: DesignSystemRecord }>(`/api/documents/${docId}/design-system/accept`, { method: 'POST' }),
+  exploreDesignSystems: (docId: string) =>
+    req<{ candidates: DesignSystemRecord[] }>(`/api/documents/${docId}/design-system/explore`, { method: 'POST' }),
+  selectDesignSystem: (docId: string, index: number) =>
+    req<{ record: DesignSystemRecord }>(`/api/documents/${docId}/design-system/select`, {
+      method: 'POST',
+      body: JSON.stringify({ index }),
+    }),
   // AI 시안(mockup) — 페이지당 자기완결 HTML, 제안 문법
   mockups: (pid: string) =>
     req<{ mockups: Array<{ pageRef: string; status: 'proposed' | 'accepted'; styleKey: string | null }> }>(
