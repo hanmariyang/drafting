@@ -3,6 +3,7 @@ import { useParams, Navigate } from 'react-router-dom';
 import { api, type DocumentModel } from '../lib/api.ts';
 import { DocumentWorkspace } from './DocumentWorkspace.tsx';
 import { StructureWorkspace } from './StructureWorkspace.tsx';
+import { DesignSystemWorkspace } from './DesignSystemWorkspace.tsx';
 import { AppShell } from '../components/AppShell.tsx';
 
 const STRUCTURE = new Set(['feature-spec', 'ia', 'user-flow']);
@@ -48,6 +49,7 @@ export function DocumentRoute() {
     );
   }
   if (doc.type === 'handoff') return <Navigate to={`/projects/${pid}/handoff`} replace />;
+  if (doc.type === 'design-system') return <DesignSystemWorkspace key={doc.id} doc={doc} />;
   if (STRUCTURE.has(doc.type)) return <StructureWorkspace key={doc.id} doc={doc} />;
   return <DocumentWorkspace />;
 }

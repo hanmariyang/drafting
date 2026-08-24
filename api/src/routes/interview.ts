@@ -134,7 +134,7 @@ async function pipeDraft(
   }
 }
 
-const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'handoff'] as const;
+const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system', 'handoff'] as const;
 const TEMPLATE_SCHEMA = z.object({
   id: z.string().min(1).max(60).regex(/^[a-z0-9-]+$/, 'id 는 소문자·숫자·하이픈만'),
   docType: z.enum(DOC_TYPES),

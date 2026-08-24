@@ -1,6 +1,6 @@
 // Typed client for the Drafting API. Same-origin in prod; vite proxies in dev.
 
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'handoff';
+export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'design-system' | 'handoff';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
 
 // ── plan items (structure docs) ──────────────────────────────────────────────
@@ -481,6 +481,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(patch),
     }),
+  // 디자인 시스템 — 인터뷰 → StyleGuide + 근거 + 스타일 타일(제안→수락)
+  designSystem: (pid: string) =>
+    req<{ record: DesignSystemRecord | null }>(`/api/projects/${pid}/design-system`),
+  generateDesignSystem: (docId: string) =>
+    req<{ record: DesignSystemRecord }>(`/api/documents/${docId}/design-system/generate`, { method: 'POST' }),
+  acceptDesignSystem: (docId: string) =>
+    req<{ record: DesignSystemRecord }>(`/api/documents/${docId}/design-system/accept`, { method: 'POST' }),
   // AI 시안(mockup) — 페이지당 자기완결 HTML, 제안 문법
   mockups: (pid: string) =>
     req<{ mockups: Array<{ pageRef: string; status: 'proposed' | 'accepted'; styleKey: string | null }> }>(
@@ -614,6 +621,12 @@ export interface MockupData {
   status: 'proposed' | 'accepted';
   styleKey: string | null;
   html: string;
+}
+export interface DesignSystemRecord {
+  guide: StyleGuide;
+  rationale: string;
+  styleTileHtml: string;
+  status: 'proposed' | 'accepted';
 }
 export interface DocRollup {
   accepted: number;

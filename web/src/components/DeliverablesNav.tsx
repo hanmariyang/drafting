@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, openSuggestionsOf, type DocumentModel, type DocumentType } from '../lib/api.ts';
 import { ProjectSwitcher } from './DocChainTree.tsx';
 
-export type NavKey = 'INT' | 'PRD' | 'SPEC' | 'IA' | 'FLOW' | 'WF' | 'DEV' | 'HUB';
+export type NavKey = 'INT' | 'PRD' | 'SPEC' | 'IA' | 'FLOW' | 'DS' | 'WF' | 'DEV' | 'HUB';
 
 interface NodeDef {
   key: NavKey;
@@ -17,6 +17,7 @@ const DELIVERABLES: NodeDef[] = [
   { key: 'SPEC', type: 'feature-spec', label: '기능명세서' },
   { key: 'IA', type: 'ia', label: '정보 구조' },
   { key: 'FLOW', type: 'user-flow', label: '유저 플로우' },
+  { key: 'DS', type: 'design-system', label: '디자인 시스템' },
 ];
 
 /** parent-of relationship for lazily creating a missing structure document. */
@@ -25,6 +26,8 @@ function parentFor(type: DocumentType, byType: Partial<Record<DocumentType, Docu
   if (type === 'ia') return byType['feature-spec']?.id ?? byType.prd?.id ?? null;
   if (type === 'user-flow')
     return byType.ia?.id ?? byType['feature-spec']?.id ?? byType.prd?.id ?? null;
+  if (type === 'design-system')
+    return byType['user-flow']?.id ?? byType.ia?.id ?? byType.prd?.id ?? null;
   return null;
 }
 const TITLE: Record<DocumentType, string> = {
@@ -32,6 +35,7 @@ const TITLE: Record<DocumentType, string> = {
   'feature-spec': '기능명세서',
   ia: '정보 구조',
   'user-flow': '유저 플로우',
+  'design-system': '디자인 시스템',
   handoff: '개발 지시서',
 };
 
