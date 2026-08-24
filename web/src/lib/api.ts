@@ -633,7 +633,20 @@ export interface MockupData {
   styleKey: string | null;
   html: string;
 }
+export interface DesignSystem {
+  color: {
+    primary: 'light' | 'dark';
+    light: Record<string, string>;
+    dark: Record<string, string> | null;
+    state: { success: string; warning: string; danger: string; info: string };
+  };
+  type: { family: string; scale: { display: number; title: number; body: number; caption: number }; weightBold: number };
+  space: { unit: number; density: string; scale: number[] };
+  shape: { radiusCard: number; radiusBtn: number; radiusPill: number; border: number; shadow: string };
+  a11y: { highContrast: boolean; colorblindSafe: boolean; notes: string };
+}
 export interface DesignSystemRecord {
+  system: DesignSystem;
   guide: StyleGuide;
   rationale: string;
   styleTileHtml: string;

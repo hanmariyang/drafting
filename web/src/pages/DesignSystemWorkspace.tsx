@@ -178,14 +178,18 @@ export function DesignSystemWorkspace({ doc }: { doc: DocumentModel }) {
                 <span className="k">설계 근거</span>
                 <p>{record?.rationale}</p>
               </div>
-              {g && (
+              {g && record?.system && (
                 <div className="ds-tokens">
                   <span className="k">토큰</span>
                   <ul>
-                    <li>강조 <code>{g.accent}</code></li>
-                    <li>모드 <b>{g.mode}</b></li>
-                    <li>밀도 <b>{g.density}</b> · 서체 <b>{g.font}</b></li>
-                    <li>모서리 <b>{g.radius}px</b></li>
+                    <li>강조 <code>{g.accent}</code> · 모드 <b>{record.system.color.dark ? (record.system.color.primary === 'dark' ? '다크+라이트' : '라이트+다크') : g.mode}</b></li>
+                    <li>상태색 <span className="stdot" style={{ background: record.system.color.state.success }} /><span className="stdot" style={{ background: record.system.color.state.warning }} /><span className="stdot" style={{ background: record.system.color.state.danger }} /><span className="stdot" style={{ background: record.system.color.state.info }} /></li>
+                    <li>타입 <b>{record.system.type.scale.display}/{record.system.type.scale.title}/{record.system.type.scale.body}/{record.system.type.scale.caption}</b>px</li>
+                    <li>여백 4px 그리드 · 밀도 <b>{g.density}</b> · 서체 <b>{g.font}</b></li>
+                    <li>모서리 <b>{g.radius}px</b> · 그림자 <b>{record.system.shape.shadow}</b></li>
+                    {(record.system.a11y.highContrast || record.system.a11y.colorblindSafe || record.system.a11y.notes) && (
+                      <li>접근성 <b>{[record.system.a11y.highContrast && '고대비', record.system.a11y.colorblindSafe && '색맹안전'].filter(Boolean).join('·') || '지정'}</b></li>
+                    )}
                   </ul>
                 </div>
               )}
