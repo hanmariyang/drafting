@@ -1,0 +1,13 @@
+# winget 매니페스트 템플릿(installer) — Drafting.
+# 배포: 오너가 microsoft/winget-pkgs 에 PR (3-파일: version/defaultLocale/installer).
+#   릴리스마다 InstallerUrl / InstallerSha256 갱신. 자동화 후보: winget-create / komac.
+#   설치:  winget install hanmariyang.Drafting
+PackageIdentifier: hanmariyang.Drafting
+PackageVersion: 1.3.0
+Installers:
+  - Architecture: x64
+    InstallerType: nullsoft
+    InstallerUrl: https://github.com/hanmariyang/drafting/releases/download/v1.3.0/Drafting-Setup-1.3.0.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000  # 오너: 실제 해시로
+ManifestType: installer
+ManifestVersion: 1.6.0
