@@ -65,6 +65,15 @@
       "hardenedRuntime": true,
       "notarize": true
     },
+    "dmg": {
+      "title": "Drafting ${version}",
+      "window": { "width": 540, "height": 380 },
+      "iconSize": 108,
+      "contents": [
+        { "x": 150, "y": 190, "type": "file" },
+        { "x": 390, "y": 190, "type": "link", "path": "/Applications" }
+      ]
+    },
     "win": {
       "target": "nsis"
     },

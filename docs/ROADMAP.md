@@ -71,15 +71,15 @@ CHANGELOG 참조. 아래는 **예정**.
 - **프로젝트 완전 내보내기·가져오기 (스냅샷 이동)** — 전체 상태 무손실 `.drafting` 번들(문서 체인·항목·제안 상태·
   근거/링크·섹션·이력·설정) export/import. 계정·서버 없이 기기 간 작업 이동(로컬-퍼스트, 멀티 디바이스의 실용 대안).
   ⚠️ BYOK 키는 번들 제외. 라운드트립 1:1 재현이 핵심.
-- **인앱 CLI 구독 로그인 (PTY 온보딩)** — 앱에서 `claude /login` 을 유사터미널(node-pty)로 유도(coxpit-oss 계보).
-  ⚠️ 미서명/격리 설치의 키체인 거부까지 고친다는 보장은 없음(정식 인스톨러가 그 케이스의 정답) → 일반 온보딩 편의로. 설계 노트만.
+- **인앱 CLI 구독 로그인 (PTY 온보딩)** — ✅ 설계 노트 완료(`Docs/spec/inapp-cli-login-spec.md`). 구현 보류(2안).
+  ⚠️ 미서명/격리 설치의 키체인 거부까지 고친다는 보장은 없음(정식 인스톨러가 그 케이스의 정답) → 일반 온보딩 편의로.
 - **시안 외부 확장 (D · 다운스트림 위임)** — 구조/시안 스펙을 v0·피그마·코딩 에이전트로 내보내 고급 시안/코드 생성.
   Drafting 은 기획·구조 SSOT 로. (설계: `Docs/spec/wireframe-mockup-spec.md`)
 
 ### 📦 배포·패키징
 
-- **DMG 인스톨러 브랜딩** — `desktop/package.json` `build.mac` 에 `dmg` 블록(배경 이미지 + 좌표). 브랜딩 자산 확정 시.
-- **Homebrew cask / winget** 등록.
+- **DMG 인스톨러 브랜딩** — ✅ `build.dmg` 블록 추가(창 크기·아이콘 좌표, 다음 릴리스 적용). 남은 것: 브랜딩 배경 이미지(오너 자산) → `build.dmg.background`.
+- **Homebrew cask / winget** — ✅ 스캐폴드 추가(`packaging/`: cask `.rb` + winget yaml + 오너 가이드). 남은 것: 오너 tap repo·PR(계정 필요).
 
 ---
 
