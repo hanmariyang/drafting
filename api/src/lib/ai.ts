@@ -38,9 +38,20 @@ export function getModelConfig(docType: DocumentType): ModelConfig {
   };
   const merged = { ...base, ...(stored.default ?? {}), ...(stored[docType] ?? {}) };
   if (!merged.provider) merged.provider = base.provider;
-  if (!merged.model) merged.model = DEFAULT_MODELS[merged.provider];
+  // 모델 미지정 시: 게이트웨이가 설정돼 있으면 그 게이트웨이가 제공하는 첫 모델을 기본값으로
+  // (하드코딩 claude 기본값은 게이트웨이 키가 접근 못 해 거부되는 전형을 방지).
+  if (!merged.model) merged.model = gatewayDefaultModel(merged.provider) ?? DEFAULT_MODELS[merged.provider];
   if (!merged.maxTokens) merged.maxTokens = 8192;
   return merged as ModelConfig;
+}
+
+/** 게이트웨이(openai_base_url) 가 설정된 openai/openrouter 면 그 게이트웨이의 첫 모델을 반환. */
+function gatewayDefaultModel(provider: ProviderId): string | null {
+  if (provider !== 'openai' && provider !== 'openrouter') return null;
+  const base = getSetting<string>('openai_base_url') || '';
+  if (!base) return null; // 표준 provider — 하드코딩 기본 모델 유지
+  const models = getSetting<string[]>('openai_models') ?? [];
+  return models.length ? models[0] : null;
 }
 
 // ── prompt construction ──────────────────────────────────────────────────────
