@@ -219,9 +219,13 @@
     <p class="sect-label" data-i18n="qs.label">Quickstart</p>
     <h2 data-i18n="qs.h2">Self-hosted in a minute.</h2>
     <p class="lead" data-i18n="qs.lead">Your documents live in a local SQLite file — no accounts, no cloud. The desktop app needs no key; the server uses BYOK.</p>
-    <pre class="code"><span class="c"># fastest — prebuilt image, nothing to build</span>
+    <pre class="code"><span class="c"># fastest — run from npm, opens in your browser</span>
+<span class="c"># runs in your terminal, so the Claude Code subscription and env-var keys just work</span>
+<span class="p">$</span> npx @hanmariyang/drafting serve
+<span class="c"># → http://localhost:8477</span>
+
+<span class="c"># prebuilt server image</span>
 <span class="p">$</span> docker run -p 8477:8080 -v drafting:/data ghcr.io/hanmariyang/drafting:latest
-<span class="c"># open http://localhost:8477</span>
 
 <span class="c"># or from source</span>
 <span class="p">$</span> git clone https://github.com/hanmariyang/drafting && cd drafting && docker compose up -d</pre>
@@ -326,7 +330,7 @@
     'hf.c4p':{en:'Your Claude subscription (no key), a BYOK key, or an OpenAI-compatible gateway like LiteLLM for teams.',ko:'Claude 구독(키 불필요), BYOK 키, 또는 팀용 OpenAI 호환 게이트웨이(LiteLLM 등).'},
     'qs.label':{en:'Quickstart',ko:'시작하기'},
     'qs.h2':{en:'Self-hosted in a minute.',ko:'1분이면 셀프호스트.'},
-    'qs.lead':{en:'Your documents live in a local SQLite file — no accounts, no cloud. The desktop app needs no key; the server uses BYOK.',ko:'문서는 로컬 SQLite 파일에 남습니다 — 계정도, 클라우드도 없이. 데스크톱 앱은 키가 필요 없고, 서버는 BYOK 를 씁니다.'},
+    'qs.lead':{en:'Your documents live in a local SQLite file — no accounts, no cloud. Run it from your terminal with npx and the Claude Code subscription (or env-var keys) works out of the box.',ko:'문서는 로컬 SQLite 파일에 남습니다 — 계정도, 클라우드도 없이. npx 로 터미널에서 실행하면 Claude Code 구독(또는 env 키)이 별도 설정 없이 바로 동작합니다.'},
     'dl.label':{en:'Download',ko:'다운로드'},
     'dl.h2':{en:'Desktop app.',ko:'데스크톱 앱.'},
     'dl.lead':{en:'The document workspace as a native window — same self-hosted core inside.',ko:'문서 워크스페이스를 네이티브 창으로. 안에는 같은 셀프호스트 코어가 돕니다.'},
