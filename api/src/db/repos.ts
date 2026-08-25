@@ -759,20 +759,37 @@ export function upsertApiKey(provider: ProviderId, plaintextKey: string, label =
   return getKeyMeta(provider)!;
 }
 
+/** 터미널/CLI 모드: 표준 env 이름으로 BYOK 키 주입(dev 도구처럼). 마법사·암호화DB 불필요. */
+export function envKey(provider: ProviderId): string | null {
+  const e = process.env;
+  if (provider === 'anthropic') return e.ANTHROPIC_API_KEY || null;
+  if (provider === 'openrouter') return e.OPENROUTER_API_KEY || null;
+  if (provider === 'openai') return e.OPENAI_API_KEY || e.LITELLM_API_KEY || null;
+  return null;
+}
+function envKeyMeta(provider: ProviderId): KeyMeta | null {
+  const k = envKey(provider);
+  if (!k) return null;
+  return { id: 'env', provider, label: 'env', last4: k.slice(-4), created_at: '', updated_at: '' } as KeyMeta;
+}
+
 export function getKeyMeta(provider: ProviderId): KeyMeta | null {
-  return (db()
-    .prepare(
-      'SELECT id, provider, label, last4, created_at, updated_at FROM api_keys WHERE provider = ?',
-    )
-    .get(provider) as KeyMeta | undefined) ?? null;
+  const row = db()
+    .prepare('SELECT id, provider, label, last4, created_at, updated_at FROM api_keys WHERE provider = ?')
+    .get(provider) as KeyMeta | undefined;
+  return row ?? envKeyMeta(provider); // DB 없으면 env 폴백
 }
 
 export function listKeyMeta(): KeyMeta[] {
-  return db()
-    .prepare(
-      'SELECT id, provider, label, last4, created_at, updated_at FROM api_keys ORDER BY provider',
-    )
+  const rows = db()
+    .prepare('SELECT id, provider, label, last4, created_at, updated_at FROM api_keys ORDER BY provider')
     .all() as unknown as KeyMeta[];
+  const have = new Set(rows.map((r) => r.provider));
+  const fromEnv = (['anthropic', 'openai', 'openrouter'] as ProviderId[])
+    .filter((p) => !have.has(p))
+    .map(envKeyMeta)
+    .filter((x): x is KeyMeta => !!x);
+  return [...rows, ...fromEnv];
 }
 
 /** Decrypt and return the raw key for a provider (server-internal use only). */
@@ -782,13 +799,8 @@ export function getDecryptedKey(provider: ProviderId): string | null {
     .get(provider) as
     | { ciphertext: string; iv: string; auth_tag: string }
     | undefined;
-  if (!row) return null;
-  const sealed: Sealed = {
-    ciphertext: row.ciphertext,
-    iv: row.iv,
-    authTag: row.auth_tag,
-  };
-  return open(sealed);
+  if (row) return open({ ciphertext: row.ciphertext, iv: row.iv, authTag: row.auth_tag });
+  return envKey(provider); // DB 없으면 env-var 폴백 (터미널/CLI 모드)
 }
 
 export function deleteApiKey(provider: ProviderId): void {
