@@ -30,3 +30,11 @@
 - 대상 = 터미널 쓰는 개발자(= Drafting 타깃과 정합). 데스크톱 앱은 비개발자용으로 병존.
 - 이 저장소 머신엔 GUI claude 도 되므로 "GUI 실패를 고친다"는 각 사용자 환경에서 최종 확인 권장 —
   다만 터미널 경로가 두 엔진 모두 동작함은 실측됨(원리상 그 GUI 키체인 실패를 우회).
+
+## npm 배포 준비 (실측 완료)
+
+- 이름: `@hanmariyang/drafting`(스코프드 — `drafting` 은 선점됨). bin 명령은 `drafting`.
+- `private` 해제 + `publishConfig.access=public` + 런타임 deps 를 루트로 hoist(fastify·@fastify/*·zod·nanoid·marked) + `prepublishOnly` 빌드.
+- bin 이 `DRAFTING_ROOT` 를 패키지 루트로 설정 → 설치본에서 db/schema·web/dist·templates 해석.
+- 실측: `npm pack`(204K) → 임시 설치 → `drafting serve` → 서버 기동·SPA/JS 서빙·엔진(cli) 정상.
+- 남은 것(오너): `npm login` 후 `npm publish`. 그러면 `npx @hanmariyang/drafting serve` 로 누구나 실행.
