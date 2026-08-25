@@ -23,7 +23,8 @@ const flag = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1]
 const noOpen = args.includes('--no-open');
 
 const here = dirname(fileURLToPath(import.meta.url));
-const entry = join(here, '..', 'api', 'dist', 'index.js');
+const pkgRoot = join(here, '..'); // 설치본 루트 — db/schema.sql·web/dist·api/templates 해석 기준
+const entry = join(pkgRoot, 'api', 'dist', 'index.js');
 if (!existsSync(entry)) {
   console.error(`빌드 산출물이 없습니다: ${entry}\n먼저 'npm run build' 하세요.`);
   process.exit(1);
@@ -42,6 +43,7 @@ if (!encKey) {
 
 const env = {
   ...process.env,
+  DRAFTING_ROOT: process.env.DRAFTING_ROOT || pkgRoot,
   PORT: port,
   HOST: process.env.HOST || '127.0.0.1',
   DATABASE_PATH: process.env.DATABASE_PATH || join(dataDir, 'drafting.sqlite'),

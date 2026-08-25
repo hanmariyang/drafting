@@ -1,9 +1,21 @@
 {
-  "name": "drafting",
-  "version": "1.6.0",
-  "private": true,
-  "description": "AI Planning Workspace — self-hosted, BYOK. Draft PRDs & feature specs via staged AI interviews.",
+  "name": "@hanmariyang/drafting",
+  "version": "1.6.1",
+  "description": "AI Planning Workspace — self-hosted, BYOK. Draft PRDs & feature specs via staged AI interviews. Run: npx @hanmariyang/drafting serve",
   "license": "MIT",
+  "homepage": "https://github.com/hanmariyang/drafting",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hanmariyang/drafting.git"
+  },
+  "keywords": [
+    "prd",
+    "planning",
+    "ai",
+    "product",
+    "self-hosted",
+    "byok"
+  ],
   "bin": {
     "drafting": "bin/drafting.mjs"
   },
@@ -14,6 +26,9 @@
     "db/schema.sql",
     "web/dist/"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "workspaces": [
     "api",
     "web"
@@ -24,7 +39,16 @@
     "dev:web": "npm run dev --workspace web",
     "build": "npm run build --workspace web && npm run build --workspace api",
     "start": "node api/dist/index.js",
-    "test": "npm run test --workspace api"
+    "test": "npm run test --workspace api",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.3",
+    "fastify": "^5.2.0",
+    "marked": "^15.0.4",
+    "nanoid": "^5.0.9",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
