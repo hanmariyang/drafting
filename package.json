@@ -1,9 +1,19 @@
 {
   "name": "drafting",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "description": "AI Planning Workspace — self-hosted, BYOK. Draft PRDs & feature specs via staged AI interviews.",
   "license": "MIT",
+  "bin": {
+    "drafting": "bin/drafting.mjs"
+  },
+  "files": [
+    "bin/",
+    "api/dist/",
+    "api/templates/",
+    "db/schema.sql",
+    "web/dist/"
+  ],
   "workspaces": [
     "api",
     "web"

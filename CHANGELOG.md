@@ -2,6 +2,16 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.0
+
+- **터미널 모드 (`drafting serve`) + env-var BYOK** — 구독·BYOK 셋업 문제를 한 번에 푸는 실행 방식.
+  서버를 터미널에서 띄우면 "터미널 프로세스" 컨텍스트로 돌아: **구독(CLI)**은 이 터미널의 claude 키체인/PATH 를 그대로
+  써서 GUI 앱의 키체인 거부를 우회하고, **BYOK**는 `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`(+`OPENAI_BASE_URL`)/
+  `OPENROUTER_API_KEY`/`LITELLM_API_KEY` 를 마법사 없이 인식한다(dev 도구처럼).
+  - `bin/drafting.mjs`(package.json bin) — 데몬 기동 + 브라우저 오픈, APP_ENCRYPTION_KEY 자동 생성·보관.
+  - 키 해석에 env 폴백(getDecryptedKey/getKeyMeta/listKeyMeta) — env 키도 keysConfigured 에 잡힘.
+  - 실측: 터미널 서버로 구독(CLI) 21KB · env BYOK 7KB 시안 생성 성공. 설계 Docs/spec/terminal-mode-spec.md.
+
 ## 1.5.1
 
 - **구독(CLI) 실패 안내 개선** — 빨간 원문만 뜨던 것을 "왜 안 되는지 + 무엇을 하라"로. 원인별(미설치·로그인/키체인·조직차단·타임아웃)
