@@ -2,6 +2,11 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.2
+
+- **npm 자동 배포 활성** — 태그 시 릴리스 CI 가 `@hanmariyang/drafting` 를 npm 에 publish.
+  이제 `npx @hanmariyang/drafting serve` 로 설치 없이 터미널에서 바로 실행(구독·env BYOK 둘 다).
+
 ## 1.6.0
 
 - **터미널 모드 (`drafting serve`) + env-var BYOK** — 구독·BYOK 셋업 문제를 한 번에 푸는 실행 방식.
