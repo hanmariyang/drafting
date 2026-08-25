@@ -44,3 +44,20 @@ export async function probeGateway(
   }
   return null;
 }
+
+/** OpenRouter 공개 모델 목록 — 표준 OpenRouter(BYOK) 사용 시 드롭다운 채우기용.
+ *  listing 은 인증 불필요(키 있으면 계정 반영). 실패 시 빈 배열. */
+export async function fetchOpenRouterModels(key?: string): Promise<string[]> {
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: key ? { authorization: `Bearer ${key}` } : {},
+    });
+    if (!res.ok) return [];
+    const j = (await res.json()) as { data?: Array<{ id?: unknown }> };
+    return Array.isArray(j?.data)
+      ? j.data.map((m) => m?.id).filter((x): x is string => typeof x === 'string' && x.length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}

@@ -8,6 +8,7 @@ import {
   type DocumentType,
 } from '../lib/api.ts';
 import { useMeta } from '../App.tsx';
+import { cliHelp } from '../lib/cliHelp.ts';
 import { AppShell } from '../components/AppShell.tsx';
 import { AppName } from '../components/AppName.tsx';
 import { getOpenMode, setOpenMode, type OpenMode } from '../lib/newPlan.ts';
@@ -32,13 +33,17 @@ export function Settings() {
   const [savedMsg, setSavedMsg] = useState('');
   const [openMode, setOpenModeState] = useState<OpenMode>(getOpenMode());
   const [cliStatus, setCliStatus] = useState('');
+  const [cliFail, setCliFail] = useState('');
   const [binPath, setBinPath] = useState('');
   const [binMsg, setBinMsg] = useState('');
   const [gwUrl, setGwUrl] = useState('');
   const [gwHeaders, setGwHeaders] = useState('');
   const [gwMsg, setGwMsg] = useState('');
   const [gwModels, setGwModels] = useState<string[]>([]);
+  const [orModels, setOrModels] = useState<string[]>([]);
   const [restoreMsg, setRestoreMsg] = useState('');
+  // 게이트웨이 + OpenRouter 모델을 합쳐 모델 칸 자동완성으로 (중복 제거)
+  const allModels = Array.from(new Set([...gwModels, ...orModels]));
 
   async function loadKeys() {
     setKeys(await api.keys());
@@ -56,6 +61,12 @@ export function Settings() {
       api.openaiModels().then((r) => setGwModels(r.models ?? [])).catch(() => {});
     }
   }, [meta?.openaiBaseUrl]);
+  // OpenRouter 키가 등록돼 있으면 사용 가능한 모델 목록을 불러온다(표준 OpenRouter BYOK).
+  useEffect(() => {
+    if (keys.some((k) => k.provider === 'openrouter')) {
+      api.openrouterModels().then((r) => setOrModels(r.models ?? [])).catch(() => {});
+    }
+  }, [keys]);
 
   // "Name: value" 한 줄씩 → 헤더 객체
   function parseHeaders(text: string): Record<string, string> {
@@ -215,14 +226,38 @@ export function Settings() {
                 className="btn"
                 onClick={async () => {
                   setCliStatus('테스트 중…');
-                  const r = await api.testCli();
-                  setCliStatus(r.ok ? `연결 성공 · ${r.detail ?? ''}` : `실패 · ${r.detail ?? ''}`);
+                  setCliFail('');
+                  try {
+                    const r = await api.testCli();
+                    if (r.ok) setCliStatus('연결 성공 · 구독 엔진 사용 가능');
+                    else { setCliStatus(''); setCliFail(r.detail || '연결 실패'); }
+                  } catch (e) {
+                    setCliStatus(''); setCliFail((e as Error).message || '연결 실패');
+                  }
                 }}
               >
                 CLI 테스트
               </button>
               {cliStatus && <span className="muted" style={{ fontSize: 12 }}>{cliStatus}</span>}
             </div>
+            {cliFail && (
+              <div className="cli-help" role="alert">
+                <b>구독(CLI) 연결 실패 — {cliHelp(cliFail).cause}</b>
+                <p>{cliHelp(cliFail).action}</p>
+                <div className="cli-help-acts">
+                  <button
+                    className="btn ok sm"
+                    onClick={async () => { await api.setAiMode('byok'); setCliFail(''); await reload(); }}
+                  >
+                    API 키(BYOK)로 전환
+                  </button>
+                  <details>
+                    <summary>원문 보기</summary>
+                    <code>{cliFail}</code>
+                  </details>
+                </div>
+              </div>
+            )}
             <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
               <span className="muted" style={{ fontSize: 12, width: '100%' }}>
                 {meta?.cliBin
@@ -382,9 +417,16 @@ export function Settings() {
               </div>
             )}
           </div>
-          {gwModels.length > 0 && (
+          {orModels.length > 0 && (
+            <div className="row">
+              <span className="muted" style={{ fontSize: 12 }}>
+                OpenRouter 사용 가능 모델 {orModels.length}개 · 아래 모델 칸에서 드롭다운으로 고르세요.
+              </span>
+            </div>
+          )}
+          {allModels.length > 0 && (
             <datalist id="gw-models">
-              {gwModels.map((m) => (
+              {allModels.map((m) => (
                 <option key={m} value={m} />
               ))}
             </datalist>
@@ -415,10 +457,10 @@ export function Settings() {
                   </select>
                   <input
                     className="field grow"
-                    list={gwModels.length ? 'gw-models' : undefined}
+                    list={allModels.length ? 'gw-models' : undefined}
                     placeholder={
-                      gwModels.length
-                        ? '게이트웨이 모델에서 선택'
+                      allModels.length
+                        ? '목록에서 선택하거나 직접 입력'
                         : '모델 id (예: anthropic/claude-sonnet-4.6)'
                     }
                     value={(entry.model as string) ?? ''}

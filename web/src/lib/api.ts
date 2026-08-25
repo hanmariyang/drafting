@@ -342,6 +342,7 @@ export const api = {
   // 저장된 게이트웨이에서 모델 목록 재조회 (드롭다운)
   openaiModels: () =>
     req<{ models: string[]; baseUrl: string }>('/api/settings/openai-models'),
+  openrouterModels: () => req<{ models: string[] }>('/api/settings/openrouter-models'),
   testCli: () =>
     req<{ ok: boolean; blocked?: boolean; detail?: string }>('/api/settings/cli/test', {
       method: 'POST',
