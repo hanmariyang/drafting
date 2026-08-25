@@ -6,7 +6,7 @@ import { config } from '../lib/config.ts';
 import { aiMode } from '../providers/index.ts';
 import { cliAvailable, resolveCliBin, resetCliBinCache, verifyCliAccess } from '../providers/cli.ts';
 import { getDecryptedKey } from '../db/repos.ts';
-import { probeGateway } from '../lib/gateway.ts';
+import { probeGateway, fetchOpenRouterModels } from '../lib/gateway.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
 
@@ -103,6 +103,13 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // 저장된 게이트웨이 base + openai 키로 모델 목록 재조회 (드롭다운 새로고침·마운트용)
+  // 표준 OpenRouter(BYOK) 모델 목록 — 공개 /models(키 있으면 반영). 드롭다운용.
+  app.get('/api/settings/openrouter-models', async () => {
+    const key = getDecryptedKey('openrouter') ?? undefined;
+    const models = await fetchOpenRouterModels(key);
+    return { models };
+  });
+
   app.get('/api/settings/openai-models', async () => {
     const base = repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '';
     const key = getDecryptedKey('openai');

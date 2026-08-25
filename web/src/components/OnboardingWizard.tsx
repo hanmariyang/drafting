@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, type KeyInfo, type ProviderId } from '../lib/api.ts';
 import { useMeta } from '../App.tsx';
+import { cliHelp } from '../lib/cliHelp.ts';
 import { AppName } from './AppName.tsx';
 import { Choani } from './Choani.tsx';
 
@@ -81,12 +82,8 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
       if (!res.ok) {
         setCliNotice('');
         setStep(1);
-        setStatus((s) => ({
-          ...s,
-          _cli: res.blocked
-            ? `이 계정은 Claude Code 접근이 막혀 있어요 (조직 차단 가능). API 키를 등록하거나 개인 구독 계정으로 로그인하세요. · ${res.detail ?? ''}`
-            : `Claude Code 로 생성할 수 없어요. API 키를 등록하세요. · ${res.detail ?? ''}`,
-        }));
+        const help = cliHelp(res.detail ?? '');
+        setStatus((s) => ({ ...s, _cli: `${help.cause} — ${help.action}` }));
         return;
       }
       await api.setAiMode('cli');
@@ -95,7 +92,8 @@ export function OnboardingWizard({ onDone }: { onDone: () => Promise<void> }) {
     } catch (e) {
       setCliNotice('');
       setStep(1);
-      setStatus((s) => ({ ...s, _cli: `확인 실패 · ${(e as Error).message}` }));
+      const help = cliHelp((e as Error).message);
+      setStatus((s) => ({ ...s, _cli: `${help.cause} — ${help.action}` }));
     } finally {
       setBusy(false);
     }
