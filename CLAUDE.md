@@ -15,6 +15,8 @@ Single repo: `api/` (Fastify, Node ≥ 22, `node:sqlite`, SSE streaming) + `web/
 
 All AI calls go through `api/src/providers/` (`resolveProvider` is the single gate). `AI_STUB=1` gives a deterministic offline provider for tests/demo.
 
+**MCP server** (`api/src/mcp.ts`, stdio): `npm run mcp` — 8 tools for agent access (project/document/section create, read, compile lint report, markdown export). In-process on the same `DATABASE_PATH`; no HTTP server needed.
+
 ## Development
 
 ```bash
