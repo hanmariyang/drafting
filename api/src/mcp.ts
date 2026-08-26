@@ -1,0 +1,153 @@
+// Drafting MCP 서버 (stdio) — 에이전트가 앱 밖에서 기획 문서를 만들고 내보내는 통로.
+// 실행: npm run mcp 또는 node --experimental-strip-types api/src/mcp.ts
+// DB 는 서버와 동일한 config.databasePath (환경변수 DATABASE_PATH 로 교체 가능).
+// 모든 도구는 서비스 계층 직결(in-process) — HTTP 서버 없이 단독 동작한다.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
+import { config } from './lib/config.ts';
+import { getDb } from './db/index.ts';
+import * as repo from './db/repos.ts';
+import { documentToMarkdown } from './lib/render.ts';
+import { lintReport } from './lib/lint-service.ts';
+import type { DocumentType } from './lib/types.ts';
+
+const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system'] as const;
+
+function json(data: unknown) {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 1) }] };
+}
+
+function fail(message: string) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify({ error: message }) }],
+    isError: true,
+  };
+}
+
+function docSummary(d: { id: string; type: string; title: string; status: string }) {
+  return { id: d.id, type: d.type, title: d.title, status: d.status };
+}
+
+export function buildMcpServer(): McpServer {
+  const server = new McpServer({ name: 'drafting', version: config.version ?? '0.0.0' });
+
+  server.tool(
+    'drafting-list-projects',
+    '기획 프로젝트 목록을 반환한다.',
+    {},
+    () => json({ projects: repo.listProjects().map((p) => ({ id: p.id, name: p.name, description: p.description })) }),
+  );
+
+  server.tool(
+    'drafting-create-project',
+    '새 기획 프로젝트를 만든다. 반환된 id 로 문서를 추가한다.',
+    { name: z.string().min(1).describe('프로젝트 이름'), description: z.string().optional() },
+    ({ name, description }) => {
+      const p = repo.createProject(name, description ?? '');
+      return json({ id: p.id, name: p.name });
+    },
+  );
+
+  server.tool(
+    'drafting-list-documents',
+    '프로젝트의 문서 목록(id·type·title·status)을 반환한다.',
+    { projectId: z.string() },
+    ({ projectId }) => {
+      if (!repo.getProject(projectId)) return fail('project not found');
+      return json({ documents: repo.listDocuments(projectId).map(docSummary) });
+    },
+  );
+
+  server.tool(
+    'drafting-create-document',
+    '프로젝트에 기획 문서를 만든다. type: prd | feature-spec | ia | user-flow | design-system. 내용은 drafting-add-section 으로 채운다.',
+    {
+      projectId: z.string(),
+      type: z.enum(DOC_TYPES),
+      title: z.string().min(1),
+      parentDocumentId: z.string().optional().describe('파생 문서일 때 부모 문서 id'),
+    },
+    ({ projectId, type, title, parentDocumentId }) => {
+      if (!repo.getProject(projectId)) return fail('project not found');
+      if (parentDocumentId && !repo.getDocument(parentDocumentId)) return fail('parent document not found');
+      const d = repo.createDocument({
+        projectId,
+        type: type as DocumentType,
+        title,
+        parentDocumentId: parentDocumentId ?? null,
+      });
+      return json(docSummary(d));
+    },
+  );
+
+  server.tool(
+    'drafting-add-section',
+    '문서에 섹션(heading + 마크다운 body)을 순서대로 추가한다. 추가 즉시 수락 상태로 문서 본문이 된다.',
+    {
+      documentId: z.string(),
+      heading: z.string().min(1).describe('섹션 제목 (## 레벨)'),
+      body: z.string().min(1).describe('섹션 본문 마크다운'),
+    },
+    ({ documentId, heading, body }) => {
+      if (!repo.getDocument(documentId)) return fail('document not found');
+      const s = repo.createSection(documentId, heading, body);
+      return json({ id: s.id, position: s.position, heading: s.heading });
+    },
+  );
+
+  server.tool(
+    'drafting-read-document',
+    '문서 전체(섹션 포함)를 마크다운으로 반환한다.',
+    { documentId: z.string() },
+    ({ documentId }) => {
+      const d = repo.getDocument(documentId);
+      if (!d) return fail('document not found');
+      return json({ ...docSummary(d), markdown: documentToMarkdown(documentId) });
+    },
+  );
+
+  server.tool(
+    'drafting-compile',
+    '기획 컴파일 — 프로젝트의 참조 무결성 검사(lint) 리포트를 반환한다. gatePasses 가 true 면 출하 가능.',
+    { projectId: z.string() },
+    ({ projectId }) => {
+      if (!repo.getProject(projectId)) return fail('project not found');
+      const r = lintReport(projectId);
+      return json({
+        effectiveCount: r.effectiveCount,
+        waivedCount: r.waivedCount,
+        gatePasses: r.gatePasses,
+        violations: r.violations.filter((v) => !v.waived).slice(0, 20),
+      });
+    },
+  );
+
+  server.tool(
+    'drafting-export',
+    '문서를 마크다운 파일로 내보낸다. 데이터 폴더의 exports/ 에 쓰고 절대 경로를 반환한다.',
+    { documentId: z.string() },
+    ({ documentId }) => {
+      const d = repo.getDocument(documentId);
+      if (!d) return fail('document not found');
+      const dir = path.join(path.dirname(config.databasePath), 'exports');
+      fs.mkdirSync(dir, { recursive: true });
+      const slug = d.title.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'document';
+      const file = path.join(dir, `${slug}-${d.id.slice(0, 6)}.md`);
+      fs.writeFileSync(file, documentToMarkdown(documentId), 'utf8');
+      return json({ path: file, sections: repo.listSections(documentId).length });
+    },
+  );
+
+  return server;
+}
+
+// stdio 엔트리 (테스트에서 import 만 할 때는 붙지 않도록 가드)
+if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
+  getDb(); // 스키마 부트스트랩
+  const server = buildMcpServer();
+  await server.connect(new StdioServerTransport());
+}

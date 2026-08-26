@@ -40,7 +40,8 @@
     "build": "npm run build --workspace web && npm run build --workspace api",
     "start": "node api/dist/index.js",
     "test": "npm run test --workspace api",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "mcp": "node --experimental-strip-types api/src/mcp.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
