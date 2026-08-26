@@ -1,5 +1,7 @@
 # Drafting — AI 기획 워크스페이스
 
+> 📓 **Build log** · how this was built, on the [AIP Lab blog](https://aiplab.kr/blog/drafting-terminal-mode.html).
+
 > IT 기획자·PM이 **단계별 AI 인터뷰**로 PRD·기능명세서 같은 기획 문서를 빠르게 완성하는
 > **셀프호스팅 오픈소스** 도구. 자신의 AI 키를 연결(BYOK)해 로컬/서버에 설치하고, 결과물을
 > MD·HTML로 팀·클라이언트와 공유한다.
