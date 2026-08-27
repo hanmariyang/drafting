@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useFocusRefetch } from '../lib/useFocusRefetch.ts';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   api,
@@ -95,6 +96,14 @@ export function StructureWorkspace({ doc: initialDoc }: { doc: DocumentModel }) 
         })
         .catch(() => {});
   }, [docId, pid, reload, loadCrossRefs]);
+
+  useFocusRefetch(() => {
+    if (pid)
+      api.getProject(pid).then((p2) => {
+        setProject(p2);
+        loadCrossRefs(p2.documents);
+      }).catch(() => {});
+  });
 
   useEffect(() => {
     loadAll().catch((e) => setError((e as Error).message));

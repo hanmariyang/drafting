@@ -2,6 +2,15 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.5
+
+- Fix: structure-type documents authored as prose sections (external MCP writers)
+  now open in the section editor instead of an empty structure view (#91).
+- New: window-focus refetch — documents written by external processes (e.g.
+  Grouping) appear without restarting the app (#92).
+- MCP: `drafting-export-project` — whole-chain markdown bundle; non-PRD documents
+  now require `parentDocumentId` (document-chain enforcement, 1.6.4).
+
 ## 1.6.4
 
 - **fix(nav): 같은 타입 문서를 전부 표시** (#88) — 프로젝트에 동일 `type` 문서가 2개 이상일 때

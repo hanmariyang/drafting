@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useFocusRefetch } from '../lib/useFocusRefetch.ts';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, type DocumentModel, type HubSnapshot, type DocRollup } from '../lib/api.ts';
 import { AppShell } from '../components/AppShell.tsx';
@@ -41,6 +42,8 @@ export function Hub() {
     setProject(p);
     setHub(h);
   }, [pid]);
+
+  useFocusRefetch(() => void load().catch(() => {}));
 
   useEffect(() => {
     load().catch(() => {});

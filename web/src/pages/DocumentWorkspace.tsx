@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useFocusRefetch } from '../lib/useFocusRefetch.ts';
 import { useParams, Link } from 'react-router-dom';
 import {
   api,
@@ -104,6 +105,10 @@ export function DocumentWorkspace() {
     setTemplate(iv.template);
     if (pid) api.getProject(pid).then(setProject).catch(() => {});
   }, [docId, pid]);
+
+  useFocusRefetch(() => {
+    if (pid) api.getProject(pid).then(setProject).catch(() => {});
+  });
 
   useEffect(() => {
     loadAll().catch((e) => setError((e as Error).message));
