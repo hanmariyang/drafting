@@ -2,6 +2,14 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.6
+
+- MCP: `drafting-add-item` / `drafting-list-items` — structure documents
+  (feature-spec, IA, user-flow) are now authored as real plan items with
+  server-assigned refs (F-01…), so compile lint checks real content.
+- MCP-authored documents are promoted like app-authored ones
+  (draft → ready, version >= 1) once content lands (#92 follow-up).
+
 ## 1.6.5
 
 - Fix: structure-type documents authored as prose sections (external MCP writers)

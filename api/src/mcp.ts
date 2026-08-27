@@ -28,6 +28,16 @@ function fail(message: string) {
   };
 }
 
+/** MCP 로 콘텐츠가 실린 문서를 앱 작성분과 동일하게 승격한다(draft → ready, version >= 1). */
+function promoteDocument(id: string): void {
+  const d = repo.getDocument(id);
+  if (!d) return;
+  if (d.status === 'draft') repo.setDocumentStatus(id, 'ready');
+  if (d.version === 0) {
+    getDb().prepare('UPDATE documents SET version = 1 WHERE id = ? AND version = 0').run(id);
+  }
+}
+
 function docSummary(d: { id: string; type: string; title: string; status: string }) {
   return { id: d.id, type: d.type, title: d.title, status: d.status };
 }
@@ -101,7 +111,47 @@ export function buildMcpServer(): McpServer {
     ({ documentId, heading, body }) => {
       if (!repo.getDocument(documentId)) return fail('document not found');
       const s = repo.createSection(documentId, heading, body);
+      promoteDocument(documentId); // 앱 작성분과 동일한 상태로(#92 후속)
       return json({ id: s.id, position: s.position, heading: s.heading });
+    },
+  );
+
+  server.tool(
+    'drafting-add-item',
+    '구조 문서(feature-spec·ia·user-flow)에 실제 구조 항목을 추가한다 — 기능명세는 feature-group(기능군)→feature(개별 기능, F-nn 자동 채번), IA 는 page, 유저플로우는 flow→step. ref 번호는 서버가 채번한다. 산문 섹션이 아니라 이 항목들이 기획 컴파일(참조 무결성)의 검사 대상이다.',
+    {
+      documentId: z.string(),
+      kind: z.enum(['feature-group', 'feature', 'page', 'flow', 'step']),
+      title: z.string().min(1),
+      body: z.string().optional().describe('설명·수용 기준 등 마크다운'),
+      parentItemId: z.string().optional().describe('feature 는 feature-group, step 은 flow 의 항목 id'),
+    },
+    ({ documentId, kind, title, body, parentItemId }) => {
+      const d = repo.getDocument(documentId);
+      if (!d) return fail('document not found');
+      const item = repo.createItem({
+        documentId,
+        kind,
+        title,
+        body: body ?? '',
+        parentId: parentItemId ?? null,
+        status: 'accepted',
+      });
+      promoteDocument(documentId);
+      return json({ id: item.id, ref: item.ref_id, kind: item.kind, title: item.title });
+    },
+  );
+
+  server.tool(
+    'drafting-list-items',
+    '구조 문서의 항목 트리(ref·kind·title·parent)를 반환한다.',
+    { documentId: z.string() },
+    ({ documentId }) => {
+      if (!repo.getDocument(documentId)) return fail('document not found');
+      const items = repo.listItems(documentId).map((i) => ({
+        id: i.id, ref: i.ref_id, kind: i.kind, title: i.title, parent: i.parent_id,
+      }));
+      return json({ items });
     },
   );
 
