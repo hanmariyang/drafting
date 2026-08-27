@@ -73,6 +73,12 @@ export function buildMcpServer(): McpServer {
     },
     ({ projectId, type, title, parentDocumentId }) => {
       if (!repo.getProject(projectId)) return fail('project not found');
+      // 문서 체인 강제: PRD 외 문서는 부모에서 파생된다 (interview → PRD → feature-spec → IA → user-flow).
+      if (type !== 'prd' && !parentDocumentId) {
+        return fail(
+          `'${type}' 문서는 parentDocumentId 가 필요합니다 — 문서 체인(PRD → feature-spec → IA → user-flow)을 따라 이전 문서에서 파생시키세요.`,
+        );
+      }
       if (parentDocumentId && !repo.getDocument(parentDocumentId)) return fail('parent document not found');
       const d = repo.createDocument({
         projectId,
