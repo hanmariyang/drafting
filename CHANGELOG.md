@@ -2,6 +2,12 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.7
+
+- MCP: structure documents (feature-spec, IA, user-flow) now reject prose
+  sections — items are the canonical content. Prose stays for prd/handoff.
+- MCP: `handoff` document type (dev handoff spec) can be created directly.
+
 ## 1.6.6
 
 - MCP: `drafting-add-item` / `drafting-list-items` — structure documents

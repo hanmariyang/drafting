@@ -15,7 +15,7 @@ import { documentToMarkdown } from './lib/render.ts';
 import { lintReport } from './lib/lint-service.ts';
 import type { DocumentType } from './lib/types.ts';
 
-const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system'] as const;
+const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system', 'handoff'] as const;
 
 function json(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 1) }] };
@@ -74,7 +74,7 @@ export function buildMcpServer(): McpServer {
 
   server.tool(
     'drafting-create-document',
-    '프로젝트에 기획 문서를 만든다. type: prd | feature-spec | ia | user-flow | design-system. 내용은 drafting-add-section 으로 채운다.',
+    '프로젝트에 기획 문서를 만든다. type: prd | feature-spec | ia | user-flow | design-system | handoff(개발지시서). 산문(prd·handoff)은 add-section, 구조(feature-spec·ia·user-flow)는 add-item 으로 채운다.',
     {
       projectId: z.string(),
       type: z.enum(DOC_TYPES),
@@ -109,7 +109,14 @@ export function buildMcpServer(): McpServer {
       body: z.string().min(1).describe('섹션 본문 마크다운'),
     },
     ({ documentId, heading, body }) => {
-      if (!repo.getDocument(documentId)) return fail('document not found');
+      const d = repo.getDocument(documentId);
+      if (!d) return fail('document not found');
+      // 구조 문서는 산문 섹션 금지 — 항목(plan_items)이 정본이고 컴파일 검사 대상이다.
+      if (d.type === 'feature-spec' || d.type === 'ia' || d.type === 'user-flow') {
+        return fail(
+          `'${d.type}' 는 구조 문서입니다 — drafting-add-item 으로 항목을 작성하세요. 산문 섹션은 prd·handoff(지시서) 에만 허용됩니다.`,
+        );
+      }
       const s = repo.createSection(documentId, heading, body);
       promoteDocument(documentId); // 앱 작성분과 동일한 상태로(#92 후속)
       return json({ id: s.id, position: s.position, heading: s.heading });
