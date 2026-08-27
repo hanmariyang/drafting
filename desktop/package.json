@@ -1,6 +1,6 @@
 {
   "name": "drafting-desktop",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Drafting desktop app — embeds the Drafting server and opens the planning workspace.",
   "main": "main.cjs",
   "private": true,
@@ -67,11 +67,23 @@
     },
     "dmg": {
       "title": "Drafting ${version}",
-      "window": { "width": 540, "height": 380 },
+      "window": {
+        "width": 540,
+        "height": 380
+      },
       "iconSize": 108,
       "contents": [
-        { "x": 150, "y": 190, "type": "file" },
-        { "x": 390, "y": 190, "type": "link", "path": "/Applications" }
+        {
+          "x": 150,
+          "y": 190,
+          "type": "file"
+        },
+        {
+          "x": 390,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "win": {

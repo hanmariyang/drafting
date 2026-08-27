@@ -2,6 +2,12 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.3
+
+- MCP server (stdio): `npm run mcp` — 8 tools for agent access (projects, documents,
+  sections, compile lint report, markdown export). Bundled in the desktop app
+  (`Resources/daemon/api/dist/mcp.js`), same DATABASE_PATH as the app.
+
 ## 1.6.2
 
 - **npm 자동 배포 활성** — 태그 시 릴리스 CI 가 `@hanmariyang/drafting` 를 npm 에 publish.
