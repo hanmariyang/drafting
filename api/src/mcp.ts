@@ -133,6 +133,38 @@ export function buildMcpServer(): McpServer {
   );
 
   server.tool(
+    'drafting-export-project',
+    '프로젝트의 문서 체인 전체(PRD→파생 순서)를 하나의 마크다운 합본으로 내보내고 절대 경로를 반환한다.',
+    { projectId: z.string() },
+    ({ projectId }) => {
+      const project = repo.getProject(projectId);
+      if (!project) return fail('project not found');
+      const docs = repo.listDocuments(projectId);
+      if (docs.length === 0) return fail('no documents');
+      // 체인 순서: 부모 없는 문서(PRD)부터 BFS
+      const byParent = new Map<string | null, typeof docs>();
+      for (const d of docs) {
+        const k = d.parent_document_id ?? null;
+        byParent.set(k, [...(byParent.get(k) ?? []), d]);
+      }
+      const ordered: typeof docs = [];
+      const queue = [...(byParent.get(null) ?? [])];
+      while (queue.length) {
+        const d = queue.shift()!;
+        ordered.push(d);
+        queue.push(...(byParent.get(d.id) ?? []));
+      }
+      const parts = ordered.map((d) => documentToMarkdown(d.id));
+      const dir = path.join(path.dirname(config.databasePath), 'exports');
+      fs.mkdirSync(dir, { recursive: true });
+      const slug = project.name.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'project';
+      const file = path.join(dir, `${slug}-set-${project.id.slice(0, 6)}.md`);
+      fs.writeFileSync(file, parts.join('\n\n---\n\n'), 'utf8');
+      return json({ path: file, documents: ordered.map((d) => `${d.type}: ${d.title}`) });
+    },
+  );
+
+  server.tool(
     'drafting-export',
     '문서를 마크다운 파일로 내보낸다. 데이터 폴더의 exports/ 에 쓰고 절대 경로를 반환한다.',
     { documentId: z.string() },

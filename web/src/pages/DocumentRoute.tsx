@@ -15,6 +15,7 @@ const STRUCTURE = new Set(['feature-spec', 'ia', 'user-flow']);
 export function DocumentRoute() {
   const { pid, did } = useParams();
   const [doc, setDoc] = useState<DocumentModel | null>(null);
+  const [sectionCount, setSectionCount] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -23,7 +24,11 @@ export function DocumentRoute() {
     setError('');
     api
       .getDocument(did!)
-      .then((d) => live && setDoc(d.document))
+      .then((d) => {
+        if (!live) return;
+        setDoc(d.document);
+        setSectionCount(d.sections.length);
+      })
       .catch((e) => live && setError((e as Error).message));
     return () => {
       live = false;
@@ -50,6 +55,9 @@ export function DocumentRoute() {
   }
   if (doc.type === 'handoff') return <Navigate to={`/projects/${pid}/handoff`} replace />;
   if (doc.type === 'design-system') return <DesignSystemWorkspace key={doc.id} doc={doc} />;
-  if (STRUCTURE.has(doc.type)) return <StructureWorkspace key={doc.id} doc={doc} />;
+  // #91: 구조 타입이라도 산문 섹션으로 작성된 문서(외부 MCP 등)는 섹션 편집기로 —
+  // StructureWorkspace 는 plan_items 기반이라 섹션 내용이 있는 문서가 빈 화면으로 보였다.
+  if (STRUCTURE.has(doc.type) && sectionCount === 0) return <StructureWorkspace key={doc.id} doc={doc} />;
+  if (STRUCTURE.has(doc.type)) return <DocumentWorkspace key={doc.id} />;
   return <DocumentWorkspace />;
 }
