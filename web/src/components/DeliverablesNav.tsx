@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api, openSuggestionsOf, type DocumentModel, type DocumentType } from '../lib/api.ts';
-import { ProjectSwitcher } from './DocChainTree.tsx';
+import { ProjectSwitcher, TYPE_BADGE } from './DocChainTree.tsx';
 
 export type NavKey = 'INT' | 'PRD' | 'SPEC' | 'IA' | 'FLOW' | 'DS' | 'WF' | 'DEV' | 'HUB';
 
@@ -54,11 +54,15 @@ interface Props {
  */
 export function DeliverablesNav({ projectId, projectName, documents, active, activeCount }: Props) {
   const nav = useNavigate();
+  const { did } = useParams();
   const [locked, setLocked] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // 각 타입의 대표 문서(가장 먼저 만든 것)를 체인 노드에 매핑한다.
   const byType: Partial<Record<DocumentType, DocumentModel>> = {};
   for (const d of documents) if (!byType[d.type]) byType[d.type] = d;
+  // 같은 타입 문서가 2개 이상일 때 대표가 아닌 나머지 (issue #88: 화면에서 사라지던 문서들).
+  const extras = documents.filter((d) => byType[d.type]?.id !== d.id);
 
   useEffect(() => {
     api
@@ -119,6 +123,33 @@ export function DeliverablesNav({ projectId, projectName, documents, active, act
           </button>
         );
       })}
+
+      {extras.length > 0 && (
+        <>
+          <div className="grp">기타 문서</div>
+          {extras.map((d) => {
+            const cnt = openSuggestionsOf(d);
+            return (
+              <button
+                key={d.id}
+                className={`node ${d.id === did ? 'on' : ''}`}
+                onClick={() => nav(`/projects/${projectId}/documents/${d.id}`)}
+              >
+                <span className="tb">{TYPE_BADGE[d.type]}</span>
+                <span className="nm">{d.title}</span>
+                {cnt > 0 ? (
+                  <span className="gd">
+                    <i />
+                    {cnt}
+                  </span>
+                ) : (
+                  <span className="ok">✓</span>
+                )}
+              </button>
+            );
+          })}
+        </>
+      )}
 
       <div className="grp">파생</div>
       <button
