@@ -2,6 +2,14 @@
 
 시맨틱 버저닝을 따릅니다. 최신이 위.
 
+## 1.6.8
+
+- MCP: `drafting-add-item` accepts priority, pageType, section, links
+  (reqs/features/pages) and stepPage — MCP-authored projects can now pass
+  compile lint (#94). New `drafting-list-reqs` for valid requirement refs.
+- Item generation now includes parent plan items as context from chain step 2,
+  and links must use refs (F-nn/PG-nn), not prose titles (#93).
+
 ## 1.6.7
 
 - MCP: structure documents (feature-spec, IA, user-flow) now reject prose

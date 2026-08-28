@@ -132,20 +132,48 @@ export function buildMcpServer(): McpServer {
       title: z.string().min(1),
       body: z.string().optional().describe('설명·수용 기준 등 마크다운'),
       parentItemId: z.string().optional().describe('feature 는 feature-group, step 은 flow 의 항목 id'),
+      priority: z.enum(['P0', 'P1', 'P2']).optional().describe('feature 우선순위'),
+      pageType: z.enum(['LIST', 'DETAIL', 'FORM', 'DASH', 'SETTINGS', 'GENERIC']).optional().describe('page 전용'),
+      section: z.string().optional().describe('page 전용 — 사이트맵 그룹'),
+      linkReqs: z.array(z.string()).optional().describe('feature → PRD 요구사항 ref (drafting-list-reqs 로 확인)'),
+      linkFeatures: z.array(z.string()).optional().describe('page·flow → 기능 ref (F-nn)'),
+      linkPages: z.array(z.string()).optional().describe('flow → 화면 ref (PG-nn)'),
+      stepPage: z.string().optional().describe('step 전용 — 해당 화면 ref (PG-nn)'),
     },
-    ({ documentId, kind, title, body, parentItemId }) => {
+    ({ documentId, kind, title, body, parentItemId, priority, pageType, section, linkReqs, linkFeatures, linkPages, stepPage }) => {
       const d = repo.getDocument(documentId);
       if (!d) return fail('document not found');
+      const links: Record<string, string[]> = {};
+      if (linkReqs?.length) links.reqs = linkReqs;
+      if (linkFeatures?.length) links.features = linkFeatures;
+      if (linkPages?.length) links.pages = linkPages;
+      const meta: Record<string, unknown> = {};
+      if (priority) meta.priority = priority;
+      if (pageType) meta.page_type = pageType;
+      if (section) meta.section = section;
+      if (Object.keys(links).length) meta.links = links;
+      if (stepPage) meta.page = stepPage;
       const item = repo.createItem({
         documentId,
         kind,
         title,
         body: body ?? '',
+        meta: (Object.keys(meta).length ? meta : undefined) as never,
         parentId: parentItemId ?? null,
         status: 'accepted',
       });
       promoteDocument(documentId);
       return json({ id: item.id, ref: item.ref_id, kind: item.kind, title: item.title });
+    },
+  );
+
+  server.tool(
+    'drafting-list-reqs',
+    '프로젝트의 PRD 요구사항 ref 목록을 반환한다 — feature 의 linkReqs 는 이 목록의 id 만 유효하다(컴파일 E-BROKEN-REF 검사 대상).',
+    { projectId: z.string() },
+    ({ projectId }) => {
+      if (!repo.getProject(projectId)) return fail('project not found');
+      return json({ reqs: repo.reqIdsForProject(projectId) });
     },
   );
 

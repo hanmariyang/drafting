@@ -49,10 +49,21 @@ function buildItemsMessages(doc: { id: string; type: StructureType }): ChatMessa
   const session = repo.getSessionByDocument(doc.id);
   const answers = session?.answers ?? [];
   const ctx = repo.getParentContext(doc.id);
+  // #93: 구조 부모(feature-spec·ia)는 내용이 sections 가 아니라 plan_items 에 있다 —
+  // 섹션만 보내면 컨텍스트가 비어 모델이 무관한 결과를 지어낸다. 항목 마크다운으로 보강.
+  let parentBody = '';
+  if (ctx) {
+    parentBody = ctx.sections.map((s) => `### ${s.heading}\n${s.body}`).join('\n\n');
+    const parentItems = repo.listItems(ctx.parentId).filter((i) => i.status === 'accepted');
+    if (parentItems.length) {
+      parentBody +=
+        (parentBody ? '\n\n' : '') +
+        '상위 문서의 항목(ref 는 links 에 그대로 사용):\n' +
+        parentItems.map((i) => `- [${i.ref_id}] (${i.kind}) ${i.title}`).join('\n');
+    }
+  }
   const parentBlock = ctx
-    ? `상위 문서(${ctx.parentType} "${ctx.parentTitle}"):\n` +
-      ctx.sections.map((s) => `### ${s.heading}\n${s.body}`).join('\n\n') +
-      '\n\n---\n'
+    ? `상위 문서(${ctx.parentType} "${ctx.parentTitle}"):\n` + parentBody + '\n\n---\n'
     : '';
   const answerBlock = answers.length
     ? answers.map((a) => `Q: ${a.question}\nA: ${a.answer}`).join('\n\n')
@@ -61,7 +72,8 @@ function buildItemsMessages(doc: { id: string; type: StructureType }): ChatMessa
   const system =
     `${template?.draftGuidance ?? '구조 문서를 작성한다.'}\n\n` +
     `반드시 JSON 하나만 출력하라. 코드펜스·설명 문장 금지. ` +
-    `id·번호(F-/PG-/FLOW-)는 절대 넣지 마라 — 번호는 서버가 매긴다.\n${shape}`;
+    `id·번호(F-/PG-/FLOW-)는 절대 넣지 마라 — 번호는 서버가 매긴다. ` +
+    `단 links 안의 참조는 반드시 상위 문서 항목의 ref(F-nn·PG-nn) 그대로 써라 — 제목·산문 금지.\n${shape}`;
   const user = `${parentBlock}인터뷰 답변:\n\n${answerBlock}\n\n위 계약대로 JSON 을 출력하라.`;
   return [
     { role: 'system', content: system },
