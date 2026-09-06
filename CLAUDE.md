@@ -1,6 +1,6 @@
 # Drafting — Repository Guide
 
-> Self-hosted AI planning workspace. One idea line starts an interview; PRD, feature spec and IA follow — every AI sentence arrives as a suggestion, and only what you accept becomes the document. MIT.
+> Self-hosted AI planning workspace. One idea line starts an interview; PRD, feature spec and IA follow — every AI sentence arrives as a suggestion, and only what you accept becomes the document. AGPLv3 + trademark/attribution terms (see LICENSE.md; releases before 2026-09-02 remain MIT).
 
 ## Overview
 

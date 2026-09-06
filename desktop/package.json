@@ -4,7 +4,7 @@
   "description": "Drafting desktop app — embeds the Drafting server and opens the planning workspace.",
   "main": "main.cjs",
   "private": true,
-  "license": "MIT",
+  "license": "SEE LICENSE IN ../LICENSE.md",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder"
