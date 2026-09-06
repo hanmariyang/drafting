@@ -16,9 +16,23 @@ import { generateMockupHtml } from '../lib/mockup-gen.ts';
 import { generateDesignSystem, acceptDesignSystem, getDesignSystem, exploreDesignSystems, selectDesignSystemCandidate } from '../lib/design-system-gen.ts';
 import { compileHandoff, promptPack, handoffTickets, getHandoffDoc, HandoffGateError } from '../lib/handoff.ts';
 import { PRD_SECTIONS, SPEC_FIXTURE, IA_FIXTURE, FLOW_FIXTURE } from '../lib/fixtures.ts';
+import { checkLinkRefs, linkRefErrorMessage, type LinkField } from '../lib/link-validate.ts';
 import type { PlanItemKind } from '../lib/types.ts';
 
 const ITEM_KINDS = ['feature-group', 'feature', 'page', 'flow', 'step'] as const;
+
+// 링크 ref 를 쓰기 전 검증한다 — 대상 후보가 하나도 없으면(정방향 작성) 통과,
+// 후보가 있는데 안 맞으면 오타로 보고 400. 최종 무결성은 컴파일 E-BROKEN-REF.
+function assertLinkRefs(item: { document_id: string }, linksByField: Partial<Record<LinkField, string[]>>): void {
+  const doc = repo.getDocument(item.document_id);
+  if (!doc) return;
+  const errors = checkLinkRefs(
+    linksByField,
+    repo.listProjectItems(doc.project_id),
+    repo.reqIdsForProject(doc.project_id).map((r) => r.id),
+  );
+  if (errors.length) throw new HttpError(400, linkRefErrorMessage(errors));
+}
 
 export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
   // ── plan items (structure docs) ─────────────────────────────────────────────
@@ -108,6 +122,7 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
       }),
       req.body,
     );
+    if (op === 'add') assertLinkRefs(item, { [field]: [ref] });
     const meta = repo.parsePlanItemMeta(item);
     const links = meta.links ?? {};
     const cur = links[field] ?? [];
@@ -123,6 +138,7 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     if (!step) throw new HttpError(404, 'item not found');
     if (step.kind !== 'step') throw new HttpError(400, 'page can only be set on a step');
     const { page } = parse(z.object({ page: z.string().nullable() }), req.body);
+    if (page) assertLinkRefs(step, { pages: [page] });
     const meta = repo.parsePlanItemMeta(step);
     return repo.updateItem(id, { meta: { ...meta, page: page || null } as never });
   });
@@ -152,6 +168,7 @@ export async function deliverableRoutes(app: FastifyInstance): Promise<void> {
     if (!flow) throw new HttpError(404, 'item not found');
     if (flow.kind !== 'flow') throw new HttpError(400, 'link target must be a flow');
     const { featureRef } = parse(z.object({ featureRef: z.string().min(1) }), req.body);
+    assertLinkRefs(flow, { features: [featureRef] });
     const meta = repo.parsePlanItemMeta(flow);
     const links = meta.links ?? {};
     const features = Array.from(new Set([...(links.features ?? []), featureRef]));
