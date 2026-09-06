@@ -393,9 +393,13 @@ export function DocumentWorkspace() {
           </div>
         </div>
       )}
-      {doc.type === 'brief' && <BriefExtractBar docId={docId} onExtracted={afterExtract} />}
       <DocumentEditor
         doc={doc}
+        headExtra={
+          doc.type === 'brief' ? (
+            <BriefExtractBar docId={docId} onExtracted={afterExtract} />
+          ) : undefined
+        }
         sections={sections}
         setSections={setSections}
         streaming={streaming}
