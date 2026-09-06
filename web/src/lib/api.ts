@@ -273,6 +273,14 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ path }) },
     ),
 
+  /** 기획 품질 advisory — 측정 불가 표현·무숫자 목표·만성 누락을 짚어준다(차단 아님). */
+  qualityCheck: (docId: string) =>
+    req<{
+      enabled: boolean;
+      reason?: string;
+      notes?: Array<{ code: string; message: string; section?: string }>;
+    }>(`/api/documents/${docId}/quality-check`),
+
   /** 브리프 정합성 advisory — feature 문서가 브리프에 없는 이름을 쓰면 알려준다(차단 아님). */
   briefCheck: (docId: string) =>
     req<{

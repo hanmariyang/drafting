@@ -12,6 +12,7 @@ import {
 } from '../lib/brief-extract.ts';
 import { briefAdvisory } from '../lib/brief-lint.ts';
 import { featurePromptPack } from '../lib/handoff.ts';
+import { qualityAdvisory } from '../lib/quality-lint.ts';
 import { streamDocumentDraft } from '../lib/ai.ts';
 
 const DOC_TYPES = [
@@ -185,6 +186,20 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     const featureSections = repo.listSections(id).filter((s) => s.status !== 'rejected');
     const result = briefAdvisory(featureSections, briefSections);
     return { enabled: true, briefId: parent.id, briefTitle: parent.title, ...result };
+  });
+
+  // ── 기획 품질 advisory ───────────────────────────────────────────────────────
+  // 내용의 검증 가능성(측정 불가 표현·무숫자 목표·빈약 섹션·비범위 부재·만성 누락)을
+  // 결정적으로 짚어준다. 게이트 아님 — brief-check 와 같은 조언 채널.
+  app.get('/api/documents/:id/quality-check', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'prd' && doc.type !== 'feature') {
+      return { enabled: false, reason: '산문 기획 문서(prd·feature)만 검사합니다' };
+    }
+    const sections = repo.listSections(id).filter((s) => s.status !== 'rejected');
+    return { enabled: true, notes: qualityAdvisory(doc.type, sections) };
   });
 
   // ── 작은 기능 프롬프트 팩 (설계 노트 §4) ─────────────────────────────────────
