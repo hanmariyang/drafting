@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
   status        TEXT NOT NULL DEFAULT 'active',   -- active | complete
   current_index INTEGER NOT NULL DEFAULT 0,
   answers       TEXT NOT NULL DEFAULT '[]',       -- JSON [{questionId, question, answer}]
+  -- AI 보강 질문(꼬리 질문). 템플릿 질문 뒤에 이어 붙는 동적 질문이며, 그 답변은
+  -- 같은 answers 배열에 들어가 초안 프롬프트로 자연히 흘러간다(별도 경로 없음).
+  extra_questions TEXT NOT NULL DEFAULT '[]',     -- JSON [{id, prompt, hint, reason}]
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );

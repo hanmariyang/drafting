@@ -437,6 +437,13 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .q-list-item .dot { width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--hair); flex-shrink: 0; }
 .q-list-item.answered .dot { background: var(--ok); }
 .interview-cta { margin-top: 16px; }
+/* 보강 질문 표식 — 중립 배지 하나로만 구분한다(그린은 제안 상태 전용). */
+.q-badge {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  color: var(--sub); border: 1px solid var(--hair); border-radius: var(--r-pill);
+  padding: 1px 7px; margin-left: 8px; vertical-align: middle; flex-shrink: 0;
+}
+.q-list-item.active .q-badge { color: var(--ink); }
 
 /* ─────────────────────────────────────────────────────────────
    설정 (리스킨)

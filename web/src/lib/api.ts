@@ -140,6 +140,15 @@ export interface InterviewAnswer {
   answer: string;
 }
 
+/** AI 보강 질문(꼬리 질문) — 템플릿 질문 뒤에 이어 붙는 동적 질문. */
+export interface ExtraQuestion {
+  id: string;
+  prompt: string;
+  hint?: string;
+  /** 이 질문이 나온 이유 — 어느 답변이 얕았는지 */
+  reason?: string;
+}
+
 export interface InterviewSession {
   id: string;
   document_id: string;
@@ -147,6 +156,7 @@ export interface InterviewSession {
   status: 'active' | 'complete';
   current_index: number;
   answers: InterviewAnswer[];
+  extra_questions?: ExtraQuestion[];
 }
 
 export interface TemplateQuestion {
@@ -187,6 +197,8 @@ export interface Meta {
   cliBin: string | null;
   agentBinPath?: string;
   openaiBaseUrl?: string;
+  /** 문서 툴바에 '카운슬' 버튼을 그릴지 (설정에서 끌 수 있음) */
+  councilEnabled?: boolean;
 }
 
 export interface VersionEntry {
@@ -281,6 +293,13 @@ export const api = {
       notes?: Array<{ code: string; message: string; section?: string }>;
     }>(`/api/documents/${docId}/quality-check`),
 
+  /** 카운슬 비평 — 3관점 비평을 섹션별 제안 카드로 적재한다(수락 전 검토용). */
+  council: (docId: string) =>
+    req<{ created: number; dropped: number; openSuggestions: number }>(
+      `/api/documents/${docId}/council`,
+      { method: 'POST' },
+    ),
+
   /** 브리프 정합성 advisory — feature 문서가 브리프에 없는 이름을 쓰면 알려준다(차단 아님). */
   briefCheck: (docId: string) =>
     req<{
@@ -361,6 +380,15 @@ export const api = {
     }),
   completeInterview: (sessionId: string) =>
     req(`/api/interview/${sessionId}/complete`, { method: 'POST' }),
+  /**
+   * 보강 질문(꼬리 질문) — 얕은 답변만 골라 최대 3개를 세션에 붙인다.
+   * 1회성 아님: 다시 부르면 새로 만든다(같은 질문은 같은 id 라 답변이 유지된다).
+   */
+  followups: (docId: string) =>
+    req<{ questions: ExtraQuestion[]; session: InterviewSession }>(
+      `/api/documents/${docId}/interview/followups`,
+      { method: 'POST' },
+    ),
 
   // engine mode (CLI vs BYOK)
   setAiMode: (mode: 'cli' | 'byok') =>
@@ -402,7 +430,14 @@ export const api = {
 
   // settings
   settings: () =>
-    req<{ providerModels: ProviderModels; onboardingComplete: boolean }>('/api/settings'),
+    req<{ providerModels: ProviderModels; onboardingComplete: boolean; councilEnabled: boolean }>(
+      '/api/settings',
+    ),
+  setCouncilEnabled: (enabled: boolean) =>
+    req<{ councilEnabled: boolean }>('/api/settings/council', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    }),
   saveModels: (models: ProviderModels) =>
     req(`/api/settings/models`, { method: 'PUT', body: JSON.stringify(models) }),
   completeOnboarding: () => req('/api/settings/onboarding/complete', { method: 'POST' }),

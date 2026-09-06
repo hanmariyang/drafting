@@ -44,6 +44,7 @@ export function Settings() {
   const [gwModels, setGwModels] = useState<string[]>([]);
   const [orModels, setOrModels] = useState<string[]>([]);
   const [restoreMsg, setRestoreMsg] = useState('');
+  const [council, setCouncil] = useState(true);
   // 게이트웨이 + OpenRouter 모델을 합쳐 모델 칸 자동완성으로 (중복 제거)
   const allModels = Array.from(new Set([...gwModels, ...orModels]));
 
@@ -52,7 +53,13 @@ export function Settings() {
   }
   useEffect(() => {
     loadKeys().catch(() => {});
-    api.settings().then((s) => setModels(s.providerModels ?? {})).catch(() => {});
+    api
+      .settings()
+      .then((s) => {
+        setModels(s.providerModels ?? {});
+        setCouncil(s.councilEnabled !== false);
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     setBinPath(meta?.agentBinPath ?? '');
@@ -328,6 +335,30 @@ export function Settings() {
                   }}
                 />
                 마지막 문서로 이어서
+              </label>
+            </div>
+          </div>
+
+          <h3>카운슬 비평</h3>
+          <p className="subtle">문서에서 3관점 비평 버튼을 보여줍니다.</p>
+          <div className="rows">
+            <div className="row">
+              <label className="opt">
+                <input
+                  type="checkbox"
+                  checked={council}
+                  onChange={async (e) => {
+                    const next = e.target.checked;
+                    setCouncil(next);
+                    try {
+                      await api.setCouncilEnabled(next);
+                      await reload();
+                    } catch {
+                      setCouncil(!next);
+                    }
+                  }}
+                />
+                엔지니어·디자이너·회의론자 비평 받기
               </label>
             </div>
           </div>

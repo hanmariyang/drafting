@@ -106,7 +106,10 @@ function applyAccept(sug: Suggestion): void {
     repo.setItemStatus(sug.target_item_id, 'accepted');
     return;
   }
-  if (!sug.section_id) return; // document-level (e.g. question/stale) — nothing to flip
+  // 질문 카드(누락 질문·카운슬 비평)는 대체 텍스트가 아니라 답해야 할 물음이다.
+  // '답하기'가 섹션을 문서로 확정시켜선 안 된다 — 확정은 그 섹션 자신의 카드로만.
+  if (sug.kind === 'question') return;
+  if (!sug.section_id) return; // document-level (e.g. stale) — nothing to flip
   const section = repo.getSection(sug.section_id);
   if (!section) return;
   if (sug.kind === 'delete') {
@@ -114,7 +117,7 @@ function applyAccept(sug: Suggestion): void {
     repo.setSectionStatus(section.id, 'rejected');
     return;
   }
-  // add / revise / question / stale -> the (proposed) body becomes the document
+  // add / revise / stale -> the (proposed) body becomes the document
   repo.setSectionStatus(section.id, 'accepted');
 }
 
