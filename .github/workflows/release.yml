@@ -29,7 +29,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest      # dmg (arm64 + x64)
+          # macos-latest 가 macOS 26 으로 올라가며 electron-builder 25 의 임시 키체인
+          # (set-key-partition-list) 이 SecKeychainUnlock 오류로 깨짐 (v1.6.9, 2026-09-06).
+          # v1.6.8 까지 성공하던 환경으로 고정 — electron-builder 가 대응하면 latest 복귀.
+          - os: macos-15          # dmg (arm64 + x64)
           - os: windows-latest    # nsis exe
           - os: ubuntu-latest     # AppImage
     runs-on: ${{ matrix.os }}

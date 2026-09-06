@@ -1,6 +1,6 @@
 {
   "name": "@hanmariyang/drafting",
-  "version": "1.6.9",
+  "version": "1.6.10",
   "description": "AI Planning Workspace — self-hosted, BYOK. Draft PRDs & feature specs via staged AI interviews. Run: npx @hanmariyang/drafting serve",
   "license": "SEE LICENSE IN LICENSE.md",
   "homepage": "https://github.com/hanmariyang/drafting",
