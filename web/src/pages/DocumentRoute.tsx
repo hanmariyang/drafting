@@ -11,6 +11,8 @@ const STRUCTURE = new Set(['feature-spec', 'ia', 'user-flow']);
 /**
  * Dispatch a document to the right workspace by type: PRD → prose section editor
  * (existing), SPEC/IA/FLOW → structure item editor, handoff → the DEV page.
+ * feature(작은 기능 기획)·brief(프로젝트 브리프)는 STRUCTURE 에 없으므로 기본
+ * 분기로 떨어져 산문 섹션 에디터로 열린다 — plan_items 를 쓰지 않는 문서들이다.
  */
 export function DocumentRoute() {
   const { pid, did } = useParams();

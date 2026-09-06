@@ -5,7 +5,7 @@ import { startFromIdea, getLastDoc, getOpenMode, type LastDoc } from '../lib/new
 import { AppShell } from '../components/AppShell.tsx';
 import { AppName } from '../components/AppName.tsx';
 import { Choani } from '../components/Choani.tsx';
-import { useMeta } from '../App.tsx';
+import { useMeta, openNewPlan } from '../App.tsx';
 
 /**
  * 시작 화면 (진입 재설계 시안 1) — "홈"이 아니다.
@@ -113,6 +113,16 @@ export function StartScreen() {
             </button>
           </div>
           {error && <div className="form-error">{error}</div>}
+
+          {/* 이미 있는 제품에 기능 하나 — 6종 체인 대신 체인 밖 단독 문서로 간다 */}
+          <div className="start-alt">
+            <button className="btn ghost sm" onClick={() => openNewPlan('feature')}>
+              이미 있는 제품에 기능 추가
+            </button>
+            <span className="hint">
+              프로젝트 브리프를 붙이면 실제 스택·모듈 이름으로 씁니다
+            </span>
+          </div>
 
           <div className="start-import">
             <label className="btn ghost sm">
