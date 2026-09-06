@@ -13,6 +13,7 @@ import { getDb } from './db/index.ts';
 import * as repo from './db/repos.ts';
 import { documentToMarkdown } from './lib/render.ts';
 import { lintReport } from './lib/lint-service.ts';
+import { checkLinkRefs, linkRefErrorMessage } from './lib/link-validate.ts';
 import type { DocumentType } from './lib/types.ts';
 
 const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system', 'handoff'] as const;
@@ -147,6 +148,16 @@ export function buildMcpServer(): McpServer {
       if (linkReqs?.length) links.reqs = linkReqs;
       if (linkFeatures?.length) links.features = linkFeatures;
       if (linkPages?.length) links.pages = linkPages;
+      // 링크 ref 오타는 쓰기 전에 거절한다 — 대상 후보가 아직 없으면(정방향 작성) 통과,
+      // 최종 무결성은 drafting-compile(E-BROKEN-REF)이 본다.
+      {
+        const refErrors = checkLinkRefs(
+          { ...links, ...(stepPage ? { pages: [...(links.pages ?? []), stepPage] } : {}) },
+          repo.listProjectItems(d.project_id),
+          repo.reqIdsForProject(d.project_id).map((r) => r.id),
+        );
+        if (refErrors.length) return fail(linkRefErrorMessage(refErrors));
+      }
       const meta: Record<string, unknown> = {};
       if (priority) meta.priority = priority;
       if (pageType) meta.page_type = pageType;

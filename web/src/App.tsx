@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { api, type Meta } from './lib/api.ts';
 import { StartScreen } from './pages/StartScreen.tsx';
 import { Hub } from './pages/Hub.tsx';
@@ -72,6 +72,8 @@ export function App() {
         <Route path="/projects/:pid/handoff" element={<HandoffPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/templates" element={<Templates />} />
+        {/* 미정의 경로는 빈 화면 대신 시작 화면으로 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {planOpen && <NewPlanSheet onClose={() => setPlanOpen(false)} />}
