@@ -90,6 +90,8 @@ export function buildSectionMessages(params: {
   heading: string;
   answers: InterviewAnswer[];
   guidance: string;
+  /** 인터뷰 답변 밖의 추가 근거 자료 (예: 브리프 추출이 읽은 레포 자료). */
+  extraContext?: string;
 }): ChatMessage[] {
   const parent = parentContextBlock(params.documentId);
   // 문서 전체 섹션 구성을 알려줘야 섹션 간 내용 중복(개요에 문제 정의 통째 포함 등)이 없다
@@ -105,8 +107,10 @@ export function buildSectionMessages(params: {
     `섹션 제목("${params.heading}")은 앱이 별도로 표시하므로 본문에 다시 쓰지 말라. ` +
     `제목이나 다른 섹션은 쓰지 말고, 요청된 섹션 본문만 마크다운으로 출력하라. ` +
     `간결하고 구체적으로, 불릿과 짧은 문단을 섞어 작성하라.`;
+  const extra = params.extraContext ? `${params.extraContext}\n\n---\n\n` : '';
   const user =
     `${parent}` +
+    `${extra}` +
     `아래는 기획 인터뷰 답변이다:\n\n${answersBlock(params.answers)}\n\n` +
     `이제 다음 섹션을 작성하라.\n섹션 제목: ${params.heading}\n`;
   return [
@@ -148,9 +152,17 @@ export type DraftEvent =
  * up-front (so each has a stable id the client can target), then streams each
  * one. Emits SSE-shaped events per docs/spec/ux-mode-transition.md §3.
  */
+export interface DraftOptions {
+  /** 인터뷰 답변 밖의 추가 근거 자료 (브리프 추출이 읽은 레포 자료 등). */
+  extraContext?: string;
+  /** 제안 카드의 근거 라벨 override (기본 = 인터뷰 답변). */
+  sourceLabel?: string;
+}
+
 export async function* streamDocumentDraft(
   documentId: string,
   signal?: AbortSignal,
+  opts?: DraftOptions,
 ): AsyncGenerator<DraftEvent> {
   const doc = repo.getDocument(documentId);
   if (!doc) {
@@ -174,8 +186,9 @@ export async function* streamDocumentDraft(
     headings.map((h) => ({ heading: h, body: '' })),
     'proposed',
   );
-  // Basis for the whole draft = the interview answers behind it (§0.3).
-  const draftSource = draftSourceLabel(answers);
+  // Basis for the whole draft = the interview answers behind it (§0.3), unless
+  // the caller supplies its own basis (브리프 추출은 "레포 폴더" 가 근거다).
+  const draftSource = opts?.sourceLabel ?? draftSourceLabel(answers);
 
   try {
     for (let i = 0; i < created.length; i++) {
@@ -193,6 +206,7 @@ export async function* streamDocumentDraft(
         heading: section.heading,
         answers,
         guidance,
+        extraContext: opts?.extraContext,
       });
       let body = '';
       for await (const delta of provider.streamChat({
