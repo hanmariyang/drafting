@@ -25,6 +25,7 @@ import { ContextRefreshDialog } from '../components/ContextRefreshDialog.tsx';
 import { Choani } from '../components/Choani.tsx';
 import { BriefExtractBar } from '../components/BriefExtractBar.tsx';
 import { BriefAdvisory } from '../components/BriefAdvisory.tsx';
+import { QualityAdvisory } from '../components/QualityAdvisory.tsx';
 
 const TYPE_LABEL: Record<DocumentType, string> = {
   prd: 'PRD',
@@ -409,7 +410,18 @@ export function DocumentWorkspace() {
           doc.type === 'brief' ? (
             <BriefExtractBar docId={docId} onExtracted={afterExtract} />
           ) : doc.type === 'feature' ? (
-            <BriefAdvisory
+            <>
+              <BriefAdvisory
+                docId={docId}
+                refreshKey={`${doc.version}-${sections.length}-${streaming}`}
+              />
+              <QualityAdvisory
+                docId={docId}
+                refreshKey={`${doc.version}-${sections.length}-${streaming}`}
+              />
+            </>
+          ) : doc.type === 'prd' ? (
+            <QualityAdvisory
               docId={docId}
               refreshKey={`${doc.version}-${sections.length}-${streaming}`}
             />
