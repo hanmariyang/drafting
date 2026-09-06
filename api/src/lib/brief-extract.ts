@@ -58,6 +58,21 @@ export const ENTRY_CANDIDATES = [
   'index.js',
   'main.go',
   'src/main.rs',
+  // 모노레포 관례 (api/web·server/frontend·backend 하위 워크스페이스) —
+  // 이 레포(Drafting) 자체가 api/src/index.ts 구조라 실측으로 추가됨.
+  'api/src/index.ts',
+  'api/src/index.js',
+  'api/src/main.ts',
+  'server/src/index.ts',
+  'server/index.ts',
+  'server/index.js',
+  'backend/main.py',
+  'backend/app.py',
+  'backend/src/index.ts',
+  'web/src/main.tsx',
+  'web/src/main.ts',
+  'frontend/src/main.tsx',
+  'frontend/src/index.tsx',
 ];
 
 export class BriefExtractError extends Error {

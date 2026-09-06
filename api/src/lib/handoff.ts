@@ -8,6 +8,7 @@ import * as repo from '../db/repos.ts';
 import { resolveProvider } from '../providers/index.ts';
 import { getModelConfig } from './ai.ts';
 import { effectiveViolations } from './lint-service.ts';
+import { briefAdvisory } from './brief-lint.ts';
 import type { PlanItem, PlanItemMeta } from './types.ts';
 
 export class HandoffGateError extends Error {
@@ -305,6 +306,69 @@ export function promptPack(projectId: string): string {
   L.push('2. 화면(IA)과 플로우 명세대로 연결한다.');
   L.push('3. 범위 확장·임의 기능 추가 금지. 불명확하면 질문으로 남긴다.');
   L.push('4. 완료 시 각 수용 기준을 어떻게 충족했는지 근거와 함께 요약한다.', '');
+
+  return L.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+}
+
+// ── 작은 기능 기획(feature) 전용 프롬프트 팩 (설계 노트 §4·§7 핸드오프 매핑) ──
+// 체인 핸드오프(컴파일 게이트)와 달리 문서 단위·게이트 없음: 수락된 섹션이
+// 곧 발주 내용이다. 브리프가 연결돼 있으면 프로젝트 맥락(스택·컨벤션·기존
+// 기능)을 앞에 실어 "실제 모듈명·컨벤션으로 바로 작업"이 되게 한다.
+// 브리프 대조 advisory 의 미확인 이름은 에이전트에게 질문거리로 넘긴다.
+
+export function featurePromptPack(documentId: string): string {
+  const doc = repo.getDocument(documentId);
+  if (!doc || doc.type !== 'feature') {
+    throw new Error('feature 문서에서만 프롬프트 팩을 만들 수 있습니다');
+  }
+  const accepted = repo.listAcceptedSections(documentId);
+  if (accepted.length === 0) {
+    return `# ${doc.title} — 구현 발주\n\n수락된 섹션이 없습니다. 제안을 검토·수락한 뒤 내보내세요.\n`;
+  }
+  const project = repo.getProject(doc.project_id);
+  const parent = doc.parent_document_id ? repo.getDocument(doc.parent_document_id) : null;
+  const brief = parent?.type === 'brief' ? parent : null;
+  const briefSections = brief ? repo.listAcceptedSections(brief.id) : [];
+  const advisory = brief ? briefAdvisory(accepted, briefSections) : null;
+
+  const L: string[] = [];
+  L.push(`# ${doc.title} — 작은 기능 구현 발주 (AI 에이전트용)`, '');
+  L.push(`프로젝트: ${project?.name ?? '-'}`, '');
+  L.push('## 역할과 규칙');
+  L.push('너는 이 코드베이스에 작은 기능 하나를 더하는 시니어 엔지니어다. 아래를 지켜라:');
+  L.push('- **기존 코드 위에 얹는다.** 아래 프로젝트 맥락의 스택·네이밍 컨벤션·기존 모듈을 그대로 쓰고, 새 모듈·새 용어를 지어내지 마라.');
+  L.push('- **수락된 기획만 구현한다.** 여기 없는 것은 만들지 않는다(범위 확장 금지).');
+  L.push('- **수용 기준을 모두 충족**해야 완료다. 완료 시 기준별 충족 근거를 요약하라.');
+  L.push('- 불명확한 점은 임의로 정하지 말고 **질문으로 남겨라**.', '');
+
+  if (briefSections.length) {
+    L.push(`## 프로젝트 맥락 — 브리프 「${brief!.title}」 (수락분)`);
+    for (const s of briefSections) L.push(`### ${s.heading}`, s.body.trim(), '');
+  } else if (brief) {
+    L.push('## 프로젝트 맥락', `브리프 「${brief.title}」 가 연결돼 있으나 수락된 섹션이 없다 — 아래 기획만 근거로 삼되, 기존 코드 확인을 우선하라.`, '');
+  } else {
+    L.push('## 프로젝트 맥락', '연결된 브리프가 없다 — 작업 전에 레포의 README·구조를 직접 확인하고 기존 컨벤션을 따르라.', '');
+  }
+
+  L.push('## 기능 기획 (수락분)');
+  for (const s of accepted) {
+    L.push(`### ${s.heading}`);
+    // 수용 기준 섹션의 불릿은 완료 판정용 체크박스로 바꾼다
+    if (/수용\s*기준|acceptance/i.test(s.heading)) {
+      const items = s.body.split('\n').map((l) => l.replace(/^[·\-*]\s*/, '').trim()).filter(Boolean);
+      for (const c of items) L.push(`- [ ] ${c}`);
+    } else {
+      L.push(s.body.trim());
+    }
+    L.push('');
+  }
+
+  if (advisory && !advisory.briefEmpty && advisory.notes.length) {
+    L.push('## 확인 필요한 이름 (브리프 대조)');
+    L.push('아래 이름은 브리프에 없다 — 신규 도입이면 기존 컨벤션에 맞춰 만들고, 기존 코드에 비슷한 것이 있으면 그 이름을 쓴다. 확신이 없으면 질문으로 남겨라.');
+    for (const n of advisory.notes) L.push(`- \`${n.name}\` (${n.sections.join(' · ')})`);
+    L.push('');
+  }
 
   return L.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
 }
