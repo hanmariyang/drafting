@@ -44,6 +44,13 @@ function migrate(d: DatabaseSync): void {
   if (sugCols.length && !sugCols.some((c) => c.name === 'target_item_id')) {
     d.exec('ALTER TABLE suggestions ADD COLUMN target_item_id TEXT');
   }
+  // 꼬리 질문(보강 질문) — 세션에 붙는 동적 질문 목록. 이전 DB 는 컬럼이 없다.
+  const sesCols = d.prepare('PRAGMA table_info(interview_sessions)').all() as Array<{
+    name: string;
+  }>;
+  if (sesCols.length && !sesCols.some((c) => c.name === 'extra_questions')) {
+    d.exec("ALTER TABLE interview_sessions ADD COLUMN extra_questions TEXT NOT NULL DEFAULT '[]'");
+  }
 }
 
 export function setDb(instance: DatabaseSync): void {

@@ -118,6 +118,19 @@ export interface InterviewAnswer {
   answer: string;
 }
 
+/**
+ * AI 보강 질문(꼬리 질문). 템플릿 질문 뒤에 이어 붙는 동적 질문이다.
+ * 답변은 일반 답변과 같은 session.answers 에 저장되므로 초안 프롬프트
+ * (answersBlock)로 자연히 흘러간다 — 별도 기계가 없다.
+ */
+export interface ExtraQuestion {
+  id: string;
+  prompt: string;
+  hint?: string;
+  /** 이 질문을 만든 이유 (어느 답변이 얕았는지). */
+  reason?: string;
+}
+
 export interface InterviewSession {
   id: string;
   document_id: string;
@@ -125,6 +138,7 @@ export interface InterviewSession {
   status: 'active' | 'complete';
   current_index: number;
   answers: InterviewAnswer[];
+  extra_questions: ExtraQuestion[];
   created_at: string;
   updated_at: string;
 }

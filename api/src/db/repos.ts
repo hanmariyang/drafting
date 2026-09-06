@@ -11,6 +11,7 @@ import type {
   SuggestionKind,
   InterviewSession,
   InterviewAnswer,
+  ExtraQuestion,
   DocumentSnapshot,
   DocumentType,
   ProviderId,
@@ -662,12 +663,26 @@ interface SessionRow {
   status: 'active' | 'complete';
   current_index: number;
   answers: string;
+  extra_questions: string;
   created_at: string;
   updated_at: string;
 }
 
+function parseJsonArray<T>(raw: string | null | undefined): T[] {
+  try {
+    const v = JSON.parse(raw || '[]');
+    return Array.isArray(v) ? (v as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function hydrateSession(row: SessionRow): InterviewSession {
-  return { ...row, answers: JSON.parse(row.answers) as unknown as InterviewAnswer[] };
+  return {
+    ...row,
+    answers: parseJsonArray<InterviewAnswer>(row.answers),
+    extra_questions: parseJsonArray<ExtraQuestion>(row.extra_questions),
+  };
 }
 
 export function createSession(documentId: string, templateId: string): InterviewSession {
@@ -676,8 +691,9 @@ export function createSession(documentId: string, templateId: string): Interview
   db()
     .prepare(
       `INSERT INTO interview_sessions
-         (id, document_id, template_id, status, current_index, answers, created_at, updated_at)
-       VALUES (?, ?, ?, 'active', 0, '[]', ?, ?)`,
+         (id, document_id, template_id, status, current_index, answers,
+          extra_questions, created_at, updated_at)
+       VALUES (?, ?, ?, 'active', 0, '[]', '[]', ?, ?)`,
     )
     .run(id, documentId, templateId, ts, ts);
   return getSession(id)!;
@@ -701,20 +717,23 @@ export function getSessionByDocument(documentId: string): InterviewSession | nul
 
 export function updateSession(
   id: string,
-  patch: Partial<Pick<InterviewSession, 'status' | 'current_index' | 'answers'>>,
+  patch: Partial<
+    Pick<InterviewSession, 'status' | 'current_index' | 'answers' | 'extra_questions'>
+  >,
 ): InterviewSession | null {
   const cur = getSession(id);
   if (!cur) return null;
   db()
     .prepare(
       `UPDATE interview_sessions
-         SET status = ?, current_index = ?, answers = ?, updated_at = ?
+         SET status = ?, current_index = ?, answers = ?, extra_questions = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
       patch.status ?? cur.status,
       patch.current_index ?? cur.current_index,
       JSON.stringify(patch.answers ?? cur.answers),
+      JSON.stringify(patch.extra_questions ?? cur.extra_questions),
       nowIso(),
       id,
     );

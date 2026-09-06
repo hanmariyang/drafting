@@ -11,6 +11,7 @@ import {
   deleteCustomTemplate,
 } from '../lib/templates.ts';
 import { streamDocumentDraft, streamSectionRegeneration } from '../lib/ai.ts';
+import { generateFollowups, FollowupError } from '../lib/followups.ts';
 import type { DraftEvent } from '../lib/ai.ts';
 
 export async function interviewRoutes(app: FastifyInstance): Promise<void> {
@@ -88,6 +89,25 @@ export async function interviewRoutes(app: FastifyInstance): Promise<void> {
       answers,
       current_index: body.currentIndex ?? session.current_index,
     });
+  });
+
+  // ── 꼬리 질문(보강 질문) ────────────────────────────────────────────────────
+  // 답변을 읽고 얕은 곳만 골라 최대 3개의 보강 질문을 세션에 붙인다. 그 답변은
+  // 일반 답변과 같은 경로(answers → answersBlock)로 초안 프롬프트에 흘러간다.
+  // 1회성 아님 — 다시 부르면 목록을 새로 만든다(같은 질문은 같은 id, 답변 유지).
+  app.post('/api/documents/:id/interview/followups', async (req) => {
+    const { id } = req.params as { id: string };
+    if (!repo.getDocument(id)) throw new HttpError(404, 'document not found');
+    try {
+      const { questions, session } = await generateFollowups(id);
+      return { questions, session };
+    } catch (e) {
+      if (e instanceof FollowupError) {
+        const msg = (e as Error).message;
+        throw new HttpError(msg === '인터뷰 세션이 없습니다' ? 404 : 400, msg);
+      }
+      throw new HttpError(502, `보강 질문을 만들지 못했습니다 · ${(e as Error).message}`);
+    }
   });
 
   app.post('/api/interview/:sid/complete', async (req) => {
