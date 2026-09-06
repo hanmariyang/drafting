@@ -97,3 +97,57 @@ test('council · 실제 섹션과 맞지 않는 sectionHeading 은 버린다(첫
     ['s2', 's1'],
   );
 });
+
+// ── dedupe: 재실행 = 갱신 (중첩·부활 금지) ────────────────────────────────────
+
+test('council · 재실행해도 같은 비평은 중첩되지 않는다 (created 0 · unchanged)', async () => {
+  const doc = seed();
+  repo.createSection(doc.id, '개요', LONG);
+  repo.createSection(doc.id, '범위', LONG);
+  const app = await buildServer();
+
+  const r1 = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/council` });
+  const first = r1.json().created;
+  assert.ok(first >= 3);
+
+  const r2 = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/council` });
+  assert.equal(r2.json().created, 0); // 스텁은 결정적 — 전부 동일 비평
+  assert.equal(r2.json().unchanged, first);
+  assert.equal(repo.listSuggestions(doc.id, 'open').length, first); // 중첩 없음
+});
+
+test('council · 처리한 비평은 재실행 시 부활하지 않는다', async () => {
+  const doc = seed();
+  repo.createSection(doc.id, '개요', LONG);
+  repo.createSection(doc.id, '범위', LONG);
+  const app = await buildServer();
+  await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/council` });
+
+  const one = repo.listSuggestions(doc.id, 'open').find((s) => (s.source ?? '').startsWith('카운슬'))!;
+  repo.resolveSuggestion(one.id, 'rejected'); // 사람이 거절함
+
+  const r = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/council` });
+  assert.equal(r.json().created, 0);
+  const open = repo.listSuggestions(doc.id, 'open');
+  assert.equal(open.some((s) => s.body === one.body && s.section_id === one.section_id), false);
+});
+
+test('council · 이전 판(중첩 시대)의 낡은 열린 카드는 정리된다', async () => {
+  const doc = seed();
+  repo.createSection(doc.id, '개요', LONG);
+  repo.createSection(doc.id, '범위', LONG);
+  // 새 실행 결과에 없는 낡은 카운슬 카드 (과거 중첩 잔재 시뮬레이션)
+  const sec = repo.listSections(doc.id)[0];
+  const stale = repo.createSuggestion({
+    documentId: doc.id,
+    sectionId: sec.id,
+    kind: 'question',
+    title: '"개요" 비평',
+    body: '지금 실행 결과에는 없는 옛 비평입니다.',
+    source: '카운슬 · 엔지니어',
+  });
+  const app = await buildServer();
+  const r = await app.inject({ method: 'POST', url: `/api/documents/${doc.id}/council` });
+  assert.ok(r.json().replaced >= 1);
+  assert.equal(repo.listSuggestions(doc.id).find((s) => s.id === stale.id)!.status, 'dismissed');
+});

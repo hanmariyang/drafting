@@ -218,8 +218,8 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
       throw new HttpError(400, '산문 기획 문서(prd·feature)만 비평합니다');
     }
     try {
-      const { created, dropped } = await runCouncil(id);
-      return { created, dropped, openSuggestions: repo.countOpenSuggestions(id) };
+      const { created, dropped, replaced, unchanged } = await runCouncil(id);
+      return { created, dropped, replaced, unchanged, openSuggestions: repo.countOpenSuggestions(id) };
     } catch (e) {
       if (e instanceof CouncilError) throw new HttpError(400, (e as Error).message);
       throw new HttpError(502, `비평을 받지 못했습니다 · ${(e as Error).message}`);
