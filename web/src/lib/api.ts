@@ -1,6 +1,15 @@
 // Typed client for the Drafting API. Same-origin in prod; vite proxies in dev.
 
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'design-system' | 'handoff';
+// feature(작은 기능 기획)·brief(프로젝트 브리프)는 6종 체인 밖의 산문 문서다.
+export type DocumentType =
+  | 'prd'
+  | 'feature-spec'
+  | 'ia'
+  | 'user-flow'
+  | 'design-system'
+  | 'handoff'
+  | 'feature'
+  | 'brief';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
 
 // ── plan items (structure docs) ──────────────────────────────────────────────
@@ -256,6 +265,13 @@ export const api = {
       body: JSON.stringify({ title }),
     }),
   deleteDocument: (id: string) => req(`/api/documents/${id}`, { method: 'DELETE' }),
+
+  /** 프로젝트 브리프 — 로컬 레포 폴더에서 6개 섹션을 제안으로 추출한다. */
+  extractBrief: (docId: string, path: string) =>
+    req<{ root: string; read: string; sections: Section[] }>(
+      `/api/documents/${docId}/brief/extract`,
+      { method: 'POST', body: JSON.stringify({ path }) },
+    ),
 
   // sections
   addSection: (docId: string, heading: string, body = '') =>

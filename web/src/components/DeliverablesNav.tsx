@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, openSuggestionsOf, type DocumentModel, type DocumentType } from '../lib/api.ts';
 import { ProjectSwitcher, TYPE_BADGE } from './DocChainTree.tsx';
 
-export type NavKey = 'INT' | 'PRD' | 'SPEC' | 'IA' | 'FLOW' | 'DS' | 'WF' | 'DEV' | 'HUB';
+// 'NONE' = 체인 노드 어디에도 대응하지 않는 문서(feature·brief 등) — 아무 노드도 켜지 않는다.
+export type NavKey = 'INT' | 'PRD' | 'SPEC' | 'IA' | 'FLOW' | 'DS' | 'WF' | 'DEV' | 'HUB' | 'NONE';
 
 interface NodeDef {
   key: NavKey;
@@ -19,6 +20,9 @@ const DELIVERABLES: NodeDef[] = [
   { key: 'FLOW', type: 'user-flow', label: '유저 플로우' },
   { key: 'DS', type: 'design-system', label: '디자인 시스템' },
 ];
+
+/** 위 고정 노드가 대표하는 타입 — 나머지는 "기타 문서" 그룹으로 간다. */
+const NAV_TYPES = new Set<DocumentType>(DELIVERABLES.map((d) => d.type));
 
 /** parent-of relationship for lazily creating a missing structure document. */
 function parentFor(type: DocumentType, byType: Partial<Record<DocumentType, DocumentModel>>): string | null {
@@ -37,6 +41,8 @@ const TITLE: Record<DocumentType, string> = {
   'user-flow': '유저 플로우',
   'design-system': '디자인 시스템',
   handoff: '개발 지시서',
+  feature: '작은 기능 기획',
+  brief: '프로젝트 브리프',
 };
 
 interface Props {
@@ -61,8 +67,13 @@ export function DeliverablesNav({ projectId, projectName, documents, active, act
   // 각 타입의 대표 문서(가장 먼저 만든 것)를 체인 노드에 매핑한다.
   const byType: Partial<Record<DocumentType, DocumentModel>> = {};
   for (const d of documents) if (!byType[d.type]) byType[d.type] = d;
-  // 같은 타입 문서가 2개 이상일 때 대표가 아닌 나머지 (issue #88: 화면에서 사라지던 문서들).
-  const extras = documents.filter((d) => byType[d.type]?.id !== d.id);
+  // "기타 문서" = 위 고정 노드로 못 닿는 문서 전부. 두 갈래다:
+  //  ① 같은 체인 타입이 2개 이상일 때 대표가 아닌 나머지 (issue #88)
+  //  ② 체인 밖 타입 — feature(작은 기능 기획)·brief(프로젝트 브리프). handoff 는
+  //     아래 '파생' 그룹에 제 노드가 있으므로 여기서 뺀다(중복 방지).
+  const extras = documents.filter((d) =>
+    NAV_TYPES.has(d.type) ? byType[d.type]?.id !== d.id : d.type !== 'handoff',
+  );
 
   useEffect(() => {
     api

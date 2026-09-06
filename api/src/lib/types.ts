@@ -1,4 +1,17 @@
-export type DocumentType = 'prd' | 'feature-spec' | 'ia' | 'user-flow' | 'design-system' | 'handoff';
+// 'feature'(단독 기능 기획) 와 'brief'(프로젝트 브리프) 는 6종 체인 밖의 산문 문서다.
+// prd·handoff 와 같은 계열 — 섹션 에디터·제안·수락·내보내기를 그대로 쓰고 plan_items 는 쓰지 않는다.
+export type DocumentType =
+  | 'prd'
+  | 'feature-spec'
+  | 'ia'
+  | 'user-flow'
+  | 'design-system'
+  | 'handoff'
+  | 'feature'
+  | 'brief';
+
+/** 부모 없이 단독으로 만들 수 있는 문서 타입 (체인 독립). */
+export const ROOT_DOC_TYPES = ['prd', 'feature', 'brief'] as const;
 export type DocumentStatus = 'draft' | 'streaming' | 'ready';
 export type ProviderId = 'anthropic' | 'openai' | 'openrouter';
 export type VersionEvent = 'save' | 'context_inherit' | 'restore';

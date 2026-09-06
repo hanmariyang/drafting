@@ -1167,3 +1167,46 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .cli-help-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cli-help details { font-size: 11px; color: var(--sub); }
 .cli-help details code { font-family: var(--mono); font-size: 10.5px; display: block; margin-top: 4px; white-space: pre-wrap; word-break: break-all; }
+
+/* ── 작은 기능 기획 · 프로젝트 브리프 (설계 노트 §4·§7) ─────────────────────── */
+/* 새 기획 시트의 두 갈래 선택 — 제품 기획 / 작은 기능 기획 */
+.kind-pick { display: flex; gap: 6px; margin-bottom: 12px; }
+
+/* 기능 기획 옵션 — 대상 프로젝트 + 브리프 연결 여부 */
+.feat-opts {
+  border: 1px solid var(--hair);
+  border-radius: var(--r-card);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: grid;
+  gap: 9px;
+  background: var(--bg);
+}
+.feat-opts .fo-row { display: flex; align-items: center; gap: 10px; }
+.feat-opts .fo-row .k { font-size: 11px; color: var(--sub); min-width: 52px; }
+.feat-opts .fo-row .field { flex: 1; margin-bottom: 0; }
+.feat-opts .fo-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink); }
+.feat-opts .fo-note { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.feat-opts .hint { font-size: 11px; color: var(--sub); line-height: 1.5; flex: 1; min-width: 200px; }
+
+/* 시작 화면의 보조 진입 — 이미 있는 제품에 기능 추가 */
+.start-alt { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.start-alt .hint { font-size: 11px; color: var(--sub); }
+
+/* 브리프 문서 전용 — 로컬 레포 폴더 추출 */
+.brief-extract {
+  border: 1px solid var(--hair);
+  border-radius: var(--r-card);
+  background: var(--paper);
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+}
+.brief-extract .be-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brief-extract .be-head b { font-size: 12.5px; }
+.brief-extract .be-head .hint { font-size: 11px; color: var(--sub); line-height: 1.5; }
+.brief-extract .be-row { display: flex; gap: 8px; align-items: center; }
+.brief-extract .be-row .field { flex: 1; margin-bottom: 0; font-size: 12px; }
+.brief-extract .be-read { font-size: 10.5px; color: var(--sub); word-break: break-all; }
+.brief-extract .form-error { margin: 0; }

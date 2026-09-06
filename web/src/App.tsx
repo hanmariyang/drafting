@@ -21,13 +21,16 @@ export const useMeta = () => useContext(MetaContext);
 
 /** 어디서든 새 기획 시트를 연다 (스위처 + 버튼 등에서 사용). */
 export const NEW_PLAN_EVENT = 'drafting:new-plan';
-export function openNewPlan(): void {
-  window.dispatchEvent(new CustomEvent(NEW_PLAN_EVENT));
+/** 시트를 어느 갈래로 열지 — 'feature' 면 작은 기능 기획 탭이 선택된 채로 열린다. */
+export type NewPlanKind = 'product' | 'feature';
+export function openNewPlan(kind: NewPlanKind = 'product'): void {
+  window.dispatchEvent(new CustomEvent(NEW_PLAN_EVENT, { detail: { kind } }));
 }
 
 export function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
+  const [planKind, setPlanKind] = useState<NewPlanKind>('product');
   const [palOpen, setPalOpen] = useState(false);
 
   const reload = useCallback(async () => {
@@ -44,6 +47,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
+        setPlanKind('product');
         setPlanOpen(true);
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
@@ -51,7 +55,11 @@ export function App() {
         setPalOpen((v) => !v);
       }
     };
-    const onOpen = () => setPlanOpen(true);
+    const onOpen = (e: Event) => {
+      const kind = (e as CustomEvent<{ kind?: NewPlanKind }>).detail?.kind;
+      setPlanKind(kind === 'feature' ? 'feature' : 'product');
+      setPlanOpen(true);
+    };
     window.addEventListener('keydown', onKey);
     window.addEventListener(NEW_PLAN_EVENT, onOpen);
     return () => {
@@ -76,7 +84,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {planOpen && <NewPlanSheet onClose={() => setPlanOpen(false)} />}
+      {planOpen && <NewPlanSheet kind={planKind} onClose={() => setPlanOpen(false)} />}
       {palOpen && <CommandPalette onClose={() => setPalOpen(false)} />}
       {showWizard && <OnboardingWizard onDone={reload} />}
     </MetaContext.Provider>

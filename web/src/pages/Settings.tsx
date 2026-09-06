@@ -22,6 +22,8 @@ const DOC_LABEL: Record<DocumentType, string> = {
   'user-flow': '유저플로우',
   'design-system': '디자인 시스템',
   handoff: '지시서',
+  feature: '기능 기획',
+  brief: '브리프',
 };
 
 export function Settings() {

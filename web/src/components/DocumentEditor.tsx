@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
 } from 'react';
 import { api, type DocumentModel } from '../lib/api.ts';
@@ -24,6 +25,8 @@ interface Props {
   error: string;
   onBackToInterview: () => void;
   onStop?: () => void;
+  /** doc-head 아래, 섹션 위에 끼우는 문서 타입 전용 도구 (브리프의 레포 폴더 추출 등) */
+  headExtra?: ReactNode;
 }
 
 export function DocumentEditor({
@@ -40,6 +43,7 @@ export function DocumentEditor({
   error,
   onBackToInterview,
   onStop,
+  headExtra,
 }: Props) {
   const [title, setTitle] = useState(doc.title);
   const [editing, setEditing] = useState<string | null>(null);
@@ -154,6 +158,8 @@ export function DocumentEditor({
             </button>
           </div>
         </div>
+
+        {headExtra}
 
         {error && (
           <div className="err" style={{ marginBottom: 12 }}>

@@ -30,6 +30,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     (async () => {
       const base: Item[] = [
         { key: 'a:new', kind: 'action', label: '새 기획', detail: '⌘N', go: () => { onClose(); openNewPlan(); } },
+        { key: 'a:new-feature', kind: 'action', label: '작은 기능 기획', detail: '이미 있는 제품에 기능 하나', go: () => { onClose(); openNewPlan('feature'); } },
         { key: 'a:start', kind: 'action', label: '시작 화면', go: () => { onClose(); nav('/'); } },
         { key: 'a:settings', kind: 'action', label: '설정', go: () => { onClose(); nav('/settings'); } },
         { key: 'a:templates', kind: 'action', label: '템플릿 라이브러리', go: () => { onClose(); nav('/templates'); } },

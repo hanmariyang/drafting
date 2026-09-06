@@ -14,9 +14,19 @@ import * as repo from './db/repos.ts';
 import { documentToMarkdown } from './lib/render.ts';
 import { lintReport } from './lib/lint-service.ts';
 import { checkLinkRefs, linkRefErrorMessage } from './lib/link-validate.ts';
+import { ROOT_DOC_TYPES } from './lib/types.ts';
 import type { DocumentType } from './lib/types.ts';
 
-const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system', 'handoff'] as const;
+const DOC_TYPES = [
+  'prd',
+  'feature-spec',
+  'ia',
+  'user-flow',
+  'design-system',
+  'handoff',
+  'feature',
+  'brief',
+] as const;
 
 function json(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 1) }] };
@@ -75,7 +85,7 @@ export function buildMcpServer(): McpServer {
 
   server.tool(
     'drafting-create-document',
-    '프로젝트에 기획 문서를 만든다. type: prd | feature-spec | ia | user-flow | design-system | handoff(개발지시서). 산문(prd·handoff)은 add-section, 구조(feature-spec·ia·user-flow)는 add-item 으로 채운다.',
+    '프로젝트에 기획 문서를 만든다. type: prd | feature-spec | ia | user-flow | design-system | handoff(개발지시서) | feature(작은 기능 기획) | brief(프로젝트 브리프). 산문(prd·handoff·feature·brief)은 add-section, 구조(feature-spec·ia·user-flow)는 add-item 으로 채운다. prd·feature·brief 는 부모 없이 만들 수 있다.',
     {
       projectId: z.string(),
       type: z.enum(DOC_TYPES),
@@ -84,8 +94,10 @@ export function buildMcpServer(): McpServer {
     },
     ({ projectId, type, title, parentDocumentId }) => {
       if (!repo.getProject(projectId)) return fail('project not found');
-      // 문서 체인 강제: PRD 외 문서는 부모에서 파생된다 (interview → PRD → feature-spec → IA → user-flow).
-      if (type !== 'prd' && !parentDocumentId) {
+      // 문서 체인 강제: 체인 문서는 부모에서 파생된다 (interview → PRD → feature-spec → IA → user-flow).
+      // 예외 = ROOT_DOC_TYPES: prd(체인 시작) · feature(단독 기능 기획) · brief(프로젝트 브리프)는
+      // 체인 밖 문서라 부모 없이 만들 수 있다. feature 는 선택적으로 brief 를 부모로 가질 수 있다.
+      if (!(ROOT_DOC_TYPES as readonly string[]).includes(type) && !parentDocumentId) {
         return fail(
           `'${type}' 문서는 parentDocumentId 가 필요합니다 — 문서 체인(PRD → feature-spec → IA → user-flow)을 따라 이전 문서에서 파생시키세요.`,
         );

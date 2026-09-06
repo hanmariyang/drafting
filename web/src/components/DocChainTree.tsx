@@ -10,6 +10,8 @@ const TYPE_BADGE: Record<DocumentType, string> = {
   'user-flow': 'FLOW',
   'design-system': 'DS',
   handoff: 'DEV',
+  feature: 'FEAT',
+  brief: 'BRIEF',
 };
 
 interface ChainNode {
@@ -137,7 +139,7 @@ export function ProjectSwitcher({ currentId, currentName }: { currentId: string;
           <b>{currentName}</b>
           <span className="car">{open ? '▴' : '▾'}</span>
         </button>
-        <button className="sw-plus" onClick={openNewPlan} title="새 기획 (⌘N)">
+        <button className="sw-plus" onClick={() => openNewPlan()} title="새 기획 (⌘N)">
           +
         </button>
       </div>

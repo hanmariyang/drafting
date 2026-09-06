@@ -4,8 +4,23 @@ import * as repo from '../db/repos.ts';
 import { HttpError, parse } from './helpers.ts';
 import { documentToMarkdown, documentToHtml } from '../lib/render.ts';
 import { nowIso } from '../db/index.ts';
+import {
+  collectRepoBrief,
+  renderBriefContext,
+  briefSourceSummary,
+  BriefExtractError,
+} from '../lib/brief-extract.ts';
+import { streamDocumentDraft } from '../lib/ai.ts';
 
-const DOC_TYPES = ['prd', 'feature-spec', 'ia', 'user-flow', 'design-system'] as const;
+const DOC_TYPES = [
+  'prd',
+  'feature-spec',
+  'ia',
+  'user-flow',
+  'design-system',
+  'feature',
+  'brief',
+] as const;
 
 export async function documentRoutes(app: FastifyInstance): Promise<void> {
   // create a document under a project
@@ -109,6 +124,46 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     const sections = repo.reorderSections(id, body.orderedIds);
     repo.snapshotDocument(id, 'save', { reason: 'reorder' });
     return sections;
+  });
+
+  // ── project brief: extract from a local repo folder (설계 노트 §1·§2) ────────
+  // 프라이빗 레포 권한 문제를 "이미 로컬에 클론된 폴더 읽기"로 소거한다. GitHub 인증 없음.
+  // 읽는 것은 README·매니페스트·트리·엔트리 head 뿐 — 코드 전량은 읽지 않는다.
+  app.post('/api/documents/:id/brief/extract', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'brief') {
+      throw new HttpError(400, '프로젝트 브리프(brief) 문서에서만 추출할 수 있습니다');
+    }
+    const body = parse(z.object({ path: z.string().min(1) }), req.body);
+
+    let brief;
+    try {
+      brief = collectRepoBrief(body.path);
+    } catch (e) {
+      if (e instanceof BriefExtractError) {
+        // 컨테이너 등에서 폴더가 안 보이는 경우도 여기로 온다 —
+        // 사용자는 섹션을 직접 쓰거나 붙여넣는 경로로 우회한다.
+        throw new HttpError(
+          400,
+          `${(e as Error).message} · 앱에서 접근 가능한 로컬 폴더인지 확인하세요(도커로 실행 중이면 폴더가 보이지 않습니다). 섹션을 직접 작성하거나 붙여넣어도 됩니다.`,
+        );
+      }
+      throw e;
+    }
+
+    const read = briefSourceSummary(brief);
+    let failure = '';
+    for await (const evt of streamDocumentDraft(id, undefined, {
+      extraContext: renderBriefContext(brief),
+      sourceLabel: `레포 폴더 추출 · ${read}`,
+    })) {
+      if (evt.type === 'error') failure = evt.message;
+    }
+    if (failure) throw new HttpError(502, failure);
+
+    return { root: brief.root, read, sections: repo.listSections(id) };
   });
 
   // ── context chain (P-01) ────────────────────────────────────────────────────

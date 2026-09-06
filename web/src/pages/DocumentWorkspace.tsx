@@ -23,6 +23,7 @@ import { VersionHistory } from '../components/VersionHistory.tsx';
 import { SharePanel } from '../components/SharePanel.tsx';
 import { ContextRefreshDialog } from '../components/ContextRefreshDialog.tsx';
 import { Choani } from '../components/Choani.tsx';
+import { BriefExtractBar } from '../components/BriefExtractBar.tsx';
 
 const TYPE_LABEL: Record<DocumentType, string> = {
   prd: 'PRD',
@@ -31,6 +32,8 @@ const TYPE_LABEL: Record<DocumentType, string> = {
   'user-flow': '유저플로우',
   'design-system': '디자인 시스템',
   handoff: '개발 지시서',
+  feature: '작은 기능 기획',
+  brief: '프로젝트 브리프',
 };
 
 /** 생성 실패 메시지가 CLI 차단·인증 계열인지 — 키 등록으로 복구 가능한 경우. */
@@ -217,6 +220,12 @@ export function DocumentWorkspace() {
     });
   }
 
+  // 브리프 추출이 끝나면 제안 섹션이 새로 생겼으므로 문서·제안을 다시 읽는다.
+  const afterExtract = useCallback(() => {
+    loadAll().catch((e) => setError((e as Error).message));
+    sug.reload();
+  }, [loadAll, sug]);
+
   async function rename(title: string) {
     const updated = await api.renameDocument(docId, title);
     setDoc(updated);
@@ -278,7 +287,7 @@ export function DocumentWorkspace() {
       projectId={pid!}
       projectName={project.name}
       documents={project.documents}
-      active="PRD"
+      active={doc.type === 'feature' || doc.type === 'brief' ? 'NONE' : 'PRD'}
       activeCount={openCount}
     />
   ) : undefined;
@@ -315,6 +324,9 @@ export function DocumentWorkspace() {
               <div className="meta">답변한 뒤 AI 초안을 제안으로 받습니다</div>
             </div>
             {error && <div className="err" style={{ marginBottom: 12 }}>{error}</div>}
+            {doc.type === 'brief' && (
+              <BriefExtractBar docId={docId} onExtracted={afterExtract} />
+            )}
             {session && template ? (
               <InterviewPanel
                 template={template}
@@ -383,6 +395,11 @@ export function DocumentWorkspace() {
       )}
       <DocumentEditor
         doc={doc}
+        headExtra={
+          doc.type === 'brief' ? (
+            <BriefExtractBar docId={docId} onExtracted={afterExtract} />
+          ) : undefined
+        }
         sections={sections}
         setSections={setSections}
         streaming={streaming}
