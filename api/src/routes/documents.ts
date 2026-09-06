@@ -10,6 +10,7 @@ import {
   briefSourceSummary,
   BriefExtractError,
 } from '../lib/brief-extract.ts';
+import { briefAdvisory } from '../lib/brief-lint.ts';
 import { streamDocumentDraft } from '../lib/ai.ts';
 
 const DOC_TYPES = [
@@ -164,6 +165,25 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     if (failure) throw new HttpError(502, failure);
 
     return { root: brief.root, read, sections: repo.listSections(id) };
+  });
+
+  // ── 브리프 정합성 advisory (설계 노트 §3) ────────────────────────────────────
+  // feature 문서가 브리프에 없는 식별자 이름을 참조하면 경고를 돌려준다.
+  // 차단·게이트 아님 — 컴파일 lint(E/W·waive)와 별개의 조언 채널.
+  // 브리프 부모가 없으면 꺼진다("브리프 없이 쓰면 lint 는 꺼진다", §7).
+  app.get('/api/documents/:id/brief-check', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'feature') return { enabled: false, reason: 'feature 문서가 아닙니다' };
+    const parent = doc.parent_document_id ? repo.getDocument(doc.parent_document_id) : null;
+    if (!parent || parent.type !== 'brief') {
+      return { enabled: false, reason: '프로젝트 브리프가 연결되지 않았습니다' };
+    }
+    const briefSections = repo.listAcceptedSections(parent.id);
+    const featureSections = repo.listSections(id).filter((s) => s.status !== 'rejected');
+    const result = briefAdvisory(featureSections, briefSections);
+    return { enabled: true, briefId: parent.id, briefTitle: parent.title, ...result };
   });
 
   // ── context chain (P-01) ────────────────────────────────────────────────────

@@ -1210,3 +1210,33 @@ textarea.field { resize: vertical; min-height: 78px; line-height: 1.6; }
 .brief-extract .be-row .field { flex: 1; margin-bottom: 0; font-size: 12px; }
 .brief-extract .be-read { font-size: 10.5px; color: var(--sub); word-break: break-all; }
 .brief-extract .form-error { margin: 0; }
+
+/* 브리프 정합성 advisory — 위반이 아니라 조언: warn 은 태그에만, 지면은 중립 */
+.brief-advisory {
+  border: 1px solid var(--warn-line);
+  border-radius: var(--r-card);
+  background: var(--paper);
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  display: grid;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.brief-advisory .ba-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brief-advisory .ba-head .btn { margin-left: auto; }
+.brief-advisory .ba-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.brief-advisory .ba-text { color: var(--sub); line-height: 1.6; }
+.brief-advisory .ba-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.brief-advisory .ba-list li { display: flex; align-items: baseline; gap: 10px; }
+.brief-advisory .ba-list code { font-family: var(--mono); font-size: 11.5px; }
+.brief-advisory .ba-where { color: var(--faint); font-size: 11px; }
