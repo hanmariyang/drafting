@@ -11,6 +11,7 @@ import {
   BriefExtractError,
 } from '../lib/brief-extract.ts';
 import { briefAdvisory } from '../lib/brief-lint.ts';
+import { featurePromptPack } from '../lib/handoff.ts';
 import { streamDocumentDraft } from '../lib/ai.ts';
 
 const DOC_TYPES = [
@@ -184,6 +185,22 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     const featureSections = repo.listSections(id).filter((s) => s.status !== 'rejected');
     const result = briefAdvisory(featureSections, briefSections);
     return { enabled: true, briefId: parent.id, briefTitle: parent.title, ...result };
+  });
+
+  // ── 작은 기능 프롬프트 팩 (설계 노트 §4) ─────────────────────────────────────
+  // 수락된 기획 + 브리프 맥락을 코딩 에이전트용 발주 마크다운으로 내보낸다.
+  // 체인 핸드오프와 달리 게이트 없음 — 수락분이 곧 발주다.
+  app.get('/api/documents/:id/feature/prompt-pack', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (doc.type !== 'feature') {
+      throw new HttpError(400, '작은 기능 기획(feature) 문서에서만 내보낼 수 있습니다');
+    }
+    reply
+      .header('Content-Type', 'text/markdown; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="feature-${id}.md"`);
+    return featurePromptPack(id);
   });
 
   // ── context chain (P-01) ────────────────────────────────────────────────────

@@ -272,6 +272,15 @@ export function DocumentWorkspace() {
       <button className="btn" onClick={() => setModal('share')}>
         공유
       </button>
+      {doc?.type === 'feature' && (
+        <a
+          className="btn"
+          href={`/api/documents/${docId}/feature/prompt-pack`}
+          title="수락된 기획 + 브리프 맥락을 코딩 에이전트용 발주 마크다운으로"
+        >
+          구현 발주
+        </a>
+      )}
       <a
         className="btn pri"
         href={`/api/documents/${docId}/export.md`}
