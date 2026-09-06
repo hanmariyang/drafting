@@ -208,6 +208,10 @@ export class CouncilError extends Error {}
 export async function runCouncil(documentId: string): Promise<{
   created: number;
   dropped: number;
+  /** 새 실행 결과에 없어 정리(dismissed)된 이전 열린 카드 수 */
+  replaced: number;
+  /** 동일 비평이 이미 있어(열림 유지 또는 처리됨) 새로 만들지 않은 수 */
+  unchanged: number;
   critiques: ResolvedCritique[];
 }> {
   const doc = repo.getDocument(documentId);
@@ -238,7 +242,36 @@ export async function runCouncil(documentId: string): Promise<{
   }
 
   const { kept, dropped } = resolveCritiques(sections, raw);
+
+  // ── dedupe: 재실행 = 갱신 ──────────────────────────────────────────────────
+  // 같은 비평(섹션·페르소나·본문 동일)이 이미 열려 있으면 그대로 두고(중첩 금지),
+  // 이미 처리한(수락·거절·넘김) 비평과 동일한 것은 되살리지 않는다.
+  // 새 실행 결과에 없는 열린 카운슬 카드는 낡은 비평이므로 정리(dismissed)한다.
+  const keyOf = (sectionId: string, source: string, body: string) =>
+    `${sectionId} ${source} ${body.trim()}`;
+  const wanted = new Map<string, ResolvedCritique>();
   for (const c of kept) {
+    wanted.set(keyOf(c.sectionId, `카운슬 · ${PERSONA_LABEL[c.persona]}`, c.critique), c);
+  }
+  let replaced = 0;
+  let unchanged = 0;
+  const prev = repo
+    .listSuggestions(documentId)
+    .filter((s) => (s.source ?? '').startsWith('카운슬 · '));
+  for (const s of prev) {
+    const k = keyOf(s.section_id ?? '', s.source ?? '', s.body ?? '');
+    if (wanted.has(k)) {
+      // 동일 비평이 이미 존재 — 열려 있으면 유지, 처리됐으면 부활 금지
+      wanted.delete(k);
+      unchanged++;
+    } else if (s.status === 'open') {
+      repo.resolveSuggestion(s.id, 'dismissed');
+      replaced++;
+    }
+  }
+
+  const createdList = [...wanted.values()];
+  for (const c of createdList) {
     repo.createSuggestion({
       documentId,
       sectionId: c.sectionId,
@@ -248,5 +281,5 @@ export async function runCouncil(documentId: string): Promise<{
       source: `카운슬 · ${PERSONA_LABEL[c.persona]}`,
     });
   }
-  return { created: kept.length, dropped, critiques: kept };
+  return { created: createdList.length, dropped, replaced, unchanged, critiques: kept };
 }
