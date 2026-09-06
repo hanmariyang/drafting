@@ -24,6 +24,7 @@ import { SharePanel } from '../components/SharePanel.tsx';
 import { ContextRefreshDialog } from '../components/ContextRefreshDialog.tsx';
 import { Choani } from '../components/Choani.tsx';
 import { BriefExtractBar } from '../components/BriefExtractBar.tsx';
+import { BriefAdvisory } from '../components/BriefAdvisory.tsx';
 
 const TYPE_LABEL: Record<DocumentType, string> = {
   prd: 'PRD',
@@ -398,6 +399,11 @@ export function DocumentWorkspace() {
         headExtra={
           doc.type === 'brief' ? (
             <BriefExtractBar docId={docId} onExtracted={afterExtract} />
+          ) : doc.type === 'feature' ? (
+            <BriefAdvisory
+              docId={docId}
+              refreshKey={`${doc.version}-${sections.length}-${streaming}`}
+            />
           ) : undefined
         }
         sections={sections}

@@ -273,6 +273,17 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ path }) },
     ),
 
+  /** 브리프 정합성 advisory — feature 문서가 브리프에 없는 이름을 쓰면 알려준다(차단 아님). */
+  briefCheck: (docId: string) =>
+    req<{
+      enabled: boolean;
+      reason?: string;
+      briefId?: string;
+      briefTitle?: string;
+      briefEmpty?: boolean;
+      notes?: Array<{ name: string; sections: string[] }>;
+    }>(`/api/documents/${docId}/brief-check`),
+
   // sections
   addSection: (docId: string, heading: string, body = '') =>
     req<Section>(`/api/documents/${docId}/sections`, {
