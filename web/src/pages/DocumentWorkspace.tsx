@@ -71,6 +71,9 @@ export function DocumentWorkspace() {
     if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
     ceremonyTimer.current = setTimeout(() => setCeremony(false), 2600);
   }
+  // 카운슬 비평 — 진행 표시는 버튼에, 결과 한 줄은 태그라인 자리에(임시)
+  const [councilBusy, setCouncilBusy] = useState(false);
+  const [councilMsg, setCouncilMsg] = useState('');
   const [modal, setModal] = useState<'versions' | 'share' | 'context' | null>(null);
   const [focusSection, setFocusSection] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -228,6 +231,27 @@ export function DocumentWorkspace() {
     sug.reload();
   }, [loadAll, sug]);
 
+  // 3관점 비평을 받아 제안 패널에 카드로 쌓는다. 문서는 건드리지 않는다.
+  async function runCouncil() {
+    if (councilBusy) return;
+    setCouncilBusy(true);
+    setCouncilMsg('');
+    try {
+      const r = await api.council(docId);
+      await sug.reload();
+      setCouncilMsg(
+        r.created > 0
+          ? `카운슬 비평 ${r.created}개를 제안으로 받았어요.`
+          : '카운슬이 짚을 게 없다고 했어요.',
+      );
+    } catch (e) {
+      setCouncilMsg(`카운슬 비평 실패 · ${(e as Error).message}`);
+    } finally {
+      setCouncilBusy(false);
+      window.setTimeout(() => setCouncilMsg(''), 6000);
+    }
+  }
+
   async function rename(title: string) {
     const updated = await api.renameDocument(docId, title);
     setDoc(updated);
@@ -267,6 +291,18 @@ export function DocumentWorkspace() {
       <span className={`sug-count ${openCount ? '' : 'zero'}`} onClick={() => sug.reload()}>
         <i />제안 {openCount}
       </span>
+      {mode === 'editor' &&
+        (doc.type === 'prd' || doc.type === 'feature') &&
+        meta?.councilEnabled !== false && (
+          <button
+            className="btn"
+            disabled={councilBusy || streaming}
+            onClick={runCouncil}
+            title="엔지니어·디자이너·회의론자 3관점 비평을 제안으로 받습니다"
+          >
+            {councilBusy ? '비평 받는 중…' : '카운슬'}
+          </button>
+        )}
       <button className="btn" onClick={() => setModal('versions')}>
         버전
       </button>
@@ -304,9 +340,10 @@ export function DocumentWorkspace() {
   ) : undefined;
 
   const tagline =
-    openCount > 0
+    councilMsg ||
+    (openCount > 0
       ? `제안 ${openCount} · 수락 전에는 내보내기에 포함되지 않습니다`
-      : '수락하지 않은 문장은 문서에 없습니다';
+      : '수락하지 않은 문장은 문서에 없습니다');
 
   const statusRight = (
     <>
@@ -348,6 +385,11 @@ export function DocumentWorkspace() {
                   setSession(updated);
                 }}
                 onGenerate={generate}
+                onFollowups={async () => {
+                  const r = await api.followups(docId);
+                  setSession(r.session);
+                  return r.questions.length;
+                }}
               />
             ) : (
               <div className="muted">인터뷰 템플릿을 불러오는 중…</div>

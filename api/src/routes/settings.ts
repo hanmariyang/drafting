@@ -7,6 +7,7 @@ import { aiMode } from '../providers/index.ts';
 import { cliAvailable, resolveCliBin, resetCliBinCache, verifyCliAccess } from '../providers/cli.ts';
 import { getDecryptedKey } from '../db/repos.ts';
 import { probeGateway, fetchOpenRouterModels } from '../lib/gateway.ts';
+import { councilEnabled } from '../lib/council.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
 
@@ -31,6 +32,8 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
       cliBin: resolveCliBin(),
       agentBinPath: repo.getSetting<string>('agent_bin_path') ?? '',
       openaiBaseUrl: repo.getSetting<string>('openai_base_url') || config.openaiBaseUrl || '',
+      // 문서 툴바가 '카운슬' 버튼을 그릴지 — 꺼져 있으면 버튼 자체를 그리지 않는다.
+      councilEnabled: councilEnabled(),
       // In v1 there is no update server; the client shows the running version.
       // A real deployment can point this at a release feed.
       latestVersion: repo.getSetting<string>('latest_version') ?? config.version,
@@ -41,7 +44,15 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     return {
       providerModels: repo.getSetting('provider_models') ?? { default: {} },
       onboardingComplete: repo.getSetting<boolean>('onboarding_complete') ?? false,
+      councilEnabled: councilEnabled(),
     };
+  });
+
+  // 카운슬 비평 on/off. 끄면 문서 툴바의 버튼이 사라지고 API 는 409 로 안내한다.
+  app.put('/api/settings/council', async (req) => {
+    const body = parse(z.object({ enabled: z.boolean() }), req.body);
+    repo.setSetting('council_enabled', body.enabled);
+    return { councilEnabled: body.enabled };
   });
 
   // per-doc-type model + token budget (SPEC-19)

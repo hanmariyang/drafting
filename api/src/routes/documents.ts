@@ -13,6 +13,7 @@ import {
 import { briefAdvisory } from '../lib/brief-lint.ts';
 import { featurePromptPack } from '../lib/handoff.ts';
 import { qualityAdvisory } from '../lib/quality-lint.ts';
+import { runCouncil, councilEnabled, isCouncilType, CouncilError } from '../lib/council.ts';
 import { streamDocumentDraft } from '../lib/ai.ts';
 
 const DOC_TYPES = [
@@ -200,6 +201,29 @@ export async function documentRoutes(app: FastifyInstance): Promise<void> {
     }
     const sections = repo.listSections(id).filter((s) => s.status !== 'rejected');
     return { enabled: true, notes: qualityAdvisory(doc.type, sections) };
+  });
+
+  // ── 카운슬 비평 ──────────────────────────────────────────────────────────────
+  // 엔지니어·디자이너·회의론자 3관점을 AI 호출 1회로 받아, 각 비평을 해당 섹션의
+  // 제안 카드(kind=question)로 적재한다. 게이트 아님 — 카드는 사람이 처리한다.
+  // 설정에서 끄면 409 로 안내하고 UI 는 버튼 자체를 그리지 않는다.
+  app.post('/api/documents/:id/council', async (req) => {
+    const { id } = req.params as { id: string };
+    const doc = repo.getDocument(id);
+    if (!doc) throw new HttpError(404, 'document not found');
+    if (!councilEnabled()) {
+      throw new HttpError(409, '카운슬 비평이 꺼져 있습니다 — 설정에서 켤 수 있습니다');
+    }
+    if (!isCouncilType(doc.type)) {
+      throw new HttpError(400, '산문 기획 문서(prd·feature)만 비평합니다');
+    }
+    try {
+      const { created, dropped } = await runCouncil(id);
+      return { created, dropped, openSuggestions: repo.countOpenSuggestions(id) };
+    } catch (e) {
+      if (e instanceof CouncilError) throw new HttpError(400, (e as Error).message);
+      throw new HttpError(502, `비평을 받지 못했습니다 · ${(e as Error).message}`);
+    }
   });
 
   // ── 작은 기능 프롬프트 팩 (설계 노트 §4) ─────────────────────────────────────
