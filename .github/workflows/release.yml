@@ -98,6 +98,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ⛔ 이 스텝을 빼지 말 것. GHCR 은 옛 버전을 절대 자동 삭제하지 않으므로
+      #    릴리스마다 이미지가 영구 누적되고, 계정 저장공간 한도를 넘으면 그
+      #    초과분 과금이 예산을 채워 *다른* 저장소의 아티팩트 업로드까지 막는다
+      #    ("Artifact storage quota has been hit" — 문구가 엉뚱한 곳을 가리킨다).
+      # ⚠️ 멀티아치라 릴리스 한 벌 = 버전 3개(인덱스 + 자식 2). 그래서 30 이다.
+      #    자식은 인덱스보다 1초쯤 먼저 만들어지므로, 경계에 걸린 가장 오래된
+      #    태그 하나는 자식이 먼저 잘려 못 받게 될 수 있다 — 가장 낡은 것이라 무해하다.
+      - name: 옛 이미지 버전 정리 — 최근 10벌(=버전 30개)만 남긴다
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: drafting
+          package-type: container
+          min-versions-to-keep: 30
+          delete-only-untagged-versions: false
+
   # npm 배포 — 태그 시 @hanmariyang/drafting 를 npm 에 publish (npx 로 실행 가능).
   # NPM_TOKEN 시크릿이 있을 때만 동작(없으면 안전 스킵), 이미 배포된 버전도 스킵 → 재실행 안전.
   npm-publish:
